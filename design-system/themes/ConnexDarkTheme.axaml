@@ -1,0 +1,354 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         CONNEX STUDIO - DARK THEME
+         Industrial Precision Design Language
+         Version: 1.0
+         ═══════════════════════════════════════════════════════════════════ -->
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         BACKGROUND HIERARCHY
+         Level 0-4: Progressively lighter surfaces for depth perception
+         ═══════════════════════════════════════════════════════════════════ -->
+    <Color x:Key="BgAppColor">#0B0E14</Color>
+    <Color x:Key="BgSurfaceColor">#141820</Color>
+    <Color x:Key="BgSurfaceElevatedColor">#1C2029</Color>
+    <Color x:Key="BgSurfaceActiveColor">#252A36</Color>
+    <Color x:Key="BgSurfaceHighlightColor">#2E3440</Color>
+
+    <SolidColorBrush x:Key="BgAppBrush" Color="{StaticResource BgAppColor}"/>
+    <SolidColorBrush x:Key="BgSurfaceBrush" Color="{StaticResource BgSurfaceColor}"/>
+    <SolidColorBrush x:Key="BgSurfaceElevatedBrush" Color="{StaticResource BgSurfaceElevatedColor}"/>
+    <SolidColorBrush x:Key="BgSurfaceActiveBrush" Color="{StaticResource BgSurfaceActiveColor}"/>
+    <SolidColorBrush x:Key="BgSurfaceHighlightBrush" Color="{StaticResource BgSurfaceHighlightColor}"/>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         BORDER COLORS
+         Subtle to Strong hierarchy for visual separation
+         ═══════════════════════════════════════════════════════════════════ -->
+    <Color x:Key="BorderSubtleColor">#1E2430</Color>
+    <Color x:Key="BorderDefaultColor">#2A3142</Color>
+    <Color x:Key="BorderStrongColor">#3B4459</Color>
+    <Color x:Key="BorderAccentColor">#4A90E2</Color>
+
+    <SolidColorBrush x:Key="BorderSubtleBrush" Color="{StaticResource BorderSubtleColor}"/>
+    <SolidColorBrush x:Key="BorderDefaultBrush" Color="{StaticResource BorderDefaultColor}"/>
+    <SolidColorBrush x:Key="BorderStrongBrush" Color="{StaticResource BorderStrongColor}"/>
+    <SolidColorBrush x:Key="BorderAccentBrush" Color="{StaticResource BorderAccentColor}"/>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         TEXT HIERARCHY
+         Primary: 15.8:1 contrast - Main content
+         Secondary: 8.2:1 contrast - Descriptions
+         Tertiary: 4.6:1 contrast - Placeholders
+         ═══════════════════════════════════════════════════════════════════ -->
+    <Color x:Key="TextPrimaryColor">#F0F4F8</Color>
+    <Color x:Key="TextSecondaryColor">#A8B5C4</Color>
+    <Color x:Key="TextTertiaryColor">#6B7A8F</Color>
+    <Color x:Key="TextMutedColor">#4A5568</Color>
+
+    <SolidColorBrush x:Key="TextPrimaryBrush" Color="{StaticResource TextPrimaryColor}"/>
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="{StaticResource TextSecondaryColor}"/>
+    <SolidColorBrush x:Key="TextTertiaryBrush" Color="{StaticResource TextTertiaryColor}"/>
+    <SolidColorBrush x:Key="TextMutedBrush" Color="{StaticResource TextMutedColor}"/>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         BRAND COLORS - CONNEX BLUE (PRIMARY)
+         Trust, precision, connectivity
+         ═══════════════════════════════════════════════════════════════════ -->
+    <Color x:Key="Primary50">#E8F4FD</Color>
+    <Color x:Key="Primary100">#C5E1FA</Color>
+    <Color x:Key="Primary200">#91C8F6</Color>
+    <Color x:Key="Primary300">#5BAAEF</Color>
+    <Color x:Key="Primary400">#3B93E8</Color>
+    <Color x:Key="Primary500">#2B7CD3</Color>
+    <Color x:Key="Primary600">#1E5FA6</Color>
+    <Color x:Key="Primary700">#164680</Color>
+    <Color x:Key="Primary800">#0F3058</Color>
+    <Color x:Key="Primary900">#091E3A</Color>
+
+    <Color x:Key="PrimaryColor">#2B7CD3</Color>
+    <Color x:Key="PrimaryHoverColor">#1E5FA6</Color>
+    <Color x:Key="PrimaryActiveColor">#164680</Color>
+    <Color x:Key="PrimarySubtleColor">#0D2E4A</Color>
+
+    <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource PrimaryColor}"/>
+    <SolidColorBrush x:Key="PrimaryHoverBrush" Color="{StaticResource PrimaryHoverColor}"/>
+    <SolidColorBrush x:Key="PrimaryActiveBrush" Color="{StaticResource PrimaryActiveColor}"/>
+    <SolidColorBrush x:Key="PrimarySubtleBrush" Color="{StaticResource PrimarySubtleColor}"/>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         ACCENT COLOR - SIGNAL ORANGE
+         Attention-grabbing for CTAs and important actions
+         ═══════════════════════════════════════════════════════════════════ -->
+    <Color x:Key="Accent50">#FFF7ED</Color>
+    <Color x:Key="Accent100">#FFEDD5</Color>
+    <Color x:Key="Accent200">#FED7AA</Color>
+    <Color x:Key="Accent300">#FDBA74</Color>
+    <Color x:Key="Accent400">#FB923C</Color>
+    <Color x:Key="Accent500">#F97316</Color>
+    <Color x:Key="Accent600">#EA580C</Color>
+    <Color x:Key="Accent700">#C2410C</Color>
+
+    <Color x:Key="AccentColor">#F97316</Color>
+    <Color x:Key="AccentHoverColor">#EA580C</Color>
+
+    <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}"/>
+    <SolidColorBrush x:Key="AccentHoverBrush" Color="{StaticResource AccentHoverColor}"/>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         STATUS COLORS - CONNECTION & DATA QUALITY
+         Critical for IIoT - must be instantly recognizable
+         ═══════════════════════════════════════════════════════════════════ -->
+
+    <!-- Success / Connected -->
+    <Color x:Key="SuccessColor">#10B981</Color>
+    <Color x:Key="SuccessBgColor">#0F2922</Color>
+    <Color x:Key="SuccessBorderColor">#059669</Color>
+    <SolidColorBrush x:Key="SuccessBrush" Color="{StaticResource SuccessColor}"/>
+    <SolidColorBrush x:Key="SuccessBgBrush" Color="{StaticResource SuccessBgColor}"/>
+    <SolidColorBrush x:Key="SuccessBorderBrush" Color="{StaticResource SuccessBorderColor}"/>
+
+    <!-- Warning / Connecting -->
+    <Color x:Key="WarningColor">#F59E0B</Color>
+    <Color x:Key="WarningBgColor">#2A2210</Color>
+    <Color x:Key="WarningBorderColor">#D97706</Color>
+    <SolidColorBrush x:Key="WarningBrush" Color="{StaticResource WarningColor}"/>
+    <SolidColorBrush x:Key="WarningBgBrush" Color="{StaticResource WarningBgColor}"/>
+    <SolidColorBrush x:Key="WarningBorderBrush" Color="{StaticResource WarningBorderColor}"/>
+
+    <!-- Error / Disconnected with Error -->
+    <Color x:Key="ErrorColor">#EF4444</Color>
+    <Color x:Key="ErrorBgColor">#2A1515</Color>
+    <Color x:Key="ErrorBorderColor">#DC2626</Color>
+    <SolidColorBrush x:Key="ErrorBrush" Color="{StaticResource ErrorColor}"/>
+    <SolidColorBrush x:Key="ErrorBgBrush" Color="{StaticResource ErrorBgColor}"/>
+    <SolidColorBrush x:Key="ErrorBorderBrush" Color="{StaticResource ErrorBorderColor}"/>
+
+    <!-- Info -->
+    <Color x:Key="InfoColor">#0EA5E9</Color>
+    <Color x:Key="InfoBgColor">#0C2A3A</Color>
+    <Color x:Key="InfoBorderColor">#0284C7</Color>
+    <SolidColorBrush x:Key="InfoBrush" Color="{StaticResource InfoColor}"/>
+    <SolidColorBrush x:Key="InfoBgBrush" Color="{StaticResource InfoBgColor}"/>
+    <SolidColorBrush x:Key="InfoBorderBrush" Color="{StaticResource InfoBorderColor}"/>
+
+    <!-- Neutral / Disconnected (idle) -->
+    <Color x:Key="NeutralColor">#6B7280</Color>
+    <Color x:Key="NeutralBgColor">#1C1E24</Color>
+    <SolidColorBrush x:Key="NeutralBrush" Color="{StaticResource NeutralColor}"/>
+    <SolidColorBrush x:Key="NeutralBgBrush" Color="{StaticResource NeutralBgColor}"/>
+
+    <!-- Reconnecting -->
+    <Color x:Key="ReconnectingColor">#8B5CF6</Color>
+    <Color x:Key="ReconnectingBgColor">#1E1A2E</Color>
+    <SolidColorBrush x:Key="ReconnectingBrush" Color="{StaticResource ReconnectingColor}"/>
+    <SolidColorBrush x:Key="ReconnectingBgBrush" Color="{StaticResource ReconnectingBgColor}"/>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         ALERT SEVERITY COLORS
+         For notification and alarm systems
+         ═══════════════════════════════════════════════════════════════════ -->
+    <Color x:Key="AlertCriticalBgColor">#450A0A</Color>
+    <Color x:Key="AlertCriticalTextColor">#FCA5A5</Color>
+    <Color x:Key="AlertCriticalIconColor">#EF4444</Color>
+    <Color x:Key="AlertCriticalBorderColor">#DC2626</Color>
+
+    <Color x:Key="AlertWarningBgColor">#451A03</Color>
+    <Color x:Key="AlertWarningTextColor">#FCD34D</Color>
+    <Color x:Key="AlertWarningIconColor">#F59E0B</Color>
+    <Color x:Key="AlertWarningBorderColor">#D97706</Color>
+
+    <Color x:Key="AlertInfoBgColor">#082F49</Color>
+    <Color x:Key="AlertInfoTextColor">#7DD3FC</Color>
+    <Color x:Key="AlertInfoIconColor">#0EA5E9</Color>
+    <Color x:Key="AlertInfoBorderColor">#0284C7</Color>
+
+    <Color x:Key="AlertSuccessBgColor">#052E16</Color>
+    <Color x:Key="AlertSuccessTextColor">#86EFAC</Color>
+    <Color x:Key="AlertSuccessIconColor">#10B981</Color>
+    <Color x:Key="AlertSuccessBorderColor">#059669</Color>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         PROTOCOL-SPECIFIC COLORS
+         Each protocol has a signature color for instant recognition
+         ═══════════════════════════════════════════════════════════════════ -->
+    <Color x:Key="ProtocolModbusColor">#14B8A6</Color>
+    <Color x:Key="ProtocolOpcUaColor">#8B5CF6</Color>
+    <Color x:Key="ProtocolMqttColor">#22C55E</Color>
+    <Color x:Key="ProtocolBacnetColor">#3B82F6</Color>
+
+    <SolidColorBrush x:Key="ProtocolModbusBrush" Color="{StaticResource ProtocolModbusColor}"/>
+    <SolidColorBrush x:Key="ProtocolOpcUaBrush" Color="{StaticResource ProtocolOpcUaColor}"/>
+    <SolidColorBrush x:Key="ProtocolMqttBrush" Color="{StaticResource ProtocolMqttColor}"/>
+    <SolidColorBrush x:Key="ProtocolBacnetBrush" Color="{StaticResource ProtocolBacnetColor}"/>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         DATA VISUALIZATION - CHART SERIES COLORS
+         Designed for distinguishability and colorblind safety
+         ═══════════════════════════════════════════════════════════════════ -->
+    <Color x:Key="ChartSeries1">#4A90E2</Color>
+    <Color x:Key="ChartSeries2">#50C878</Color>
+    <Color x:Key="ChartSeries3">#E8AA42</Color>
+    <Color x:Key="ChartSeries4">#E25C5C</Color>
+    <Color x:Key="ChartSeries5">#9B72CF</Color>
+    <Color x:Key="ChartSeries6">#4ECDC4</Color>
+    <Color x:Key="ChartSeries7">#F7A072</Color>
+    <Color x:Key="ChartSeries8">#72A0CF</Color>
+    <Color x:Key="ChartSeries9">#95D5B2</Color>
+    <Color x:Key="ChartSeries10">#DDA0DD</Color>
+
+    <SolidColorBrush x:Key="ChartSeries1Brush" Color="{StaticResource ChartSeries1}"/>
+    <SolidColorBrush x:Key="ChartSeries2Brush" Color="{StaticResource ChartSeries2}"/>
+    <SolidColorBrush x:Key="ChartSeries3Brush" Color="{StaticResource ChartSeries3}"/>
+    <SolidColorBrush x:Key="ChartSeries4Brush" Color="{StaticResource ChartSeries4}"/>
+    <SolidColorBrush x:Key="ChartSeries5Brush" Color="{StaticResource ChartSeries5}"/>
+    <SolidColorBrush x:Key="ChartSeries6Brush" Color="{StaticResource ChartSeries6}"/>
+    <SolidColorBrush x:Key="ChartSeries7Brush" Color="{StaticResource ChartSeries7}"/>
+    <SolidColorBrush x:Key="ChartSeries8Brush" Color="{StaticResource ChartSeries8}"/>
+    <SolidColorBrush x:Key="ChartSeries9Brush" Color="{StaticResource ChartSeries9}"/>
+    <SolidColorBrush x:Key="ChartSeries10Brush" Color="{StaticResource ChartSeries10}"/>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         SPARKLINE COLORS
+         For inline micro-charts in data grids
+         ═══════════════════════════════════════════════════════════════════ -->
+    <Color x:Key="SparklineLineColor">#4A90E2</Color>
+    <Color x:Key="SparklineFillColor">#194A90E2</Color>
+    <Color x:Key="SparklineMinPointColor">#EF4444</Color>
+    <Color x:Key="SparklineMaxPointColor">#10B981</Color>
+    <Color x:Key="SparklineLastPointColor">#F59E0B</Color>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         HEATMAP GRADIENT
+         For value range visualization (Cool → Hot)
+         ═══════════════════════════════════════════════════════════════════ -->
+    <Color x:Key="HeatmapCool1">#1E40AF</Color>
+    <Color x:Key="HeatmapCool2">#3B82F6</Color>
+    <Color x:Key="HeatmapCool3">#60A5FA</Color>
+    <Color x:Key="HeatmapNeutral">#93C5FD</Color>
+    <Color x:Key="HeatmapWarm1">#FBBF24</Color>
+    <Color x:Key="HeatmapWarm2">#F97316</Color>
+    <Color x:Key="HeatmapHot">#EF4444</Color>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         TRAFFIC LIGHT COLORS
+         For boolean/status displays
+         ═══════════════════════════════════════════════════════════════════ -->
+    <Color x:Key="TrafficLightGreen">#10B981</Color>
+    <Color x:Key="TrafficLightAmber">#F59E0B</Color>
+    <Color x:Key="TrafficLightRed">#EF4444</Color>
+    <Color x:Key="TrafficLightGray">#6B7280</Color>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         DATA GRID SPECIFIC COLORS
+         For Super Grid component
+         ═══════════════════════════════════════════════════════════════════ -->
+    <Color x:Key="GridHeaderBgColor">#1C2029</Color>
+    <Color x:Key="GridHeaderTextColor">#A8B5C4</Color>
+    <Color x:Key="GridRowDefaultColor">#141820</Color>
+    <Color x:Key="GridRowAlternateColor">#181C24</Color>
+    <Color x:Key="GridRowHoverColor">#252A36</Color>
+    <Color x:Key="GridRowSelectedColor">#162A44</Color>
+    <Color x:Key="GridCellChangedColor">#F59E0B</Color>
+
+    <SolidColorBrush x:Key="GridHeaderBgBrush" Color="{StaticResource GridHeaderBgColor}"/>
+    <SolidColorBrush x:Key="GridHeaderTextBrush" Color="{StaticResource GridHeaderTextColor}"/>
+    <SolidColorBrush x:Key="GridRowDefaultBrush" Color="{StaticResource GridRowDefaultColor}"/>
+    <SolidColorBrush x:Key="GridRowAlternateBrush" Color="{StaticResource GridRowAlternateColor}"/>
+    <SolidColorBrush x:Key="GridRowHoverBrush" Color="{StaticResource GridRowHoverColor}"/>
+    <SolidColorBrush x:Key="GridRowSelectedBrush" Color="{StaticResource GridRowSelectedColor}"/>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         DVR TIMELINE COLORS
+         For Data DVR time-travel feature
+         ═══════════════════════════════════════════════════════════════════ -->
+    <Color x:Key="TimelineTrackColor">#1C2029</Color>
+    <Color x:Key="TimelineRecordedColor">#2A4A6E</Color>
+    <Color x:Key="TimelinePlayheadColor">#F97316</Color>
+    <Color x:Key="TimelineBookmarkColor">#8B5CF6</Color>
+    <Color x:Key="TimelineAlertMarkerColor">#EF4444</Color>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         BRIDGE VISUALIZATION COLORS
+         For protocol bridging feature
+         ═══════════════════════════════════════════════════════════════════ -->
+    <Color x:Key="BridgeSourceAccentColor">#14B8A6</Color>
+    <Color x:Key="BridgeTargetAccentColor">#22C55E</Color>
+    <Color x:Key="BridgeLineIdleColor">#3B4459</Color>
+    <Color x:Key="BridgeLineActiveColor">#4A90E2</Color>
+    <Color x:Key="BridgeLineErrorColor">#EF4444</Color>
+    <Color x:Key="BridgeParticleColor">#4A90E2</Color>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         RECORDING BUTTON COLORS
+         For REC button states
+         ═══════════════════════════════════════════════════════════════════ -->
+    <Color x:Key="RecButtonIdleBgColor">#252A36</Color>
+    <Color x:Key="RecButtonIdleTextColor">#A8B5C4</Color>
+    <Color x:Key="RecButtonIdleBorderColor">#3B4459</Color>
+    <Color x:Key="RecButtonActiveBgColor">#EF4444</Color>
+    <Color x:Key="RecButtonActiveTextColor">#FFFFFF</Color>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         SCROLLBAR COLORS
+         ═══════════════════════════════════════════════════════════════════ -->
+    <Color x:Key="ScrollbarTrackColor">#141820</Color>
+    <Color x:Key="ScrollbarThumbColor">#3B4459</Color>
+    <Color x:Key="ScrollbarThumbHoverColor">#4A5568</Color>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         FOCUS & SELECTION
+         ═══════════════════════════════════════════════════════════════════ -->
+    <Color x:Key="FocusRingColor">#4A90E2</Color>
+    <Color x:Key="SelectionBgColor">#162A44</Color>
+    <Color x:Key="SelectionBorderColor">#4A90E2</Color>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         SHADOWS & OVERLAYS
+         ═══════════════════════════════════════════════════════════════════ -->
+    <Color x:Key="OverlayColor">#80000000</Color>
+    <Color x:Key="DropShadowColor">#40000000</Color>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         TYPOGRAPHY SIZES
+         ═══════════════════════════════════════════════════════════════════ -->
+    <x:Double x:Key="FontSizeDisplayLg">32</x:Double>
+    <x:Double x:Key="FontSizeDisplayMd">24</x:Double>
+    <x:Double x:Key="FontSizeHeadingLg">20</x:Double>
+    <x:Double x:Key="FontSizeHeadingMd">16</x:Double>
+    <x:Double x:Key="FontSizeBodyLg">15</x:Double>
+    <x:Double x:Key="FontSizeBodyMd">14</x:Double>
+    <x:Double x:Key="FontSizeBodySm">13</x:Double>
+    <x:Double x:Key="FontSizeCaption">12</x:Double>
+    <x:Double x:Key="FontSizeMicro">11</x:Double>
+    <x:Double x:Key="FontSizeData">13</x:Double>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         SPACING SCALE
+         ═══════════════════════════════════════════════════════════════════ -->
+    <x:Double x:Key="SpacingXs">4</x:Double>
+    <x:Double x:Key="SpacingSm">8</x:Double>
+    <x:Double x:Key="SpacingMd">12</x:Double>
+    <x:Double x:Key="SpacingLg">16</x:Double>
+    <x:Double x:Key="SpacingXl">24</x:Double>
+    <x:Double x:Key="SpacingXxl">32</x:Double>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         BORDER RADIUS
+         ═══════════════════════════════════════════════════════════════════ -->
+    <CornerRadius x:Key="RadiusSm">4</CornerRadius>
+    <CornerRadius x:Key="RadiusMd">6</CornerRadius>
+    <CornerRadius x:Key="RadiusLg">8</CornerRadius>
+    <CornerRadius x:Key="RadiusXl">12</CornerRadius>
+    <CornerRadius x:Key="RadiusFull">9999</CornerRadius>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         ANIMATION DURATIONS
+         ═══════════════════════════════════════════════════════════════════ -->
+    <x:String x:Key="TransitionFast">0:0:0.15</x:String>
+    <x:String x:Key="TransitionNormal">0:0:0.2</x:String>
+    <x:String x:Key="TransitionSlow">0:0:0.3</x:String>
+
+</ResourceDictionary>

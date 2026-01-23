@@ -65,13 +65,13 @@ Read `.specify/memory/constitution.md` before making changes. Key principles:
 
 | Document | Purpose |
 |----------|---------|
-| `specs/001-mvp-protocol-clients/spec.md` | User stories, acceptance criteria |
-| `specs/001-mvp-protocol-clients/plan.md` | Implementation phases, tech context |
-| `specs/001-mvp-protocol-clients/data-model.md` | Entity definitions, state transitions |
-| `specs/001-mvp-protocol-clients/contracts/ipc-channels.md` | IPC channel definitions |
-| `specs/001-mvp-protocol-clients/contracts/types.md` | TypeScript type contracts |
-| `specs/001-mvp-protocol-clients/quickstart.md` | Dev environment setup |
-| `specs/001-mvp-protocol-clients/tasks.md` | Task breakdown by phase |
+| `specs/002-iiot-protocol-studio/spec.md` | User stories, acceptance criteria |
+| `specs/002-iiot-protocol-studio/plan.md` | Implementation phases, tech context |
+| `specs/002-iiot-protocol-studio/data-model.md` | Entity definitions, state transitions |
+| `specs/002-iiot-protocol-studio/contracts/ipc-channels.md` | IPC channel definitions |
+| `specs/002-iiot-protocol-studio/contracts/types.ts` | TypeScript type contracts |
+| `specs/002-iiot-protocol-studio/quickstart.md` | Dev environment setup |
+| `specs/002-iiot-protocol-studio/research.md` | Technology decisions & rationale |
 
 ## IPC Pattern
 
@@ -92,7 +92,7 @@ const result = await window.api.invoke('modbus:read', params)
 
 ## Tech Stack
 
-- **Runtime**: Node.js 22 LTS, Electron 34+
+- **Runtime**: Node.js 22 LTS, Electron 40
 - **Frontend**: React 19, Vite 6, Tailwind CSS, Shadcn/ui
 - **State**: Zustand with cross-process sync
 - **Protocols**: modbus-serial 8.x, mqtt.js 5.x, node-opcua 2.x
@@ -107,3 +107,10 @@ const result = await window.api.invoke('modbus:read', params)
 - All animations: 60 FPS
 - Cold start: ≤5 seconds
 - DVR buffer (100 Tags @ 500ms): ≤200MB memory
+
+## Active Technologies
+- TypeScript 5.x, Node.js 22 LTS (002-iiot-protocol-studio)
+- better-sqlite3 (ring buffer for DVR), YAML (config files), JSON (profiles) (002-iiot-protocol-studio)
+
+## Recent Changes
+- 002-iiot-protocol-studio: Added TypeScript 5.x, Node.js 22 LTS

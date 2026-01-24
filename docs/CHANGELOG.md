@@ -7,6 +7,68 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2025-01-24
+
+### Added
+
+- **Phase 9: US6 多協定支援** (T121-T129)
+  - **Main Process - MQTT 協定適配器**
+    - MqttAdapter 完整實作 (`src/main/protocols/MqttAdapter.ts`)
+      - 使用 mqtt.js 5.x 函式庫
+      - Topic 訂閱與值快取機制
+      - JSON payload 解析與 jsonPath 擷取
+      - 支援 MQTT wildcard 訂閱 (`+` 單層、`#` 多層)
+      - TLS 加密連線支援
+      - 使用者名稱/密碼驗證
+      - 自動重連機制
+    - parseMqttAddress 工具函式
+      - 支援格式：`topic` 或 `topic::jsonPath`
+      - JSON path 支援點記法與陣列索引 (e.g., `data.values[0].temp`)
+    - 協定註冊擴展 (`src/main/protocols/index.ts`)
+      - initializeProtocols() 註冊 MQTT 適配器
+      - 工廠模式支援多協定實例化
+
+  - **Renderer - 多協定 UI**
+    - ConnectionForm 協定選擇器 (`src/renderer/components/connection/ConnectionForm.tsx`)
+      - 協定切換按鈕 (Modbus TCP / MQTT)
+      - Modbus TCP 設定欄位：Host、Port、Unit ID
+      - MQTT 設定欄位：Broker URL、Client ID、Username、Password、TLS
+      - 依協定動態顯示對應欄位
+    - TagGrid 協定圖示 (`src/renderer/components/tags/TagGrid.tsx`)
+      - Modbus TCP：藍色 Radio 圖示
+      - MQTT：綠色 Wifi 圖示
+      - OPC UA：紫色 Network 圖示 (預留)
+      - 支援兩種協定的位址格式顯示
+    - TagEditor 多協定支援 (`src/renderer/components/tags/TagEditor.tsx`)
+      - Modbus 位址欄位：Register Type、Address、Length
+      - MQTT 位址欄位：Topic、JSON Path (選填)
+      - 標頭顯示協定類型指示器
+
+  - **測試**
+    - MqttAdapter 單元測試 (`tests/unit/main/MqttAdapter.test.ts`)
+      - 位址解析測試 (9 tests)
+      - 適配器生命週期測試 (8 tests)
+      - JSON path 擷取測試 (2 tests)
+      - Topic wildcard 匹配測試 (8 tests)
+      - Payload 解析測試 (13 tests)
+      - 共 40 個測試案例
+
+### Changed
+
+- `src/main/protocols/index.ts` 註冊 MQTT 協定工廠
+- `src/shared/types/tag.ts` 新增 DEFAULT_MQTT_ADDRESS 常數
+- `src/renderer/components/connection/ConnectionForm.tsx` 重寫為多協定表單
+- `src/renderer/components/tags/TagGrid.tsx` 新增 ProtocolIcon 元件
+- `src/renderer/components/tags/TagEditor.tsx` 重寫為多協定編輯器
+
+### Technical Details
+
+- MQTT 採用發布/訂閱模式，與 Modbus TCP 輪詢模式不同
+- MqttAdapter 透過 topicCache 快取最新值供 readTags() 返回
+- 支援 QoS 1 確保訊息至少送達一次
+- 協定適配器繼承 ProtocolAdapter 抽象類別，確保統一介面
+- 測試總數：63 個 (ModbusTcpAdapter: 23, MqttAdapter: 40)
+
 ## [0.6.0] - 2025-01-24
 
 ### Added
@@ -331,6 +393,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | 版本 | 日期 | 說明 |
 |------|------|------|
+| 0.7.0 | 2025-01-24 | Phase 9 實作：US6 多協定支援 (MQTT 適配器、多協定 UI) |
 | 0.6.0 | 2025-01-24 | Phase 8 實作：US5 虛擬伺服器 (內建 Modbus TCP 模擬器) |
 | 0.5.0 | 2025-01-24 | Phase 7 實作：US7 Session 匯出與報告 (CSV/HTML Report) |
 | 0.4.0 | 2025-01-24 | Phase 6 實作：US4 連線組態管理 (Profile save/load/import/export) |
@@ -338,7 +401,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 | 0.2.0 | 2025-01-24 | Phase 1-2 實作：專案鷹架與基礎設施層 |
 | 0.1.0 | 2025-01-23 | 初始專案結構與 MVP 規格 |
 
-[Unreleased]: https://github.com/kcchien/connex-studio/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/kcchien/connex-studio/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/kcchien/connex-studio/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/kcchien/connex-studio/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/kcchien/connex-studio/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/kcchien/connex-studio/compare/v0.3.0...v0.4.0

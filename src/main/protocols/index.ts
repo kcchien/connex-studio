@@ -25,10 +25,21 @@ export {
   parseMqttAddress
 } from './MqttAdapter'
 
+export { OpcUaAdapter } from './OpcUaAdapter'
+
 // Register all protocol adapters
 import { getProtocolRegistry } from './ProtocolAdapter'
 import { createModbusTcpAdapter } from './ModbusTcpAdapter'
 import { createMqttAdapter } from './MqttAdapter'
+import { OpcUaAdapter } from './OpcUaAdapter'
+import type { Connection } from '@shared/types'
+
+/**
+ * Factory function for OPC UA adapter.
+ */
+function createOpcUaAdapter(connection: Connection): OpcUaAdapter {
+  return new OpcUaAdapter(connection)
+}
 
 /**
  * Initialize protocol registry with all supported adapters.
@@ -43,6 +54,6 @@ export function initializeProtocols(): void {
   // Register MQTT adapter
   registry.register('mqtt', createMqttAdapter)
 
-  // Future: Register OPC UA adapter
-  // registry.register('opcua', createOpcUaAdapter)
+  // Register OPC UA adapter
+  registry.register('opcua', createOpcUaAdapter)
 }

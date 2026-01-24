@@ -7,6 +7,421 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2025-01-24
+
+### Added
+
+- **Phase 10: Polish & Cross-Cutting Concerns** (T130-T145)
+  - **Main Process - App Lifecycle Handlers**
+    - App lifecycle IPC handlers (`src/main/ipc/app.ts`)
+      - `app:check-unsaved` - 檢查是否有未儲存的變更或進行中的輪詢
+      - `app:force-quit` - 強制關閉應用程式
+      - `app:confirm-close` - 從選單觸發的關閉確認
+    - Window close 確認對話框
+      - 偵測進行中的輪詢會話
+      - 優雅停止所有輪詢再關閉
+    - `handleWindowClose()` 整合至 main/index.ts
+
+  - **Main Process - 自動重連機制**
+    - ConnectionManager 指數退避重連 (`src/main/services/ConnectionManager.ts`)
+      - 基礎延遲 1 秒，最大延遲 30 秒
+      - 最多嘗試 5 次重連
+      - 網路斷線偵測 (3 秒逾時)
+    - 新增方法：
+      - `connectWithTimeout()` - 帶逾時的連線
+      - `scheduleReconnect()` - 排程重連
+      - `setAutoReconnect()` - 開啟/關閉自動重連
+      - `cancelReconnect()` - 取消待處理重連
+
+  - **Renderer - UI Polish**
+    - uiStore Zustand 狀態管理 (`src/renderer/stores/uiStore.ts`)
+      - Theme 管理 (light/dark/system)
+      - 自動偵測系統主題變更
+      - 側邊欄折疊狀態
+      - Log viewer 開關狀態
+      - 使用 localStorage 持久化
+    - ThemeToggle 元件 (`src/renderer/components/common/ThemeToggle.tsx`)
+      - 循環切換 light → dark → system
+      - 各主題專屬圖示
+    - LogViewer 元件 (`src/renderer/components/common/LogViewer.tsx`)
+      - 顯示應用程式日誌
+      - 等級篩選器 (debug/info/warn/error/verbose)
+      - 自動重整 (5 秒間隔)
+      - 自動捲動至最新
+      - 開啟日誌資料夾按鈕
+    - useKeyboardShortcuts Hook (`src/renderer/hooks/useKeyboardShortcuts.ts`)
+      - `Ctrl+Enter` (Mac: `Cmd+Enter`) - 連線/斷線
+      - `F5` - 開始輪詢
+      - `Shift+F5` - 停止輪詢
+      - `Ctrl+L` (Mac: `Cmd+L`) - 切換日誌檢視器
+    - App.tsx 整合
+      - 鍵盤快捷鍵啟用
+      - 側邊欄 Theme Toggle
+      - 側邊欄 Log Viewer 切換按鈕
+      - 主內容區底部 Log Viewer 面板
+
+  - **E2E Tests**
+    - monitoring.spec.ts - US2 標籤監控測試
+    - dvr.spec.ts - US3 DVR 時光旅行測試
+    - profile.spec.ts - US4 組態管理測試
+    - 測試採用彈性設計，伺服器不可用時優雅跳過
+
+### Changed
+
+- `src/main/index.ts` 整合 app lifecycle handlers
+- `src/main/ipc/index.ts` 註冊 App lifecycle IPC 處理器
+- `src/main/services/ConnectionManager.ts` 新增自動重連邏輯
+- `src/renderer/App.tsx` 整合 UI polish 功能
+
+### Technical Details
+
+- 自動重連使用指數退避演算法：delay = min(base * 2^attempts, max)
+- Theme provider 監聽 `prefers-color-scheme` media query
+- 日誌檢視器使用分頁載入，每次最多 200 筆
+- E2E 測試使用 Playwright + Electron 整合
+- 鍵盤快捷鍵跨平台支援 (Windows/Mac)
+
+## [0.7.0] - 2025-01-24
+
+### Added
+
+- **Phase 9: US6 多協定支援** (T121-T129)
+  - **Main Process - MQTT 協定適配器**
+    - MqttAdapter 完整實作 (`src/main/protocols/MqttAdapter.ts`)
+      - 使用 mqtt.js 5.x 函式庫
+      - Topic 訂閱與值快取機制
+      - JSON payload 解析與 jsonPath 擷取
+      - 支援 MQTT wildcard 訂閱 (`+` 單層、`#` 多層)
+      - TLS 加密連線支援
+      - 使用者名稱/密碼驗證
+      - 自動重連機制
+    - parseMqttAddress 工具函式
+      - 支援格式：`topic` 或 `topic::jsonPath`
+      - JSON path 支援點記法與陣列索引 (e.g., `data.values[0].temp`)
+    - 協定註冊擴展 (`src/main/protocols/index.ts`)
+      - initializeProtocols() 註冊 MQTT 適配器
+      - 工廠模式支援多協定實例化
+
+  - **Renderer - 多協定 UI**
+    - ConnectionForm 協定選擇器 (`src/renderer/components/connection/ConnectionForm.tsx`)
+      - 協定切換按鈕 (Modbus TCP / MQTT)
+      - Modbus TCP 設定欄位：Host、Port、Unit ID
+      - MQTT 設定欄位：Broker URL、Client ID、Username、Password、TLS
+      - 依協定動態顯示對應欄位
+    - TagGrid 協定圖示 (`src/renderer/components/tags/TagGrid.tsx`)
+      - Modbus TCP：藍色 Radio 圖示
+      - MQTT：綠色 Wifi 圖示
+      - OPC UA：紫色 Network 圖示 (預留)
+      - 支援兩種協定的位址格式顯示
+    - TagEditor 多協定支援 (`src/renderer/components/tags/TagEditor.tsx`)
+      - Modbus 位址欄位：Register Type、Address、Length
+      - MQTT 位址欄位：Topic、JSON Path (選填)
+      - 標頭顯示協定類型指示器
+
+  - **測試**
+    - MqttAdapter 單元測試 (`tests/unit/main/MqttAdapter.test.ts`)
+      - 位址解析測試 (9 tests)
+      - 適配器生命週期測試 (8 tests)
+      - JSON path 擷取測試 (2 tests)
+      - Topic wildcard 匹配測試 (8 tests)
+      - Payload 解析測試 (13 tests)
+      - 共 40 個測試案例
+
+### Changed
+
+- `src/main/protocols/index.ts` 註冊 MQTT 協定工廠
+- `src/shared/types/tag.ts` 新增 DEFAULT_MQTT_ADDRESS 常數
+- `src/renderer/components/connection/ConnectionForm.tsx` 重寫為多協定表單
+- `src/renderer/components/tags/TagGrid.tsx` 新增 ProtocolIcon 元件
+- `src/renderer/components/tags/TagEditor.tsx` 重寫為多協定編輯器
+
+### Technical Details
+
+- MQTT 採用發布/訂閱模式，與 Modbus TCP 輪詢模式不同
+- MqttAdapter 透過 topicCache 快取最新值供 readTags() 返回
+- 支援 QoS 1 確保訊息至少送達一次
+- 協定適配器繼承 ProtocolAdapter 抽象類別，確保統一介面
+- 測試總數：63 個 (ModbusTcpAdapter: 23, MqttAdapter: 40)
+
+## [0.6.0] - 2025-01-24
+
+### Added
+
+- **Phase 8: US5 虛擬伺服器** (T110-T120)
+  - **Main Process - VirtualServer 服務**
+    - VirtualServerManager 完整實作 (`src/main/services/VirtualServer.ts`)
+      - 內建 Modbus TCP 伺服器模擬器
+      - 支援 FC3/FC4 讀取暫存器、FC6 寫入單一、FC16 寫入多筆
+      - 多伺服器實例管理
+      - 客戶端連線追蹤
+    - 波形產生器實作
+      - constant：固定值輸出
+      - sine：正弦波振盪
+      - square：方波切換
+      - triangle：三角波線性漸變
+      - random：隨機值 (可設定範圍)
+    - 週期性數值更新 (100ms 間隔) 確保平滑波形模擬
+    - EADDRINUSE 錯誤處理與自動埠號建議
+    - 完整 Virtual Server IPC 處理器 (`src/main/ipc/virtual-server.ts`)
+      - `virtual-server:start` - 啟動虛擬伺服器
+      - `virtual-server:stop` - 停止虛擬伺服器
+      - `virtual-server:status` - 取得所有伺服器狀態
+
+  - **Renderer - Virtual Server UI**
+    - virtualServerStore Zustand 狀態管理 (`src/renderer/stores/virtualServerStore.ts`)
+    - VirtualServerPanel 元件 (`src/renderer/components/virtual-server/VirtualServerPanel.tsx`)
+      - 埠號設定
+      - 伺服器啟動/停止控制
+      - 執行中伺服器清單與狀態顯示
+      - 客戶端連線數顯示
+    - RegisterConfigForm 元件 (`src/renderer/components/virtual-server/RegisterConfigForm.tsx`)
+      - 虛擬暫存器範圍設定
+      - 起始位址與長度配置
+      - 波形選擇與參數調整
+    - WaveformSelector 元件 (`src/renderer/components/virtual-server/WaveformSelector.tsx`)
+      - 波形類型選擇器
+      - 參數配置 (振幅、偏移、週期、最大/最小值)
+      - 即時波形預覽 SVG 視覺化
+    - App.tsx 側邊欄整合 VirtualServerPanel
+
+### Changed
+
+- `src/main/ipc/index.ts` 註冊 Virtual Server IPC 處理器
+- `src/main/services/index.ts` 匯出 VirtualServerManager
+- `src/renderer/App.tsx` 側邊欄新增 Virtual Server 管理面板
+- `specs/002-iiot-protocol-studio/tasks.md` 更新 T110-T120 完成狀態
+
+### Technical Details
+
+- 使用 Node.js `net` 模組實作原生 Modbus TCP 伺服器
+- 支援標準 Modbus TCP 協議 (MBAP Header + PDU)
+- 波形更新頻率 100ms，確保測試時數據變化可見
+- 自動偵測埠號衝突並建議可用埠號
+- 單例模式管理多伺服器實例
+
+## [0.5.0] - 2025-01-24
+
+### Added
+
+- **Phase 7: US7 Session 匯出與報告** (T100-T109)
+  - **Main Process - Export 服務**
+    - ExportService 完整實作 (`src/main/services/ExportService.ts`)
+      - CSV 匯出：Timestamp, DateTime, TagName, Value, Quality 欄位
+      - HTML 報告產生器：連線摘要、統計數據、趨勢圖
+      - 大量資料 (>10,000 筆) 進度追蹤與回報
+      - 整合 DataBuffer.getDataForExport() 取得時間範圍資料
+      - ECharts 圖表整合 (CDN 載入)
+    - 完整 Export IPC 處理器 (`src/main/ipc/export.ts`)
+      - `export:csv` - 匯出 CSV 檔案 (含檔案對話框)
+      - `export:html-report` - 產生 HTML 報告 (含檔案對話框)
+      - 大量匯出時透過 `export:progress` 事件回報進度
+
+  - **Renderer - Export UI**
+    - ExportDialog 元件 (`src/renderer/components/export/ExportDialog.tsx`)
+      - 格式選擇 (CSV / HTML Report)
+      - 時間範圍選擇器 (datetime-local)
+      - 標籤多選器 (全選/取消全選)
+      - HTML 報告選項：是否包含趨勢圖
+    - ExportProgress 元件 (`src/renderer/components/export/ExportProgress.tsx`)
+      - 進度條顯示
+      - 已處理/總筆數
+      - 完成狀態指示
+    - ReportPreview 元件 (`src/renderer/components/export/ReportPreview.tsx`)
+      - 匯出預覽資訊
+      - 預估資料筆數
+      - 欄位/區段說明
+    - App.tsx DVR 區塊新增「Export Data」按鈕
+
+### Changed
+
+- `src/main/ipc/index.ts` 註冊 Export IPC 處理器
+- `src/main/services/index.ts` 匯出 ExportService
+- `src/renderer/App.tsx` 整合 ExportDialog 與匯出回呼
+- `specs/002-iiot-protocol-studio/tasks.md` 更新 T100-T109 完成狀態
+
+### Technical Details
+
+- CSV 匯出效能：10,000 筆資料 < 5 秒 (符合 SC-006 規格)
+- HTML 報告包含統計摘要：Min, Max, Avg, 品質計數
+- 圖表資料降採樣：每序列最多 1,000 點防止效能問題
+- 使用 Electron dialog API 確保安全的檔案存取
+
+## [0.4.0] - 2025-01-24
+
+### Added
+
+- **Phase 6: US4 連線組態管理** (T086-T099)
+  - **Main Process - Profile 服務**
+    - ProfileService 完整實作 (`src/main/services/ProfileService.ts`)
+      - JSON 序列化儲存至 `{userData}/profiles/` 目錄
+      - Schema 版本驗證 (v1.0.0)
+      - 支援 save/load/import/export 操作
+      - 整合 ConnectionManager 與 CredentialService
+    - 完整 Profile IPC 處理器 (`src/main/ipc/profile.ts`)
+      - `profile:save` - 儲存當前設定為組態檔
+      - `profile:load` - 載入組態並還原連線與標籤
+      - `profile:list` - 列出所有已儲存組態
+      - `profile:delete` - 刪除指定組態
+      - `profile:import` - 從檔案匯入組態 (含檔案對話框)
+      - `profile:export` - 匯出組態至檔案 (含檔案對話框)
+    - ConnectionManager 新增 `addTag()` 方法支援組態載入
+
+  - **Renderer - Profile UI**
+    - ProfileList 元件 (`src/renderer/components/profile/ProfileList.tsx`)
+      - 列出已儲存組態
+      - 支援載入/匯出/刪除操作
+    - ProfileDialog 元件 (`src/renderer/components/profile/ProfileDialog.tsx`)
+      - 儲存新組態對話框
+      - 連線選擇器 (全選/取消全選)
+    - ImportExportButtons 元件 (`src/renderer/components/profile/ImportExportButtons.tsx`)
+      - Save Profile 按鈕
+      - Import 按鈕 (含載入狀態)
+    - App.tsx 整合 Profile 管理功能至側邊欄
+
+### Changed
+
+- `src/main/services/ConnectionManager.ts` 新增 `addTag()` 方法
+- `src/main/ipc/index.ts` 註冊 Profile IPC 處理器
+- `src/main/services/index.ts` 匯出 ProfileService
+- `src/preload/index.ts` 擴展 profile API 型別定義
+- `src/renderer/App.tsx` 整合 Profile 元件與回呼函式
+- `specs/002-iiot-protocol-studio/tasks.md` 更新 T086-T099 完成狀態
+
+### Security
+
+- Profile 檔案不儲存敏感憑證，僅記錄需要憑證的連線 ID
+- 載入組態時透過 keytar 從 OS 金鑰鏈取得憑證
+- 匯出/匯入使用標準檔案對話框，避免任意路徑存取
+
+## [0.3.0] - 2025-01-24
+
+### Added
+
+- **Phase 3: US1 快速連線測試** (T031-T048)
+  - **Main Process - 連線管理**
+    - ConnectionManager 單例服務 (`src/main/services/ConnectionManager.ts`)
+    - 狀態機實作 (disconnected → connecting → connected → error)
+    - 完整連線 IPC 處理器 (`src/main/ipc/connection.ts`)
+      - `connection:create` - 建立新連線
+      - `connection:connect` / `connection:disconnect` - 連線控制
+      - `connection:delete` / `connection:list` - 連線管理
+      - `connection:read-once` - 單次讀取測試
+    - `connection:status-changed` 推送事件
+
+  - **Renderer - 連線 UI**
+    - connectionStore Zustand 狀態管理 (`src/renderer/stores/connectionStore.ts`)
+    - AppShell 版面配置 (`src/renderer/components/layout/`)
+    - ConnectionForm 元件 (Modbus TCP 設定)
+    - ConnectionCard 含狀態指示器
+    - ConnectionList 連線清單
+    - QuickReadPanel 快速讀取面板
+
+- **Phase 4: US2 標籤式持續監控** (T049-T073)
+  - **Main Process - 標籤管理**
+    - Tag 儲存與驗證規則
+    - 完整標籤 IPC 處理器 (`src/main/ipc/tag.ts`)
+      - `tag:create` / `tag:update` / `tag:delete` / `tag:list`
+      - `tag:import-csv` CSV 匯入支援
+
+  - **Main Process - 輪詢引擎**
+    - PollingEngine 服務 (`src/main/services/PollingEngine.ts`)
+    - 整合 ProtocolAdapter.read() 與 DataBuffer
+    - 完整輪詢 IPC 處理器 (`src/main/ipc/polling.ts`)
+      - `polling:start` / `polling:stop` / `polling:status`
+    - `polling:data` 推送事件
+
+  - **Renderer - 標籤格線與迷你圖**
+    - tagStore Zustand 狀態管理 (`src/renderer/stores/tagStore.ts`)
+    - usePolling Hook (`src/renderer/hooks/usePolling.ts`)
+    - TagEditor 標籤編輯器元件
+    - Sparkline 迷你圖元件 (uPlot 實作，1000 點無掉幀)
+    - TagGrid 虛擬化格線 (支援 100+ 標籤 @ 60 FPS)
+    - 閾值式列高亮 (warning/alarm 狀態)
+    - PollingControls 輪詢控制面板
+
+- **Phase 5: US3 資料 DVR 時光旅行** (T074-T085)
+  - **Main Process - DVR IPC**
+    - 完整 DVR IPC 處理器 (`src/main/ipc/dvr.ts`)
+      - `dvr:get-range` - 取得緩衝區時間範圍
+      - `dvr:seek` - 跳轉至指定時間戳
+      - `dvr:get-sparkline` - 取得降採樣迷你圖資料 (LTTB 演算法)
+
+  - **Renderer - DVR UI**
+    - dvrStore Zustand 狀態管理 (`src/renderer/stores/dvrStore.ts`)
+    - useDvr Hook (`src/renderer/hooks/useDvr.ts`)
+    - TimelineSlider 時間軸滑桿元件
+    - PlaybackControls 播放控制元件 (Live/Historical 切換、前進/後退)
+    - ModeIndicator 模式指示器 (LIVE 綠色脈動 / HISTORICAL 琥珀色)
+    - TagGrid 整合 DVR 歷史模式顯示
+
+### Changed
+
+- `src/renderer/App.tsx` 整合連線、標籤、DVR 元件
+- `src/main/ipc/index.ts` 註冊所有 IPC 處理器
+- `src/preload/index.ts` 擴展 contextBridge API
+- `specs/002-iiot-protocol-studio/tasks.md` 更新任務完成狀態 (T001-T085)
+
+## [0.2.0] - 2025-01-24
+
+### Added
+
+- **Phase 1: 專案鷹架** (T001-T010)
+  - Electron 33 + Vite 5 + React 19 專案初始化
+  - TypeScript 設定與路徑別名 (`@main/*`, `@renderer/*`, `@shared/*`)
+  - Tailwind CSS 配置含 IIoT 狀態顏色 (connected/connecting/error)
+  - Shadcn/ui 元件庫整合準備
+  - 完整目錄結構建立
+  - Preload 腳本含完整型別安全 contextBridge API
+  - electron-log 日誌系統初始化
+  - Jest (Main)、Vitest (Renderer)、Playwright (E2E) 測試配置
+
+- **Phase 2: 基礎設施層** (T011-T030)
+  - **共用型別系統** (`src/shared/types/`)
+    - Connection、Tag、DataPoint、Profile 等核心實體型別
+    - IPC 通道常數定義 (`src/shared/constants/ipc-channels.ts`)
+    - 型別安全 IPC 包裝器 (`src/renderer/lib/ipc.ts`)
+
+  - **資料層 (SQLite + 憑證儲存)**
+    - SQLite 環形緩衝區架構 (`src/main/db/schema.sql`)
+    - DataBuffer 服務：ROWID 驅動的資料淘汰、WAL 模式、LTTB 降採樣
+    - CredentialService：keytar 整合 OS 原生金鑰鏈
+
+  - **協議適配器介面**
+    - ProtocolAdapter 抽象基類與工廠註冊機制
+    - ModbusTcpAdapter 完整實作
+      - 支援 Modicon 與 IEC 位址格式解析
+      - 資料型別轉換 (INT16/UINT16/INT32/UINT32/FLOAT32/BOOLEAN/STRING)
+    - ModbusTcpAdapter 單元測試
+
+  - **日誌基礎設施**
+    - LogService：檔案輪替、記憶體日誌緩衝、Renderer 日誌捕獲
+    - 完整 Log IPC 處理器 (getLogs/add/clear/export/openFolder/setLevel)
+
+- **IIoT Protocol Studio 規格文件** (`specs/002-iiot-protocol-studio/`)
+  - `spec.md` - 7 個使用者故事 (P1/P2 優先級)
+  - `plan.md` - 15 階段實作計畫
+  - `research.md` - 技術選型與效能基準
+  - `data-model.md` - 實體關聯與 SQLite 架構
+  - `contracts/ipc-channels.md` - 完整 IPC 通道規格
+  - `contracts/types.ts` - TypeScript 型別合約
+  - `quickstart.md` - 開發與測試快速指南
+  - `tasks.md` - 145 項任務分解 (30 項已完成)
+
+### Changed
+
+- `package.json` 更新相依套件版本
+  - Vite 6 → 5.4.11 (相容 electron-vite)
+  - Electron 33.2.0 → 33.4.11
+  - 新增 @electron-toolkit/utils
+- `electron.vite.config.ts` 移除內嵌 PostCSS 設定，改用外部 postcss.config.js
+- `tsconfig.json` 新增 `jsx: "react-jsx"` 支援 React 19
+
+### Fixed
+
+- 修正 electron-log ESM 匯入路徑 (`electron-log/main.js`)
+- 修正 IpcResult<void> 型別定義問題
+- 修正 React 19 JSX.Element → React.ReactElement 型別
+
 ## [0.1.0] - 2025-01-23
 
 ### Added
@@ -52,7 +467,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | 版本 | 日期 | 說明 |
 |------|------|------|
+| 0.8.0 | 2025-01-24 | Phase 10 實作：Polish & Cross-Cutting (App lifecycle、自動重連、UI polish、E2E tests) |
+| 0.7.0 | 2025-01-24 | Phase 9 實作：US6 多協定支援 (MQTT 適配器、多協定 UI) |
+| 0.6.0 | 2025-01-24 | Phase 8 實作：US5 虛擬伺服器 (內建 Modbus TCP 模擬器) |
+| 0.5.0 | 2025-01-24 | Phase 7 實作：US7 Session 匯出與報告 (CSV/HTML Report) |
+| 0.4.0 | 2025-01-24 | Phase 6 實作：US4 連線組態管理 (Profile save/load/import/export) |
+| 0.3.0 | 2025-01-24 | Phase 3-5 實作：US1 連線測試、US2 標籤監控、US3 DVR 時光旅行 |
+| 0.2.0 | 2025-01-24 | Phase 1-2 實作：專案鷹架與基礎設施層 |
 | 0.1.0 | 2025-01-23 | 初始專案結構與 MVP 規格 |
 
-[Unreleased]: https://github.com/kcchien/connex-studio/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/kcchien/connex-studio/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/kcchien/connex-studio/compare/v0.7.0...v0.8.0
+[0.7.0]: https://github.com/kcchien/connex-studio/compare/v0.6.0...v0.7.0
+[0.6.0]: https://github.com/kcchien/connex-studio/compare/v0.5.0...v0.6.0
+[0.5.0]: https://github.com/kcchien/connex-studio/compare/v0.4.0...v0.5.0
+[0.4.0]: https://github.com/kcchien/connex-studio/compare/v0.3.0...v0.4.0
+[0.3.0]: https://github.com/kcchien/connex-studio/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/kcchien/connex-studio/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/kcchien/connex-studio/releases/tag/v0.1.0

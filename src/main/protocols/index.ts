@@ -19,9 +19,16 @@ export {
   parseModbusAddress
 } from './ModbusTcpAdapter'
 
+export {
+  MqttAdapter,
+  createMqttAdapter,
+  parseMqttAddress
+} from './MqttAdapter'
+
 // Register all protocol adapters
 import { getProtocolRegistry } from './ProtocolAdapter'
 import { createModbusTcpAdapter } from './ModbusTcpAdapter'
+import { createMqttAdapter } from './MqttAdapter'
 
 /**
  * Initialize protocol registry with all supported adapters.
@@ -33,8 +40,8 @@ export function initializeProtocols(): void {
   // Register Modbus TCP adapter
   registry.register('modbus-tcp', createModbusTcpAdapter)
 
-  // Future: Register MQTT adapter
-  // registry.register('mqtt', createMqttAdapter)
+  // Register MQTT adapter
+  registry.register('mqtt', createMqttAdapter)
 
   // Future: Register OPC UA adapter
   // registry.register('opcua', createOpcUaAdapter)

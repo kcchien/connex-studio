@@ -69,3 +69,8 @@ export const DEFAULT_MODBUS_ADDRESS: ModbusAddress = {
   address: 0,
   length: 1
 }
+
+export const DEFAULT_MQTT_ADDRESS: MqttAddress = {
+  type: 'mqtt',
+  topic: 'sensors/temperature'
+}

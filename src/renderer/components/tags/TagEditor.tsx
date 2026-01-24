@@ -2,16 +2,18 @@
  * TagEditor Component
  *
  * Form for creating and editing tags with address, data type, and display configuration.
- * Supports Modbus TCP address configuration with register type, address, and length.
+ * Supports Modbus TCP and MQTT address configurations.
  */
 
 import React, { useState, useCallback, useEffect, type FormEvent } from 'react'
-import { ChevronDown, ChevronRight, Plus, Loader2, Save, X } from 'lucide-react'
+import { ChevronDown, ChevronRight, Plus, Loader2, Save, X, Radio, Wifi } from 'lucide-react'
 import * as Label from '@radix-ui/react-label'
 import { cn } from '@renderer/lib/utils'
 import { useTagStore } from '@renderer/stores/tagStore'
-import type { Tag, ModbusAddress, DataType, DisplayFormat, Thresholds } from '@shared/types/tag'
-import { DEFAULT_DISPLAY_FORMAT, DEFAULT_THRESHOLDS, DEFAULT_MODBUS_ADDRESS } from '@shared/types/tag'
+import { useConnectionStore } from '@renderer/stores/connectionStore'
+import type { Tag, ModbusAddress, MqttAddress, DataType, DisplayFormat, Thresholds } from '@shared/types/tag'
+import { DEFAULT_DISPLAY_FORMAT, DEFAULT_THRESHOLDS, DEFAULT_MODBUS_ADDRESS, DEFAULT_MQTT_ADDRESS } from '@shared/types/tag'
+import type { Protocol } from '@shared/types/connection'
 
 interface TagEditorProps {
   /** Connection ID this tag belongs to */
@@ -26,11 +28,24 @@ interface TagEditorProps {
   className?: string
 }
 
-interface FormState {
-  name: string
+interface ModbusAddressState {
   registerType: ModbusAddress['registerType']
   address: string
   length: string
+}
+
+interface MqttAddressState {
+  topic: string
+  jsonPath: string
+}
+
+interface FormState {
+  name: string
+  // Modbus address fields
+  modbus: ModbusAddressState
+  // MQTT address fields
+  mqtt: MqttAddressState
+  // Common fields
   dataType: DataType
   decimals: string
   unit: string
@@ -43,8 +58,12 @@ interface FormState {
 
 interface ValidationErrors {
   name?: string
+  // Modbus
   address?: string
   length?: string
+  // MQTT
+  topic?: string
+  // Common
   decimals?: string
   warningLow?: string
   warningHigh?: string
@@ -69,14 +88,36 @@ const DATA_TYPES: { value: DataType; label: string }[] = [
   { value: 'string', label: 'String' }
 ]
 
-function getInitialFormState(tag?: Tag): FormState {
-  if (tag && tag.address.type === 'modbus') {
-    const modbusAddress = tag.address as ModbusAddress
+function getInitialFormState(tag?: Tag, protocol?: Protocol): FormState {
+  if (tag) {
+    const modbusState: ModbusAddressState =
+      tag.address.type === 'modbus'
+        ? {
+            registerType: (tag.address as ModbusAddress).registerType,
+            address: String((tag.address as ModbusAddress).address),
+            length: String((tag.address as ModbusAddress).length)
+          }
+        : {
+            registerType: DEFAULT_MODBUS_ADDRESS.registerType,
+            address: String(DEFAULT_MODBUS_ADDRESS.address),
+            length: String(DEFAULT_MODBUS_ADDRESS.length)
+          }
+
+    const mqttState: MqttAddressState =
+      tag.address.type === 'mqtt'
+        ? {
+            topic: (tag.address as MqttAddress).topic,
+            jsonPath: (tag.address as MqttAddress).jsonPath || ''
+          }
+        : {
+            topic: DEFAULT_MQTT_ADDRESS.topic,
+            jsonPath: ''
+          }
+
     return {
       name: tag.name,
-      registerType: modbusAddress.registerType,
-      address: String(modbusAddress.address),
-      length: String(modbusAddress.length),
+      modbus: modbusState,
+      mqtt: mqttState,
       dataType: tag.dataType,
       decimals: String(tag.displayFormat.decimals),
       unit: tag.displayFormat.unit,
@@ -90,9 +131,15 @@ function getInitialFormState(tag?: Tag): FormState {
 
   return {
     name: '',
-    registerType: DEFAULT_MODBUS_ADDRESS.registerType,
-    address: String(DEFAULT_MODBUS_ADDRESS.address),
-    length: String(DEFAULT_MODBUS_ADDRESS.length),
+    modbus: {
+      registerType: DEFAULT_MODBUS_ADDRESS.registerType,
+      address: String(DEFAULT_MODBUS_ADDRESS.address),
+      length: String(DEFAULT_MODBUS_ADDRESS.length)
+    },
+    mqtt: {
+      topic: DEFAULT_MQTT_ADDRESS.topic,
+      jsonPath: ''
+    },
     dataType: 'uint16',
     decimals: String(DEFAULT_DISPLAY_FORMAT.decimals),
     unit: DEFAULT_DISPLAY_FORMAT.unit,
@@ -106,7 +153,7 @@ function getInitialFormState(tag?: Tag): FormState {
 
 /**
  * TagEditor component for creating and editing tags.
- * Handles Modbus TCP address configuration with validation.
+ * Handles both Modbus TCP and MQTT address configurations with validation.
  */
 export function TagEditor({
   connectionId,
@@ -116,24 +163,62 @@ export function TagEditor({
   className
 }: TagEditorProps): React.ReactElement {
   const [isExpanded, setIsExpanded] = useState(!!tag) // Expanded if editing
-  const [formState, setFormState] = useState<FormState>(() => getInitialFormState(tag))
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({})
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const addTag = useTagStore((state) => state.addTag)
   const updateTag = useTagStore((state) => state.updateTag)
+  const connections = useConnectionStore((state) => state.connections)
+
+  // Get the protocol from the connection
+  const connection = connections.find((c) => c.id === connectionId)
+  const protocol = connection?.protocol || 'modbus-tcp'
+
+  const [formState, setFormState] = useState<FormState>(() => getInitialFormState(tag, protocol))
 
   // Reset form when tag prop changes
   useEffect(() => {
-    setFormState(getInitialFormState(tag))
+    setFormState(getInitialFormState(tag, protocol))
     setValidationErrors({})
     setError(null)
-  }, [tag])
+  }, [tag, protocol])
 
   const updateField = useCallback(
     <K extends keyof FormState>(field: K, value: FormState[K]) => {
       setFormState((prev) => ({ ...prev, [field]: value }))
+      if (validationErrors[field as keyof ValidationErrors]) {
+        setValidationErrors((prev) => ({ ...prev, [field]: undefined }))
+      }
+      if (error) {
+        setError(null)
+      }
+    },
+    [validationErrors, error]
+  )
+
+  const updateModbusField = useCallback(
+    <K extends keyof ModbusAddressState>(field: K, value: ModbusAddressState[K]) => {
+      setFormState((prev) => ({
+        ...prev,
+        modbus: { ...prev.modbus, [field]: value }
+      }))
+      if (validationErrors[field as keyof ValidationErrors]) {
+        setValidationErrors((prev) => ({ ...prev, [field]: undefined }))
+      }
+      if (error) {
+        setError(null)
+      }
+    },
+    [validationErrors, error]
+  )
+
+  const updateMqttField = useCallback(
+    <K extends keyof MqttAddressState>(field: K, value: MqttAddressState[K]) => {
+      setFormState((prev) => ({
+        ...prev,
+        mqtt: { ...prev.mqtt, [field]: value }
+      }))
       if (validationErrors[field as keyof ValidationErrors]) {
         setValidationErrors((prev) => ({ ...prev, [field]: undefined }))
       }
@@ -154,17 +239,25 @@ export function TagEditor({
       errors.name = 'Tag name must be 100 characters or less'
     }
 
-    // Address validation
-    const address = parseInt(formState.address, 10)
-    if (isNaN(address) || address < 0 || address > 65535) {
-      errors.address = 'Address must be between 0 and 65535'
-    }
+    if (protocol === 'modbus-tcp') {
+      // Address validation
+      const address = parseInt(formState.modbus.address, 10)
+      if (isNaN(address) || address < 0 || address > 65535) {
+        errors.address = 'Address must be between 0 and 65535'
+      }
 
-    // Length validation
-    const length = parseInt(formState.length, 10)
-    const maxLength = formState.registerType === 'coil' || formState.registerType === 'discrete' ? 2000 : 125
-    if (isNaN(length) || length < 1 || length > maxLength) {
-      errors.length = `Length must be between 1 and ${maxLength}`
+      // Length validation
+      const length = parseInt(formState.modbus.length, 10)
+      const maxLength =
+        formState.modbus.registerType === 'coil' || formState.modbus.registerType === 'discrete' ? 2000 : 125
+      if (isNaN(length) || length < 1 || length > maxLength) {
+        errors.length = `Length must be between 1 and ${maxLength}`
+      }
+    } else if (protocol === 'mqtt') {
+      // Topic validation
+      if (!formState.mqtt.topic.trim()) {
+        errors.topic = 'Topic is required'
+      }
     }
 
     // Decimals validation
@@ -189,7 +282,7 @@ export function TagEditor({
 
     setValidationErrors(errors)
     return Object.keys(errors).length === 0
-  }, [formState])
+  }, [formState, protocol])
 
   const handleSubmit = useCallback(
     async (e: FormEvent) => {
@@ -203,11 +296,22 @@ export function TagEditor({
       setError(null)
 
       try {
-        const modbusAddress: ModbusAddress = {
-          type: 'modbus',
-          registerType: formState.registerType,
-          address: parseInt(formState.address, 10),
-          length: parseInt(formState.length, 10)
+        // Build address based on protocol
+        let address: ModbusAddress | MqttAddress
+
+        if (protocol === 'modbus-tcp') {
+          address = {
+            type: 'modbus',
+            registerType: formState.modbus.registerType,
+            address: parseInt(formState.modbus.address, 10),
+            length: parseInt(formState.modbus.length, 10)
+          }
+        } else {
+          address = {
+            type: 'mqtt',
+            topic: formState.mqtt.topic.trim(),
+            ...(formState.mqtt.jsonPath.trim() && { jsonPath: formState.mqtt.jsonPath.trim() })
+          }
         }
 
         const displayFormat: DisplayFormat = {
@@ -227,7 +331,7 @@ export function TagEditor({
             tagId: tag.id,
             updates: {
               name: formState.name.trim(),
-              address: modbusAddress,
+              address,
               dataType: formState.dataType,
               displayFormat,
               thresholds,
@@ -247,7 +351,7 @@ export function TagEditor({
           const result = await window.electronAPI.tag.create({
             connectionId,
             name: formState.name.trim(),
-            address: modbusAddress,
+            address,
             dataType: formState.dataType
           })
 
@@ -271,7 +375,7 @@ export function TagEditor({
           onSaved?.(finalTag)
 
           // Reset form
-          setFormState(getInitialFormState())
+          setFormState(getInitialFormState(undefined, protocol))
           setIsExpanded(false)
         }
       } catch (err) {
@@ -281,18 +385,18 @@ export function TagEditor({
         setIsLoading(false)
       }
     },
-    [formState, validate, tag, connectionId, addTag, updateTag, onSaved]
+    [formState, validate, tag, connectionId, protocol, addTag, updateTag, onSaved]
   )
 
   const handleCancel = useCallback(() => {
-    setFormState(getInitialFormState(tag))
+    setFormState(getInitialFormState(tag, protocol))
     setValidationErrors({})
     setError(null)
     if (!tag) {
       setIsExpanded(false)
     }
     onCancel?.()
-  }, [tag, onCancel])
+  }, [tag, protocol, onCancel])
 
   const toggleExpanded = useCallback(() => {
     setIsExpanded((prev) => !prev)
@@ -300,6 +404,10 @@ export function TagEditor({
   }, [])
 
   const isEditing = !!tag
+
+  // Protocol icon for display
+  const ProtocolIndicator = protocol === 'mqtt' ? Wifi : Radio
+  const protocolLabel = protocol === 'mqtt' ? 'MQTT' : 'Modbus TCP'
 
   return (
     <div className={cn('border rounded-lg bg-card', className)}>
@@ -323,12 +431,24 @@ export function TagEditor({
           )}
           <Plus className="h-4 w-4 text-muted-foreground" />
           <span>New Tag</span>
+          <span className="ml-auto flex items-center gap-1 text-xs text-muted-foreground">
+            <ProtocolIndicator className="h-3 w-3" />
+            {protocolLabel}
+          </span>
         </button>
       )}
 
       {/* Form Content */}
       {(isExpanded || isEditing) && (
         <form onSubmit={handleSubmit} className="p-3 space-y-3">
+          {/* Protocol indicator for editing */}
+          {isEditing && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground pb-2 border-b border-border">
+              <ProtocolIndicator className="h-3.5 w-3.5" />
+              <span>{protocolLabel} Tag</span>
+            </div>
+          )}
+
           {/* Tag Name */}
           <div className="space-y-1.5">
             <Label.Root htmlFor="tag-name" className="text-xs font-medium text-muted-foreground">
@@ -355,98 +475,167 @@ export function TagEditor({
             )}
           </div>
 
-          {/* Register Type */}
-          <div className="space-y-1.5">
-            <Label.Root
-              htmlFor="tag-register-type"
-              className="text-xs font-medium text-muted-foreground"
-            >
-              Register Type
-            </Label.Root>
-            <select
-              id="tag-register-type"
-              value={formState.registerType}
-              onChange={(e) =>
-                updateField('registerType', e.target.value as ModbusAddress['registerType'])
-              }
-              disabled={isLoading}
-              className={cn(
-                'w-full h-8 px-2.5 text-sm rounded-md',
-                'bg-background border border-input',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                'disabled:opacity-50 disabled:cursor-not-allowed'
-              )}
-            >
-              {REGISTER_TYPES.map((rt) => (
-                <option key={rt.value} value={rt.value}>
-                  {rt.label}
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Protocol-specific address fields */}
+          {protocol === 'modbus-tcp' && (
+            <>
+              {/* Register Type */}
+              <div className="space-y-1.5">
+                <Label.Root
+                  htmlFor="tag-register-type"
+                  className="text-xs font-medium text-muted-foreground"
+                >
+                  Register Type
+                </Label.Root>
+                <select
+                  id="tag-register-type"
+                  value={formState.modbus.registerType}
+                  onChange={(e) =>
+                    updateModbusField('registerType', e.target.value as ModbusAddress['registerType'])
+                  }
+                  disabled={isLoading}
+                  className={cn(
+                    'w-full h-8 px-2.5 text-sm rounded-md',
+                    'bg-background border border-input',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                    'disabled:opacity-50 disabled:cursor-not-allowed'
+                  )}
+                >
+                  {REGISTER_TYPES.map((rt) => (
+                    <option key={rt.value} value={rt.value}>
+                      {rt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-          {/* Address and Length */}
-          <div className="grid grid-cols-2 gap-2">
-            <div className="space-y-1.5">
-              <Label.Root
-                htmlFor="tag-address"
-                className="text-xs font-medium text-muted-foreground"
-              >
-                Address
-              </Label.Root>
-              <input
-                id="tag-address"
-                type="number"
-                value={formState.address}
-                onChange={(e) => updateField('address', e.target.value)}
-                placeholder="0"
-                min={0}
-                max={65535}
-                disabled={isLoading}
-                className={cn(
-                  'w-full h-8 px-2.5 text-sm rounded-md',
-                  'bg-background border border-input',
-                  'placeholder:text-muted-foreground/60',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                  'disabled:opacity-50 disabled:cursor-not-allowed',
-                  validationErrors.address && 'border-destructive'
-                )}
-              />
-              {validationErrors.address && (
-                <p className="text-xs text-destructive">{validationErrors.address}</p>
-              )}
-            </div>
+              {/* Address and Length */}
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1.5">
+                  <Label.Root
+                    htmlFor="tag-address"
+                    className="text-xs font-medium text-muted-foreground"
+                  >
+                    Address
+                  </Label.Root>
+                  <input
+                    id="tag-address"
+                    type="number"
+                    value={formState.modbus.address}
+                    onChange={(e) => updateModbusField('address', e.target.value)}
+                    placeholder="0"
+                    min={0}
+                    max={65535}
+                    disabled={isLoading}
+                    className={cn(
+                      'w-full h-8 px-2.5 text-sm rounded-md',
+                      'bg-background border border-input',
+                      'placeholder:text-muted-foreground/60',
+                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                      'disabled:opacity-50 disabled:cursor-not-allowed',
+                      validationErrors.address && 'border-destructive'
+                    )}
+                  />
+                  {validationErrors.address && (
+                    <p className="text-xs text-destructive">{validationErrors.address}</p>
+                  )}
+                </div>
 
-            <div className="space-y-1.5">
-              <Label.Root
-                htmlFor="tag-length"
-                className="text-xs font-medium text-muted-foreground"
-              >
-                Length
-              </Label.Root>
-              <input
-                id="tag-length"
-                type="number"
-                value={formState.length}
-                onChange={(e) => updateField('length', e.target.value)}
-                placeholder="1"
-                min={1}
-                max={formState.registerType === 'coil' || formState.registerType === 'discrete' ? 2000 : 125}
-                disabled={isLoading}
-                className={cn(
-                  'w-full h-8 px-2.5 text-sm rounded-md',
-                  'bg-background border border-input',
-                  'placeholder:text-muted-foreground/60',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                  'disabled:opacity-50 disabled:cursor-not-allowed',
-                  validationErrors.length && 'border-destructive'
+                <div className="space-y-1.5">
+                  <Label.Root
+                    htmlFor="tag-length"
+                    className="text-xs font-medium text-muted-foreground"
+                  >
+                    Length
+                  </Label.Root>
+                  <input
+                    id="tag-length"
+                    type="number"
+                    value={formState.modbus.length}
+                    onChange={(e) => updateModbusField('length', e.target.value)}
+                    placeholder="1"
+                    min={1}
+                    max={formState.modbus.registerType === 'coil' || formState.modbus.registerType === 'discrete' ? 2000 : 125}
+                    disabled={isLoading}
+                    className={cn(
+                      'w-full h-8 px-2.5 text-sm rounded-md',
+                      'bg-background border border-input',
+                      'placeholder:text-muted-foreground/60',
+                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                      'disabled:opacity-50 disabled:cursor-not-allowed',
+                      validationErrors.length && 'border-destructive'
+                    )}
+                  />
+                  {validationErrors.length && (
+                    <p className="text-xs text-destructive">{validationErrors.length}</p>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+
+          {protocol === 'mqtt' && (
+            <>
+              {/* MQTT Topic */}
+              <div className="space-y-1.5">
+                <Label.Root
+                  htmlFor="tag-topic"
+                  className="text-xs font-medium text-muted-foreground"
+                >
+                  Topic
+                </Label.Root>
+                <input
+                  id="tag-topic"
+                  type="text"
+                  value={formState.mqtt.topic}
+                  onChange={(e) => updateMqttField('topic', e.target.value)}
+                  placeholder="sensors/temperature"
+                  disabled={isLoading}
+                  className={cn(
+                    'w-full h-8 px-2.5 text-sm rounded-md',
+                    'bg-background border border-input',
+                    'placeholder:text-muted-foreground/60',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                    'disabled:opacity-50 disabled:cursor-not-allowed',
+                    validationErrors.topic && 'border-destructive'
+                  )}
+                />
+                {validationErrors.topic && (
+                  <p className="text-xs text-destructive">{validationErrors.topic}</p>
                 )}
-              />
-              {validationErrors.length && (
-                <p className="text-xs text-destructive">{validationErrors.length}</p>
-              )}
-            </div>
-          </div>
+                <p className="text-xs text-muted-foreground">
+                  Supports MQTT wildcards: + (single level), # (multi-level)
+                </p>
+              </div>
+
+              {/* JSON Path (optional) */}
+              <div className="space-y-1.5">
+                <Label.Root
+                  htmlFor="tag-json-path"
+                  className="text-xs font-medium text-muted-foreground"
+                >
+                  JSON Path (optional)
+                </Label.Root>
+                <input
+                  id="tag-json-path"
+                  type="text"
+                  value={formState.mqtt.jsonPath}
+                  onChange={(e) => updateMqttField('jsonPath', e.target.value)}
+                  placeholder="data.temperature"
+                  disabled={isLoading}
+                  className={cn(
+                    'w-full h-8 px-2.5 text-sm rounded-md',
+                    'bg-background border border-input',
+                    'placeholder:text-muted-foreground/60',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                    'disabled:opacity-50 disabled:cursor-not-allowed'
+                  )}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Extract value from JSON payload, e.g., data.values[0].temp
+                </p>
+              </div>
+            </>
+          )}
 
           {/* Data Type */}
           <div className="space-y-1.5">

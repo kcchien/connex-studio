@@ -17,14 +17,19 @@ import {
   Settings,
   Power,
   PowerOff,
-  History
+  History,
+  Radio,
+  Wifi,
+  Network
 } from 'lucide-react'
 import { cn } from '@renderer/lib/utils'
 import { Sparkline } from './Sparkline'
 import { useTagStore, type TagDisplayState, type AlarmState, type TrendDirection } from '@renderer/stores/tagStore'
 import { useDvrStore } from '@renderer/stores/dvrStore'
-import type { Tag } from '@shared/types/tag'
+import { useConnectionStore } from '@renderer/stores/connectionStore'
+import type { Tag, ModbusAddress, MqttAddress } from '@shared/types/tag'
 import type { TagValue } from '@shared/types/polling'
+import type { Protocol } from '@shared/types/connection'
 
 interface TagGridProps {
   /** Connection ID to display tags for */
@@ -42,6 +47,7 @@ interface TagRowProps {
   displayState?: TagDisplayState
   historicalValue?: TagValue
   isHistorical: boolean
+  protocol?: Protocol
   onEdit?: (tag: Tag) => void
   onDelete?: (tagId: string) => void
 }
@@ -77,6 +83,32 @@ const AlarmIcon = memo(function AlarmIcon({ state }: { state: AlarmState }) {
   }
 })
 
+// Protocol icon with color
+const ProtocolIcon = memo(function ProtocolIcon({ protocol }: { protocol?: Protocol }) {
+  switch (protocol) {
+    case 'modbus-tcp':
+      return (
+        <span title="Modbus TCP">
+          <Radio className="h-3.5 w-3.5 text-blue-500" />
+        </span>
+      )
+    case 'mqtt':
+      return (
+        <span title="MQTT">
+          <Wifi className="h-3.5 w-3.5 text-green-500" />
+        </span>
+      )
+    case 'opcua':
+      return (
+        <span title="OPC UA">
+          <Network className="h-3.5 w-3.5 text-purple-500" />
+        </span>
+      )
+    default:
+      return null
+  }
+})
+
 // Quality badge
 const QualityBadge = memo(function QualityBadge({ quality }: { quality: string }) {
   const styles: Record<string, string> = {
@@ -93,10 +125,28 @@ const QualityBadge = memo(function QualityBadge({ quality }: { quality: string }
 })
 
 /**
+ * Format address display string based on address type.
+ */
+function formatAddress(address: Tag['address']): string {
+  switch (address.type) {
+    case 'modbus':
+      const modbus = address as ModbusAddress
+      return `${modbus.registerType}:${modbus.address}`
+    case 'mqtt':
+      const mqtt = address as MqttAddress
+      return mqtt.jsonPath ? `${mqtt.topic}::${mqtt.jsonPath}` : mqtt.topic
+    case 'opcua':
+      return address.nodeId
+    default:
+      return '-'
+  }
+}
+
+/**
  * Individual tag row with value display and controls.
  * Supports both live and historical display modes.
  */
-const TagRow = memo(function TagRow({ tag, displayState, historicalValue, isHistorical, onEdit, onDelete }: TagRowProps) {
+const TagRow = memo(function TagRow({ tag, displayState, historicalValue, isHistorical, protocol, onEdit, onDelete }: TagRowProps) {
   // Determine which value to display: historical or live
   const formattedValue = useMemo(() => {
     // Use historical value if in historical mode
@@ -153,10 +203,10 @@ const TagRow = memo(function TagRow({ tag, displayState, historicalValue, isHist
       {/* Tag name */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
+          <ProtocolIcon protocol={protocol} />
           <span className="text-sm font-medium text-foreground truncate">{tag.name}</span>
-          <span className="text-xs text-muted-foreground">
-            {tag.address.type === 'modbus' &&
-              `${tag.address.registerType}:${tag.address.address}`}
+          <span className="text-xs text-muted-foreground truncate max-w-[150px]">
+            {formatAddress(tag.address)}
           </span>
         </div>
       </div>
@@ -237,6 +287,11 @@ export function TagGrid({
 }: TagGridProps): React.ReactElement {
   const getTags = useTagStore((state) => state.getTags)
   const displayStates = useTagStore((state) => state.displayStates)
+  const connections = useConnectionStore((state) => state.connections)
+
+  // Get the protocol for the current connection
+  const connection = connections.find((c) => c.id === connectionId)
+  const protocol = connection?.protocol
 
   // DVR state for historical mode
   const isLive = useDvrStore((state) => state.isLive)
@@ -329,6 +384,7 @@ export function TagGrid({
                   displayState={displayState}
                   historicalValue={historicalValue}
                   isHistorical={!isLive}
+                  protocol={protocol}
                   onEdit={onEditTag}
                   onDelete={handleDeleteTag}
                 />

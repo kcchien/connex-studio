@@ -7,6 +7,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2025-01-24
+
+### Added
+
+- **Phase 8: US5 虛擬伺服器** (T110-T120)
+  - **Main Process - VirtualServer 服務**
+    - VirtualServerManager 完整實作 (`src/main/services/VirtualServer.ts`)
+      - 內建 Modbus TCP 伺服器模擬器
+      - 支援 FC3/FC4 讀取暫存器、FC6 寫入單一、FC16 寫入多筆
+      - 多伺服器實例管理
+      - 客戶端連線追蹤
+    - 波形產生器實作
+      - constant：固定值輸出
+      - sine：正弦波振盪
+      - square：方波切換
+      - triangle：三角波線性漸變
+      - random：隨機值 (可設定範圍)
+    - 週期性數值更新 (100ms 間隔) 確保平滑波形模擬
+    - EADDRINUSE 錯誤處理與自動埠號建議
+    - 完整 Virtual Server IPC 處理器 (`src/main/ipc/virtual-server.ts`)
+      - `virtual-server:start` - 啟動虛擬伺服器
+      - `virtual-server:stop` - 停止虛擬伺服器
+      - `virtual-server:status` - 取得所有伺服器狀態
+
+  - **Renderer - Virtual Server UI**
+    - virtualServerStore Zustand 狀態管理 (`src/renderer/stores/virtualServerStore.ts`)
+    - VirtualServerPanel 元件 (`src/renderer/components/virtual-server/VirtualServerPanel.tsx`)
+      - 埠號設定
+      - 伺服器啟動/停止控制
+      - 執行中伺服器清單與狀態顯示
+      - 客戶端連線數顯示
+    - RegisterConfigForm 元件 (`src/renderer/components/virtual-server/RegisterConfigForm.tsx`)
+      - 虛擬暫存器範圍設定
+      - 起始位址與長度配置
+      - 波形選擇與參數調整
+    - WaveformSelector 元件 (`src/renderer/components/virtual-server/WaveformSelector.tsx`)
+      - 波形類型選擇器
+      - 參數配置 (振幅、偏移、週期、最大/最小值)
+      - 即時波形預覽 SVG 視覺化
+    - App.tsx 側邊欄整合 VirtualServerPanel
+
+### Changed
+
+- `src/main/ipc/index.ts` 註冊 Virtual Server IPC 處理器
+- `src/main/services/index.ts` 匯出 VirtualServerManager
+- `src/renderer/App.tsx` 側邊欄新增 Virtual Server 管理面板
+- `specs/002-iiot-protocol-studio/tasks.md` 更新 T110-T120 完成狀態
+
+### Technical Details
+
+- 使用 Node.js `net` 模組實作原生 Modbus TCP 伺服器
+- 支援標準 Modbus TCP 協議 (MBAP Header + PDU)
+- 波形更新頻率 100ms，確保測試時數據變化可見
+- 自動偵測埠號衝突並建議可用埠號
+- 單例模式管理多伺服器實例
+
 ## [0.5.0] - 2025-01-24
 
 ### Added
@@ -275,13 +331,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | 版本 | 日期 | 說明 |
 |------|------|------|
+| 0.6.0 | 2025-01-24 | Phase 8 實作：US5 虛擬伺服器 (內建 Modbus TCP 模擬器) |
 | 0.5.0 | 2025-01-24 | Phase 7 實作：US7 Session 匯出與報告 (CSV/HTML Report) |
 | 0.4.0 | 2025-01-24 | Phase 6 實作：US4 連線組態管理 (Profile save/load/import/export) |
 | 0.3.0 | 2025-01-24 | Phase 3-5 實作：US1 連線測試、US2 標籤監控、US3 DVR 時光旅行 |
 | 0.2.0 | 2025-01-24 | Phase 1-2 實作：專案鷹架與基礎設施層 |
 | 0.1.0 | 2025-01-23 | 初始專案結構與 MVP 規格 |
 
-[Unreleased]: https://github.com/kcchien/connex-studio/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/kcchien/connex-studio/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/kcchien/connex-studio/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/kcchien/connex-studio/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/kcchien/connex-studio/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/kcchien/connex-studio/compare/v0.2.0...v0.3.0

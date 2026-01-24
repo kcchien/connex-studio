@@ -7,6 +7,7 @@ import { TagEditor, TagGrid, PollingControls } from '@renderer/components/tags'
 import { TimelineSlider, PlaybackControls, ModeIndicator } from '@renderer/components/dvr'
 import { ProfileList, ProfileDialog, ImportExportButtons } from '@renderer/components/profile'
 import { ExportDialog } from '@renderer/components/export'
+import { VirtualServerPanel } from '@renderer/components/virtual-server'
 import { useConnectionStore } from '@renderer/stores/connectionStore'
 import { useTagStore } from '@renderer/stores/tagStore'
 import { usePolling } from '@renderer/hooks/usePolling'
@@ -263,6 +264,11 @@ function App(): React.ReactElement {
           onExport={handleExportProfile}
           onDelete={handleDeleteProfile}
         />
+      </div>
+
+      {/* Virtual Server */}
+      <div className="flex flex-col gap-2 pt-4 border-t border-border">
+        <VirtualServerPanel />
       </div>
     </div>
   )

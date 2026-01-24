@@ -260,20 +260,20 @@
 
 ### Main Process - Virtual Server
 
-- [ ] T110 [US5] Implement VirtualServer service in src/main/services/VirtualServer.ts per [data-model.md § VirtualServer](./data-model.md#virtualserver)
-- [ ] T111 [US5] Implement waveform generators (constant, sine, square, triangle, random) in VirtualServer per [data-model.md § Waveform](./data-model.md#waveform)
-- [ ] T112 [US5] Implement IPC handler `virtual-server:start` in src/main/ipc/virtual-server.ts per [ipc-channels.md § virtual-server:start](./contracts/ipc-channels.md#virtual-serverstart)
-- [ ] T113 [P] [US5] Implement IPC handler `virtual-server:stop` in src/main/ipc/virtual-server.ts per [ipc-channels.md § virtual-server:stop](./contracts/ipc-channels.md#virtual-serverstop)
-- [ ] T114 [P] [US5] Implement IPC handler `virtual-server:status` in src/main/ipc/virtual-server.ts per [ipc-channels.md § virtual-server:status](./contracts/ipc-channels.md#virtual-serverstatus)
-- [ ] T115 [US5] Handle EADDRINUSE error with port suggestion in VirtualServer per [spec.md Edge Cases](./spec.md)
-- [ ] T116 [US5] Register all virtual-server IPC handlers in src/main/index.ts
+- [x] T110 [US5] Implement VirtualServer service in src/main/services/VirtualServer.ts per [data-model.md § VirtualServer](./data-model.md#virtualserver)
+- [x] T111 [US5] Implement waveform generators (constant, sine, square, triangle, random) in VirtualServer per [data-model.md § Waveform](./data-model.md#waveform)
+- [x] T112 [US5] Implement IPC handler `virtual-server:start` in src/main/ipc/virtual-server.ts per [ipc-channels.md § virtual-server:start](./contracts/ipc-channels.md#virtual-serverstart)
+- [x] T113 [P] [US5] Implement IPC handler `virtual-server:stop` in src/main/ipc/virtual-server.ts per [ipc-channels.md § virtual-server:stop](./contracts/ipc-channels.md#virtual-serverstop)
+- [x] T114 [P] [US5] Implement IPC handler `virtual-server:status` in src/main/ipc/virtual-server.ts per [ipc-channels.md § virtual-server:status](./contracts/ipc-channels.md#virtual-serverstatus)
+- [x] T115 [US5] Handle EADDRINUSE error with port suggestion in VirtualServer per [spec.md Edge Cases](./spec.md)
+- [x] T116 [US5] Register all virtual-server IPC handlers in src/main/index.ts
 
 ### Renderer - Virtual Server UI
 
-- [ ] T117 [US5] Build VirtualServerPanel component in src/renderer/components/virtual-server/VirtualServerPanel.tsx
-- [ ] T118 [US5] Build RegisterConfigForm component in src/renderer/components/virtual-server/RegisterConfigForm.tsx
-- [ ] T119 [US5] Build WaveformSelector component in src/renderer/components/virtual-server/WaveformSelector.tsx
-- [ ] T120 [US5] Wire up Virtual Server components in src/renderer/App.tsx
+- [x] T117 [US5] Build VirtualServerPanel component in src/renderer/components/virtual-server/VirtualServerPanel.tsx
+- [x] T118 [US5] Build RegisterConfigForm component in src/renderer/components/virtual-server/RegisterConfigForm.tsx
+- [x] T119 [US5] Build WaveformSelector component in src/renderer/components/virtual-server/WaveformSelector.tsx
+- [x] T120 [US5] Wire up Virtual Server components in src/renderer/App.tsx
 
 **Checkpoint**: US5 (Virtual Server) fully functional - can start simulator and connect to it.
 

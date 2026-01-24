@@ -52,3 +52,13 @@ export {
   getExportService,
   type ExportProgressCallback
 } from './ExportService'
+
+export {
+  VirtualServerManager,
+  getVirtualServerManager,
+  disposeVirtualServerManager,
+  generateWaveformValue,
+  DEFAULT_VIRTUAL_SERVER_PORT,
+  MIN_VIRTUAL_SERVER_PORT,
+  MAX_VIRTUAL_SERVER_PORT
+} from './VirtualServer'

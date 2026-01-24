@@ -213,30 +213,30 @@
 
 ### Implementation for US9 (Read)
 
-- [ ] T095 [US9] Implement single and batch read in src/main/protocols/OpcUaAdapter.ts
-- [ ] T096 [US9] Implement data type handling for all OPC UA Built-in types in src/main/protocols/OpcUaAdapter.ts
-- [ ] T097 [US9] Implement ExtensionObject decoding in src/main/protocols/OpcUaAdapter.ts
-- [ ] T098 [US9] Implement StatusCode display with human-readable text in src/main/protocols/OpcUaAdapter.ts
-- [ ] T099 [US9] Create read IPC handlers in src/main/ipc/opcua.ts
+- [X] T095 [US9] Implement single and batch read in src/main/protocols/OpcUaAdapter.ts
+- [X] T096 [US9] Implement data type handling for all OPC UA Built-in types in src/main/protocols/OpcUaAdapter.ts
+- [X] T097 [US9] Implement ExtensionObject decoding in src/main/protocols/OpcUaAdapter.ts
+- [X] T098 [US9] Implement StatusCode display with human-readable text in src/main/protocols/OpcUaAdapter.ts
+- [X] T099 [US9] Create read IPC handlers in src/main/ipc/opcua.ts
 
 ### Implementation for US10 (Write)
 
-- [ ] T100 [US10] Implement single and batch write in src/main/protocols/OpcUaAdapter.ts
-- [ ] T101 [US10] Implement data type validation before write in src/main/protocols/OpcUaAdapter.ts
-- [ ] T102 [US10] Implement AccessLevel check before write attempt in src/main/protocols/OpcUaAdapter.ts
-- [ ] T103 [US10] Create write IPC handlers in src/main/ipc/opcua.ts
-- [ ] T104 [US10] Implement write confirmation dialog for critical nodes in src/renderer/components/opcua/OpcUaWriteConfirm.tsx
+- [X] T100 [US10] Implement single and batch write in src/main/protocols/OpcUaAdapter.ts
+- [X] T101 [US10] Implement data type validation before write in src/main/protocols/OpcUaAdapter.ts
+- [X] T102 [US10] Implement AccessLevel check before write attempt in src/main/protocols/OpcUaAdapter.ts
+- [X] T103 [US10] Create write IPC handlers in src/main/ipc/opcua.ts
+- [X] T104 [US10] Implement write confirmation dialog for critical nodes in src/renderer/components/opcua/OpcUaWriteConfirm.tsx
 
 ### Implementation for US11 (Subscriptions)
 
-- [ ] T105 [US11] Implement subscription creation with configurable interval in src/main/protocols/OpcUaAdapter.ts
-- [ ] T106 [US11] Implement monitored item creation in src/main/protocols/OpcUaAdapter.ts
-- [ ] T107 [US11] Implement deadband filtering (None, Absolute, Percent) in src/main/protocols/OpcUaAdapter.ts
-- [ ] T108 [US11] Implement data change notification handling in src/main/protocols/OpcUaAdapter.ts
-- [ ] T109 [US11] Implement subscription lifetime and keep-alive in src/main/protocols/OpcUaAdapter.ts
-- [ ] T110 [US11] Implement publishing enable/disable (pause/resume) in src/main/protocols/OpcUaAdapter.ts
-- [ ] T111 [US11] Implement subscription transfer on reconnect in src/main/protocols/OpcUaAdapter.ts
-- [ ] T112 [US11] Create subscription IPC handlers in src/main/ipc/opcua.ts
+- [X] T105 [US11] Implement subscription creation with configurable interval in src/main/protocols/OpcUaAdapter.ts
+- [X] T106 [US11] Implement monitored item creation in src/main/protocols/OpcUaAdapter.ts
+- [X] T107 [US11] Implement deadband filtering (None, Absolute, Percent) in src/main/protocols/OpcUaAdapter.ts
+- [X] T108 [US11] Implement data change notification handling in src/main/protocols/OpcUaAdapter.ts
+- [X] T109 [US11] Implement subscription lifetime and keep-alive in src/main/protocols/OpcUaAdapter.ts
+- [X] T110 [US11] Implement publishing enable/disable (pause/resume) in src/main/protocols/OpcUaAdapter.ts
+- [X] T111 [US11] Implement subscription transfer on reconnect in src/main/protocols/OpcUaAdapter.ts
+- [X] T112 [US11] Create subscription IPC handlers in src/main/ipc/opcua.ts
 
 **Checkpoint**: US-009, US-010, US-011 functional
 

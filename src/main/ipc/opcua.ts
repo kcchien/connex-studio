@@ -20,10 +20,15 @@ import {
   OPCUA_READ_NODE_ATTRIBUTES,
   OPCUA_READ,
   OPCUA_WRITE,
+  OPCUA_VALIDATE_WRITE_ACCESS,
   OPCUA_CREATE_SUBSCRIPTION,
   OPCUA_DELETE_SUBSCRIPTION,
   OPCUA_ADD_MONITORED_ITEM,
+  OPCUA_MODIFY_MONITORED_ITEM,
   OPCUA_REMOVE_MONITORED_ITEM,
+  OPCUA_SET_PUBLISHING_MODE,
+  OPCUA_GET_SUBSCRIPTION_STATE,
+  OPCUA_GET_SUBSCRIPTIONS,
   OPCUA_DATA_CHANGE,
   OPCUA_SESSION_STATUS,
   OPCUA_TEST_CONNECTION
@@ -45,9 +50,15 @@ import type {
   OpcUaReadResult,
   OpcUaWriteRequest,
   OpcUaWriteResult,
+  OpcUaWriteValidation,
   CreateSubscriptionRequest,
   OpcUaSubscription,
   AddMonitoredItemRequest,
+  ModifyMonitoredItemRequest,
+  SetPublishingModeRequest,
+  DeleteSubscriptionRequest,
+  RemoveMonitoredItemRequest,
+  SubscriptionState,
   MonitoredItem,
   OpcUaDataChange
 } from '@shared/types'
@@ -286,11 +297,12 @@ export function registerOpcUaHandlers(): void {
   )
 
   // ==========================================================================
-  // Read/Write Operations
+  // Read/Write Operations (T095-T103)
   // ==========================================================================
 
   /**
-   * Read node values.
+   * Read node values (T095, T096, T097, T098, T099).
+   * Supports single and batch read with data type handling and StatusCode display.
    */
   ipcMain.handle(
     OPCUA_READ,
@@ -298,12 +310,33 @@ export function registerOpcUaHandlers(): void {
       log.debug(`[OpcUaIPC] Reading ${request.nodes.length} nodes`)
 
       const adapter = getOpcUaAdapter(request.connectionId)
-      return adapter.read(request)
+      const result = await adapter.read(request)
+
+      log.debug(`[OpcUaIPC] Read complete: ${result.values.length} values`)
+      return result
     }
   )
 
   /**
-   * Write node values.
+   * Validate write access for nodes (T102, T103).
+   * Checks AccessLevel before write attempt.
+   */
+  ipcMain.handle(
+    OPCUA_VALIDATE_WRITE_ACCESS,
+    async (
+      _,
+      params: { connectionId: string; nodeIds: string[] }
+    ): Promise<OpcUaWriteValidation[]> => {
+      log.debug(`[OpcUaIPC] Validating write access for ${params.nodeIds.length} nodes`)
+
+      const adapter = getOpcUaAdapter(params.connectionId)
+      return adapter.validateWriteAccess(params.nodeIds)
+    }
+  )
+
+  /**
+   * Write node values (T100, T101, T103).
+   * Supports single and batch write with data type validation.
    */
   ipcMain.handle(
     OPCUA_WRITE,
@@ -311,16 +344,21 @@ export function registerOpcUaHandlers(): void {
       log.debug(`[OpcUaIPC] Writing ${request.nodes.length} nodes`)
 
       const adapter = getOpcUaAdapter(request.connectionId)
-      return adapter.write(request)
+      const result = await adapter.write(request)
+
+      const successCount = result.results.filter(r => r.success).length
+      log.info(`[OpcUaIPC] Write complete: ${successCount}/${result.results.length} successful`)
+      return result
     }
   )
 
   // ==========================================================================
-  // Subscription Operations
+  // Subscription Operations (T105-T112)
   // ==========================================================================
 
   /**
-   * Create a subscription.
+   * Create a subscription (T105).
+   * Supports configurable publishing interval, lifetime, and keep-alive.
    */
   ipcMain.handle(
     OPCUA_CREATE_SUBSCRIPTION,
@@ -330,68 +368,70 @@ export function registerOpcUaHandlers(): void {
       const adapter = getOpcUaAdapter(request.connectionId)
       const subscription = await adapter.createSubscription(request)
 
-      log.info(`[OpcUaIPC] Subscription created: ${subscription.id}`)
+      // Set up data change forwarding to renderer
+      adapter.on('data-received', (change: OpcUaDataChange) => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send(OPCUA_DATA_CHANGE, change)
+        }
+      })
+
+      log.info(`[OpcUaIPC] Subscription created: ${subscription.id}, interval: ${subscription.publishingInterval}ms`)
       return subscription
     }
   )
 
   /**
-   * Delete a subscription.
+   * Delete a subscription (T109).
    */
   ipcMain.handle(
     OPCUA_DELETE_SUBSCRIPTION,
-    async (
-      _,
-      params: { connectionId: string; subscriptionId: string }
-    ): Promise<boolean> => {
-      log.debug(`[OpcUaIPC] Deleting subscription: ${params.subscriptionId}`)
+    async (_, request: DeleteSubscriptionRequest): Promise<boolean> => {
+      log.debug(`[OpcUaIPC] Deleting subscription: ${request.subscriptionId}`)
 
-      const adapter = getOpcUaAdapter(params.connectionId)
-      // Note: The adapter needs to implement deleteSubscription
-      // For now, we'll handle it through the adapter's internal state
+      const adapter = getOpcUaAdapter(request.connectionId)
+      await adapter.deleteSubscription(request)
+
+      log.info(`[OpcUaIPC] Subscription deleted: ${request.subscriptionId}`)
       return true
     }
   )
 
   /**
-   * Add monitored item to subscription.
+   * Add monitored item to subscription (T106, T107, T108).
+   * Supports deadband filtering (None, Absolute, Percent).
    */
   ipcMain.handle(
     OPCUA_ADD_MONITORED_ITEM,
-    async (_, request: AddMonitoredItemRequest): Promise<MonitoredItem> => {
-      log.debug(`[OpcUaIPC] Adding monitored item: ${request.nodeId}`)
+    async (
+      _,
+      params: { connectionId: string } & AddMonitoredItemRequest
+    ): Promise<MonitoredItem> => {
+      log.debug(`[OpcUaIPC] Adding monitored item: ${params.nodeId}`)
 
-      // Get connection ID from subscription
-      // For now, we need to extract it from the request
-      const manager = getConnectionManager()
-      const connections = manager.getAllConnections()
+      const adapter = getOpcUaAdapter(params.connectionId)
+      const item = await adapter.addMonitoredItem(params)
 
-      // Find the connection that has this subscription
-      for (const conn of connections) {
-        if (conn.protocol === 'opcua') {
-          const adapter = manager.getAdapter(conn.id)
-          if (adapter && adapter instanceof OpcUaAdapter) {
-            try {
-              const item = await adapter.addMonitoredItem(request)
+      log.info(`[OpcUaIPC] Monitored item added: ${item.id}, deadband: ${item.deadbandType}`)
+      return item
+    }
+  )
 
-              // Set up data change forwarding to renderer
-              adapter.on('data-received', (change: OpcUaDataChange) => {
-                if (mainWindow && !mainWindow.isDestroyed()) {
-                  mainWindow.webContents.send(OPCUA_DATA_CHANGE, change)
-                }
-              })
+  /**
+   * Modify monitored item parameters (T106).
+   */
+  ipcMain.handle(
+    OPCUA_MODIFY_MONITORED_ITEM,
+    async (
+      _,
+      params: { connectionId: string } & ModifyMonitoredItemRequest
+    ): Promise<MonitoredItem> => {
+      log.debug(`[OpcUaIPC] Modifying monitored item: ${params.itemId}`)
 
-              log.info(`[OpcUaIPC] Monitored item added: ${item.id}`)
-              return item
-            } catch {
-              // Try next connection
-              continue
-            }
-          }
-        }
-      }
+      const adapter = getOpcUaAdapter(params.connectionId)
+      const item = await adapter.modifyMonitoredItem(params)
 
-      throw new Error(`Subscription not found: ${request.subscriptionId}`)
+      log.info(`[OpcUaIPC] Monitored item modified: ${item.id}`)
+      return item
     }
   )
 
@@ -400,14 +440,60 @@ export function registerOpcUaHandlers(): void {
    */
   ipcMain.handle(
     OPCUA_REMOVE_MONITORED_ITEM,
+    async (_, request: RemoveMonitoredItemRequest): Promise<boolean> => {
+      log.debug(`[OpcUaIPC] Removing monitored item: ${request.itemId}`)
+
+      const adapter = getOpcUaAdapter(request.connectionId)
+      await adapter.removeMonitoredItem(request)
+
+      log.info(`[OpcUaIPC] Monitored item removed: ${request.itemId}`)
+      return true
+    }
+  )
+
+  /**
+   * Set publishing mode for subscription (T110).
+   * Enables pause/resume functionality.
+   */
+  ipcMain.handle(
+    OPCUA_SET_PUBLISHING_MODE,
+    async (_, request: SetPublishingModeRequest): Promise<boolean> => {
+      log.debug(`[OpcUaIPC] Setting publishing mode: ${request.publishingEnabled} for subscription: ${request.subscriptionId}`)
+
+      const adapter = getOpcUaAdapter(request.connectionId)
+      const result = await adapter.setPublishingMode(request)
+
+      log.info(`[OpcUaIPC] Publishing mode set to: ${result}`)
+      return result
+    }
+  )
+
+  /**
+   * Get subscription state (T109).
+   */
+  ipcMain.handle(
+    OPCUA_GET_SUBSCRIPTION_STATE,
     async (
       _,
-      params: { connectionId: string; subscriptionId: string; itemId: string }
-    ): Promise<boolean> => {
-      log.debug(`[OpcUaIPC] Removing monitored item: ${params.itemId}`)
+      params: { connectionId: string; subscriptionId: string }
+    ): Promise<SubscriptionState> => {
+      log.debug(`[OpcUaIPC] Getting subscription state: ${params.subscriptionId}`)
 
-      // Note: The adapter needs to implement removeMonitoredItem
-      return true
+      const adapter = getOpcUaAdapter(params.connectionId)
+      return adapter.getSubscriptionState(params.subscriptionId)
+    }
+  )
+
+  /**
+   * Get all subscriptions for a connection.
+   */
+  ipcMain.handle(
+    OPCUA_GET_SUBSCRIPTIONS,
+    async (_, connectionId: string): Promise<OpcUaSubscription[]> => {
+      log.debug(`[OpcUaIPC] Getting subscriptions for connection: ${connectionId}`)
+
+      const adapter = getOpcUaAdapter(connectionId)
+      return adapter.getSubscriptions()
     }
   )
 

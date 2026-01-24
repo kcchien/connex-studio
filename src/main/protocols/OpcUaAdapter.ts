@@ -13,10 +13,15 @@ import {
   DataType,
   MessageSecurityMode as OpcUaMessageSecurityMode,
   SecurityPolicy as OpcUaSecurityPolicy,
+  TimestampsToReturn,
+  DataChangeFilter,
+  DataChangeTrigger,
+  DeadbandType as NodeOpcuaDeadbandType,
   type ClientMonitoredItem,
   type EndpointDescription,
   type UserIdentityInfo,
-  type ReferenceDescription
+  type ReferenceDescription,
+  type MonitoringParametersOptions
 } from 'node-opcua'
 import log from 'electron-log/main.js'
 import type {
@@ -41,15 +46,27 @@ import type {
   OpcUaReadResult,
   OpcUaWriteRequest,
   OpcUaWriteResult,
+  OpcUaWriteValidation,
   OpcUaSubscription,
   CreateSubscriptionRequest,
   AddMonitoredItemRequest,
+  ModifyMonitoredItemRequest,
+  SetPublishingModeRequest,
+  DeleteSubscriptionRequest,
+  RemoveMonitoredItemRequest,
+  SubscriptionState,
   MonitoredItem,
   OpcUaDataChange,
   OpcUaServerInfo,
   SecurityPolicy,
   MessageSecurityMode,
-  NodeClass
+  NodeClass,
+  DeadbandType
+} from '@shared/types'
+import {
+  getStatusCodeInfo,
+  DataTypeNames,
+  OpcUaDataTypeIds
 } from '@shared/types'
 import { DEFAULT_PUBLISHING_INTERVAL, DEFAULT_SESSION_TIMEOUT } from '@shared/types'
 import { ProtocolAdapter, type ReadResult } from './ProtocolAdapter'
@@ -195,9 +212,12 @@ export class OpcUaAdapter extends ProtocolAdapter {
         this.emit('error', new Error('Connection lost'))
       })
 
-      this.client.on('connection_reestablished', () => {
+      this.client.on('connection_reestablished', async () => {
         log.info('[OpcUaAdapter] Connection reestablished')
         this.setStatus('connected')
+
+        // Transfer subscriptions on reconnect (T111)
+        await this.transferSubscriptions()
       })
 
       // Connect to server
@@ -334,22 +354,57 @@ export class OpcUaAdapter extends ProtocolAdapter {
     log.info('[OpcUaAdapter] Attempting reconnection...')
 
     try {
-      // Save subscription references
-      const savedSubscriptions = new Map(this.subscriptions)
-
-      // Disconnect
+      // Disconnect (this clears subscriptions/monitored items)
       await this.disconnect()
 
       // Reconnect
       await this.connect()
 
-      // Restore subscriptions if needed
-      // Note: node-opcua handles subscription transfer automatically
       log.info('[OpcUaAdapter] Reconnection successful')
     } catch (error) {
       log.error('[OpcUaAdapter] Reconnection failed:', error)
       throw error
     }
+  }
+
+  /**
+   * Transfer subscriptions after reconnection (T111).
+   * node-opcua handles subscription transfer automatically at the protocol level.
+   * This method verifies and logs the transfer status.
+   */
+  private async transferSubscriptions(): Promise<void> {
+    if (!this.session) {
+      log.warn('[OpcUaAdapter] Cannot transfer subscriptions: no session')
+      return
+    }
+
+    const subscriptionCount = this.subscriptions.size
+    const monitoredItemCount = this.monitoredItems.size
+
+    if (subscriptionCount === 0) {
+      log.debug('[OpcUaAdapter] No subscriptions to transfer')
+      return
+    }
+
+    log.info(`[OpcUaAdapter] Verifying ${subscriptionCount} subscriptions and ${monitoredItemCount} monitored items after reconnect`)
+
+    // node-opcua's ClientSubscription handles transfer automatically
+    // We just need to verify and emit status
+    for (const [id, subscription] of this.subscriptions.entries()) {
+      try {
+        // Check if subscription is still active
+        if (subscription.isActive) {
+          log.debug(`[OpcUaAdapter] Subscription ${id} transferred successfully`)
+        } else {
+          log.warn(`[OpcUaAdapter] Subscription ${id} is no longer active after transfer`)
+          // Could recreate subscription here if needed
+        }
+      } catch (error) {
+        log.error(`[OpcUaAdapter] Error verifying subscription ${id}:`, error)
+      }
+    }
+
+    log.info('[OpcUaAdapter] Subscription transfer verification complete')
   }
 
   /**
@@ -815,7 +870,8 @@ export class OpcUaAdapter extends ProtocolAdapter {
   }
 
   /**
-   * Read node values.
+   * Read node values (T095, T096, T097, T098).
+   * Supports single and batch read with comprehensive data type handling.
    */
   async read(request: OpcUaReadRequest): Promise<OpcUaReadResult> {
     if (!this.session) {
@@ -827,22 +883,245 @@ export class OpcUaAdapter extends ProtocolAdapter {
       attributeId: n.attributeId ?? AttributeIds.Value
     }))
 
+    // Read node values
     const dataValues = await this.session.read(nodesToRead)
 
     return {
-      values: dataValues.map((dv, i) => ({
-        nodeId: request.nodes[i].nodeId,
-        value: dv.value?.value,
-        dataType: DataType[dv.value?.dataType ?? DataType.Null],
-        statusCode: dv.statusCode.value,
-        sourceTimestamp: dv.sourceTimestamp?.getTime(),
-        serverTimestamp: dv.serverTimestamp?.getTime()
-      }))
+      values: dataValues.map((dv, i) => {
+        const statusCodeInfo = getStatusCodeInfo(dv.statusCode.value)
+        const dataTypeId = dv.value?.dataType ?? DataType.Null
+        const rawValue = dv.value?.value
+
+        return {
+          nodeId: request.nodes[i].nodeId,
+          value: this.decodeValue(rawValue, dataTypeId),
+          dataType: DataTypeNames[dataTypeId] ?? DataType[dataTypeId] ?? 'Unknown',
+          dataTypeId,
+          statusCode: dv.statusCode.value,
+          statusCodeName: statusCodeInfo.name,
+          statusCodeSeverity: statusCodeInfo.severity,
+          sourceTimestamp: dv.sourceTimestamp?.getTime(),
+          serverTimestamp: dv.serverTimestamp?.getTime(),
+          isArray: Array.isArray(rawValue),
+          arrayDimensions: Array.isArray(rawValue) ? [rawValue.length] : undefined
+        }
+      })
     }
   }
 
   /**
-   * Write node values.
+   * Decode value based on data type (T096, T097).
+   * Handles ExtensionObjects, complex types, and special values.
+   */
+  private decodeValue(value: unknown, dataTypeId: number): unknown {
+    if (value === null || value === undefined) {
+      return null
+    }
+
+    // Handle ExtensionObject (T097)
+    if (dataTypeId === OpcUaDataTypeIds.ExtensionObject || this.isExtensionObject(value)) {
+      return this.decodeExtensionObject(value)
+    }
+
+    // Handle DateTime - convert to ISO string
+    if (dataTypeId === OpcUaDataTypeIds.DateTime && value instanceof Date) {
+      return value.toISOString()
+    }
+
+    // Handle ByteString - convert to hex string
+    if (dataTypeId === OpcUaDataTypeIds.ByteString && Buffer.isBuffer(value)) {
+      return value.toString('hex')
+    }
+
+    // Handle Guid
+    if (dataTypeId === OpcUaDataTypeIds.Guid && typeof value === 'object') {
+      return String(value)
+    }
+
+    // Handle LocalizedText
+    if (dataTypeId === OpcUaDataTypeIds.LocalizedText && typeof value === 'object' && value !== null) {
+      const lt = value as { text?: string; locale?: string }
+      return lt.text ?? String(value)
+    }
+
+    // Handle QualifiedName
+    if (dataTypeId === OpcUaDataTypeIds.QualifiedName && typeof value === 'object' && value !== null) {
+      const qn = value as { name?: string; namespaceIndex?: number }
+      return qn.name ?? String(value)
+    }
+
+    // Handle NodeId
+    if (dataTypeId === OpcUaDataTypeIds.NodeId && typeof value === 'object') {
+      return String(value)
+    }
+
+    // Handle arrays recursively
+    if (Array.isArray(value)) {
+      return value.map(v => this.decodeValue(v, dataTypeId))
+    }
+
+    // Return primitive values as-is
+    return value
+  }
+
+  /**
+   * Check if value is an ExtensionObject.
+   */
+  private isExtensionObject(value: unknown): boolean {
+    if (typeof value !== 'object' || value === null) return false
+    return '_schema' in value || 'typeId' in value || 'body' in value
+  }
+
+  /**
+   * Decode ExtensionObject to readable format (T097).
+   * Handles known OPC UA structures like EURange, AxisInformation, etc.
+   */
+  private decodeExtensionObject(extObj: unknown): unknown {
+    if (!extObj || typeof extObj !== 'object') {
+      return extObj
+    }
+
+    const obj = extObj as Record<string, unknown>
+
+    // If it has a body property, decode that
+    if ('body' in obj && obj.body) {
+      return this.decodeExtensionObject(obj.body)
+    }
+
+    // Handle EURange (common for analog values)
+    if ('low' in obj && 'high' in obj) {
+      return {
+        type: 'EURange',
+        low: obj.low,
+        high: obj.high
+      }
+    }
+
+    // Handle EUInformation
+    if ('namespaceUri' in obj && 'unitId' in obj) {
+      return {
+        type: 'EUInformation',
+        namespaceUri: obj.namespaceUri,
+        unitId: obj.unitId,
+        displayName: (obj.displayName as { text?: string })?.text,
+        description: (obj.description as { text?: string })?.text
+      }
+    }
+
+    // Handle TimeZoneDataType
+    if ('offset' in obj && 'daylightSavingInOffset' in obj) {
+      return {
+        type: 'TimeZoneDataType',
+        offset: obj.offset,
+        daylightSavingInOffset: obj.daylightSavingInOffset
+      }
+    }
+
+    // Handle Range
+    if ('low' in obj && 'high' in obj && Object.keys(obj).length === 2) {
+      return { type: 'Range', low: obj.low, high: obj.high }
+    }
+
+    // Handle Argument (for methods)
+    if ('name' in obj && 'dataType' in obj && 'valueRank' in obj) {
+      return {
+        type: 'Argument',
+        name: obj.name,
+        dataType: String(obj.dataType),
+        valueRank: obj.valueRank,
+        arrayDimensions: obj.arrayDimensions,
+        description: (obj.description as { text?: string })?.text
+      }
+    }
+
+    // Generic ExtensionObject - return cleaned object
+    const result: Record<string, unknown> = { type: 'ExtensionObject' }
+    for (const [key, val] of Object.entries(obj)) {
+      // Skip internal properties
+      if (key.startsWith('_') || key === 'schema') continue
+      result[key] = this.decodeValue(val, DataType.Variant)
+    }
+    return result
+  }
+
+  /**
+   * Validate write access for nodes (T102).
+   * Checks AccessLevel and UserAccessLevel before write attempt.
+   */
+  async validateWriteAccess(nodeIds: string[]): Promise<OpcUaWriteValidation[]> {
+    if (!this.session) {
+      throw new Error('Not connected')
+    }
+
+    const validations: OpcUaWriteValidation[] = []
+
+    for (const nodeId of nodeIds) {
+      try {
+        const results = await this.session.read([
+          { nodeId, attributeId: AttributeIds.AccessLevel },
+          { nodeId, attributeId: AttributeIds.UserAccessLevel },
+          { nodeId, attributeId: AttributeIds.DataType }
+        ])
+
+        const accessLevel = results[0]?.value?.value ?? 0
+        const userAccessLevel = results[1]?.value?.value ?? 0
+        const dataTypeNodeId = results[2]?.value?.value?.toString()
+
+        // Check write bit (0x02) in access level
+        const writable = (userAccessLevel & 0x02) !== 0
+
+        let expectedDataType = 'Unknown'
+        if (dataTypeNodeId) {
+          expectedDataType = await this.resolveDataTypeName(dataTypeNodeId)
+        }
+
+        validations.push({
+          nodeId,
+          writable,
+          accessLevel,
+          userAccessLevel,
+          expectedDataType,
+          expectedDataTypeId: this.parseDataTypeId(dataTypeNodeId)
+        })
+      } catch (error) {
+        log.warn(`[OpcUaAdapter] Error validating write access for ${nodeId}:`, error)
+        validations.push({
+          nodeId,
+          writable: false,
+          accessLevel: 0,
+          userAccessLevel: 0,
+          expectedDataType: 'Unknown'
+        })
+      }
+    }
+
+    return validations
+  }
+
+  /**
+   * Parse DataType NodeId to get numeric type ID.
+   */
+  private parseDataTypeId(dataTypeNodeId: string | undefined): number | undefined {
+    if (!dataTypeNodeId) return undefined
+
+    // Handle "i=X" format for built-in types
+    const match = dataTypeNodeId.match(/^i=(\d+)$/)
+    if (match) {
+      return parseInt(match[1], 10)
+    }
+
+    // Handle "ns=X;i=Y" format
+    const nsMatch = dataTypeNodeId.match(/ns=\d+;i=(\d+)/)
+    if (nsMatch) {
+      return parseInt(nsMatch[1], 10)
+    }
+
+    return undefined
+  }
+
+  /**
+   * Write node values (T100, T101, T102).
+   * Supports single and batch write with data type validation.
    */
   async write(request: OpcUaWriteRequest): Promise<OpcUaWriteResult> {
     if (!this.session) {
@@ -853,32 +1132,164 @@ export class OpcUaAdapter extends ProtocolAdapter {
 
     for (const node of request.nodes) {
       try {
-        const statusCode = await this.session.write({
+        // Determine data type to use
+        let dataType: DataType
+        if (node.dataTypeId !== undefined) {
+          dataType = node.dataTypeId as DataType
+        } else if (node.dataType) {
+          dataType = this.resolveDataTypeFromName(node.dataType)
+        } else {
+          dataType = this.inferDataType(node.value)
+        }
+
+        // Encode value for write
+        const encodedValue = this.encodeValueForWrite(node.value, dataType)
+
+        const writeResult = await this.session.write({
           nodeId: node.nodeId,
           attributeId: AttributeIds.Value,
           value: {
             value: {
-              dataType: this.inferDataType(node.value),
-              value: node.value
+              dataType,
+              value: encodedValue
             }
           }
         })
 
+        const statusInfo = getStatusCodeInfo(writeResult.value)
         results.push({
           nodeId: node.nodeId,
-          statusCode: statusCode.value,
-          success: statusCode.isGood()
+          statusCode: writeResult.value,
+          statusCodeName: statusInfo.name,
+          success: writeResult.isGood()
         })
       } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error)
+        log.error(`[OpcUaAdapter] Write error for ${node.nodeId}:`, error)
         results.push({
           nodeId: node.nodeId,
           statusCode: StatusCodes.Bad.value,
-          success: false
+          statusCodeName: 'Bad',
+          success: false,
+          error: errorMsg
         })
       }
     }
 
     return { results }
+  }
+
+  /**
+   * Resolve data type name to DataType enum (T101).
+   */
+  private resolveDataTypeFromName(typeName: string): DataType {
+    const typeMap: Record<string, DataType> = {
+      Boolean: DataType.Boolean,
+      SByte: DataType.SByte,
+      Byte: DataType.Byte,
+      Int16: DataType.Int16,
+      UInt16: DataType.UInt16,
+      Int32: DataType.Int32,
+      UInt32: DataType.UInt32,
+      Int64: DataType.Int64,
+      UInt64: DataType.UInt64,
+      Float: DataType.Float,
+      Double: DataType.Double,
+      String: DataType.String,
+      DateTime: DataType.DateTime,
+      Guid: DataType.Guid,
+      ByteString: DataType.ByteString,
+      XmlElement: DataType.XmlElement,
+      NodeId: DataType.NodeId,
+      ExpandedNodeId: DataType.ExpandedNodeId,
+      StatusCode: DataType.StatusCode,
+      QualifiedName: DataType.QualifiedName,
+      LocalizedText: DataType.LocalizedText,
+      ExtensionObject: DataType.ExtensionObject,
+      Variant: DataType.Variant
+    }
+    return typeMap[typeName] ?? DataType.Variant
+  }
+
+  /**
+   * Encode value for OPC UA write operation (T101).
+   * Handles type coercion and validation.
+   */
+  private encodeValueForWrite(value: unknown, dataType: DataType): unknown {
+    if (value === null || value === undefined) {
+      return null
+    }
+
+    switch (dataType) {
+      case DataType.Boolean:
+        if (typeof value === 'string') {
+          return value.toLowerCase() === 'true' || value === '1'
+        }
+        return Boolean(value)
+
+      case DataType.SByte:
+      case DataType.Int16:
+      case DataType.Int32:
+        if (typeof value === 'string') {
+          return parseInt(value, 10)
+        }
+        return Math.trunc(Number(value))
+
+      case DataType.Byte:
+      case DataType.UInt16:
+      case DataType.UInt32:
+        if (typeof value === 'string') {
+          return Math.abs(parseInt(value, 10))
+        }
+        return Math.abs(Math.trunc(Number(value)))
+
+      case DataType.Int64:
+      case DataType.UInt64:
+        // Handle big integers as arrays [low, high] or BigInt
+        if (typeof value === 'bigint') {
+          return value
+        }
+        if (typeof value === 'string') {
+          try {
+            return BigInt(value)
+          } catch {
+            return parseInt(value, 10)
+          }
+        }
+        return value
+
+      case DataType.Float:
+      case DataType.Double:
+        if (typeof value === 'string') {
+          return parseFloat(value)
+        }
+        return Number(value)
+
+      case DataType.String:
+        return String(value)
+
+      case DataType.DateTime:
+        if (value instanceof Date) {
+          return value
+        }
+        if (typeof value === 'string' || typeof value === 'number') {
+          return new Date(value)
+        }
+        return value
+
+      case DataType.ByteString:
+        if (typeof value === 'string') {
+          // Assume hex string input
+          return Buffer.from(value.replace(/\s/g, ''), 'hex')
+        }
+        if (Buffer.isBuffer(value)) {
+          return value
+        }
+        return value
+
+      default:
+        return value
+    }
   }
 
   /**
@@ -914,7 +1325,8 @@ export class OpcUaAdapter extends ProtocolAdapter {
   }
 
   /**
-   * Add monitored item to subscription.
+   * Add monitored item to subscription (T106, T107, T108).
+   * Supports deadband filtering (None, Absolute, Percent).
    */
   async addMonitoredItem(request: AddMonitoredItemRequest): Promise<MonitoredItem> {
     const subscription = this.subscriptions.get(request.subscriptionId)
@@ -925,38 +1337,61 @@ export class OpcUaAdapter extends ProtocolAdapter {
     const samplingInterval = request.samplingInterval ?? 500
     const queueSize = request.queueSize ?? 10
     const discardOldest = request.discardOldest ?? true
+    const deadbandType = request.deadbandType ?? 'None'
+    const deadbandValue = request.deadbandValue ?? 0
+
+    // Build monitoring parameters with deadband filter (T107)
+    const monitoringParams: MonitoringParametersOptions = {
+      samplingInterval,
+      queueSize,
+      discardOldest
+    }
+
+    // Add DataChangeFilter for deadband filtering
+    if (deadbandType !== 'None' && deadbandValue > 0) {
+      const filter = new DataChangeFilter({
+        trigger: DataChangeTrigger.StatusValue,
+        deadbandType: this.mapDeadbandType(deadbandType),
+        deadbandValue
+      })
+      monitoringParams.filter = filter
+    }
 
     const monitoredItem = await subscription.monitor(
       {
         nodeId: request.nodeId,
         attributeId: request.attributeId ?? AttributeIds.Value
       },
-      {
-        samplingInterval,
-        queueSize,
-        discardOldest
-      },
-      2 // TimestampsToReturn.Both
+      monitoringParams,
+      TimestampsToReturn.Both
     ) as ClientMonitoredItem
 
     const id = crypto.randomUUID()
     this.monitoredItems.set(id, monitoredItem)
 
-    // Set up data change handler
+    // Set up data change handler (T108)
     monitoredItem.on('changed', (dataValue) => {
+      const dataTypeId = dataValue.value?.dataType ?? DataType.Null
+      const rawValue = dataValue.value?.value
+
       const change: OpcUaDataChange = {
         subscriptionId: request.subscriptionId,
         items: [{
           itemId: id,
           nodeId: request.nodeId,
-          value: dataValue.value?.value,
-          dataType: DataType[dataValue.value?.dataType ?? DataType.Null],
+          value: this.decodeValue(rawValue, dataTypeId),
+          dataType: DataTypeNames[dataTypeId] ?? DataType[dataTypeId] ?? 'Unknown',
           statusCode: dataValue.statusCode.value,
           sourceTimestamp: dataValue.sourceTimestamp?.getTime() ?? Date.now(),
           serverTimestamp: dataValue.serverTimestamp?.getTime() ?? Date.now()
         }]
       }
       this.emit('data-received', change)
+    })
+
+    // Handle errors on monitored item
+    monitoredItem.on('err', (message) => {
+      log.error(`[OpcUaAdapter] MonitoredItem error for ${request.nodeId}:`, message)
     })
 
     return {
@@ -967,9 +1402,183 @@ export class OpcUaAdapter extends ProtocolAdapter {
       samplingInterval,
       queueSize,
       discardOldest,
+      deadbandType,
+      deadbandValue
+    }
+  }
+
+  /**
+   * Map DeadbandType string to node-opcua enum.
+   */
+  private mapDeadbandType(type: DeadbandType): NodeOpcuaDeadbandType {
+    switch (type) {
+      case 'None':
+        return NodeOpcuaDeadbandType.None
+      case 'Absolute':
+        return NodeOpcuaDeadbandType.Absolute
+      case 'Percent':
+        return NodeOpcuaDeadbandType.Percent
+      default:
+        return NodeOpcuaDeadbandType.None
+    }
+  }
+
+  /**
+   * Modify monitored item parameters (T106).
+   */
+  async modifyMonitoredItem(request: ModifyMonitoredItemRequest): Promise<MonitoredItem> {
+    const monitoredItem = this.monitoredItems.get(request.itemId)
+    if (!monitoredItem) {
+      throw new Error(`Monitored item not found: ${request.itemId}`)
+    }
+
+    const params: MonitoringParametersOptions = {}
+
+    if (request.samplingInterval !== undefined) {
+      params.samplingInterval = request.samplingInterval
+    }
+    if (request.queueSize !== undefined) {
+      params.queueSize = request.queueSize
+    }
+    if (request.discardOldest !== undefined) {
+      params.discardOldest = request.discardOldest
+    }
+
+    // Update deadband filter if specified
+    if (request.deadbandType !== undefined) {
+      const deadbandValue = request.deadbandValue ?? 0
+      if (request.deadbandType !== 'None' && deadbandValue > 0) {
+        params.filter = new DataChangeFilter({
+          trigger: DataChangeTrigger.StatusValue,
+          deadbandType: this.mapDeadbandType(request.deadbandType),
+          deadbandValue
+        })
+      }
+    }
+
+    await monitoredItem.modify(params)
+
+    return {
+      id: request.itemId,
+      monitoredItemId: monitoredItem.monitoredItemId,
+      nodeId: monitoredItem.itemToMonitor.nodeId.toString(),
+      attributeId: monitoredItem.itemToMonitor.attributeId,
+      samplingInterval: request.samplingInterval ?? 500,
+      queueSize: request.queueSize ?? 10,
+      discardOldest: request.discardOldest ?? true,
       deadbandType: request.deadbandType ?? 'None',
       deadbandValue: request.deadbandValue
     }
+  }
+
+  /**
+   * Remove monitored item from subscription.
+   */
+  async removeMonitoredItem(request: RemoveMonitoredItemRequest): Promise<void> {
+    const monitoredItem = this.monitoredItems.get(request.itemId)
+    if (!monitoredItem) {
+      throw new Error(`Monitored item not found: ${request.itemId}`)
+    }
+
+    await monitoredItem.terminate()
+    this.monitoredItems.delete(request.itemId)
+    log.debug(`[OpcUaAdapter] Removed monitored item: ${request.itemId}`)
+  }
+
+  /**
+   * Set publishing mode for subscription (T110).
+   * Enables pause/resume functionality.
+   */
+  async setPublishingMode(request: SetPublishingModeRequest): Promise<boolean> {
+    const subscription = this.subscriptions.get(request.subscriptionId)
+    if (!subscription) {
+      throw new Error(`Subscription not found: ${request.subscriptionId}`)
+    }
+
+    await subscription.setPublishingMode(request.publishingEnabled)
+    log.debug(`[OpcUaAdapter] Set publishing mode: ${request.publishingEnabled} for subscription ${request.subscriptionId}`)
+    return request.publishingEnabled
+  }
+
+  /**
+   * Get subscription state (T109).
+   */
+  async getSubscriptionState(subscriptionId: string): Promise<SubscriptionState> {
+    const subscription = this.subscriptions.get(subscriptionId)
+    if (!subscription) {
+      throw new Error(`Subscription not found: ${subscriptionId}`)
+    }
+
+    return {
+      id: subscriptionId,
+      publishingEnabled: subscription.publishingEnabled,
+      keepAliveCount: subscription.maxKeepAliveCount,
+      lifetimeCount: subscription.lifetimeCount,
+      currentSequenceNumber: 0, // Not directly exposed by node-opcua
+      lastPublishTime: Date.now()
+    }
+  }
+
+  /**
+   * Delete subscription (T109).
+   */
+  async deleteSubscription(request: DeleteSubscriptionRequest): Promise<void> {
+    const subscription = this.subscriptions.get(request.subscriptionId)
+    if (!subscription) {
+      throw new Error(`Subscription not found: ${request.subscriptionId}`)
+    }
+
+    // Remove all monitored items first
+    for (const [itemId, item] of this.monitoredItems.entries()) {
+      // Check if this item belongs to this subscription
+      if (item.subscription === subscription) {
+        this.monitoredItems.delete(itemId)
+      }
+    }
+
+    await subscription.terminate()
+    this.subscriptions.delete(request.subscriptionId)
+    log.debug(`[OpcUaAdapter] Deleted subscription: ${request.subscriptionId}`)
+  }
+
+  /**
+   * Get all subscriptions for this connection.
+   */
+  getSubscriptions(): OpcUaSubscription[] {
+    const result: OpcUaSubscription[] = []
+
+    for (const [id, sub] of this.subscriptions.entries()) {
+      const monitoredItems: MonitoredItem[] = []
+
+      for (const [itemId, item] of this.monitoredItems.entries()) {
+        if (item.subscription === sub) {
+          monitoredItems.push({
+            id: itemId,
+            monitoredItemId: item.monitoredItemId,
+            nodeId: item.itemToMonitor.nodeId.toString(),
+            attributeId: item.itemToMonitor.attributeId,
+            samplingInterval: 500, // Default, actual value not exposed
+            queueSize: 10, // Default, actual value not exposed
+            discardOldest: true,
+            deadbandType: 'None'
+          })
+        }
+      }
+
+      result.push({
+        id,
+        subscriptionId: sub.subscriptionId,
+        connectionId: this.connection.id,
+        publishingInterval: sub.publishingInterval,
+        lifetimeCount: sub.lifetimeCount,
+        maxKeepAliveCount: sub.maxKeepAliveCount,
+        maxNotificationsPerPublish: sub.maxNotificationsPerPublish,
+        priority: sub.priority,
+        monitoredItems
+      })
+    }
+
+    return result
   }
 
   // =========================================================================

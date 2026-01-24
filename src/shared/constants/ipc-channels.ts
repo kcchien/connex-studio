@@ -164,6 +164,7 @@ export const OPCUA_READ_NODE_ATTRIBUTES = 'opcua:read-node-attributes'
 // OPC UA Read/Write channels
 export const OPCUA_READ = 'opcua:read'
 export const OPCUA_WRITE = 'opcua:write'
+export const OPCUA_VALIDATE_WRITE_ACCESS = 'opcua:validate-write-access'
 export const OPCUA_READ_ATTRIBUTES = 'opcua:read-attributes'
 
 // OPC UA Subscription channels
@@ -172,6 +173,9 @@ export const OPCUA_DELETE_SUBSCRIPTION = 'opcua:delete-subscription'
 export const OPCUA_ADD_MONITORED_ITEM = 'opcua:add-monitored-item'
 export const OPCUA_REMOVE_MONITORED_ITEM = 'opcua:remove-monitored-item'
 export const OPCUA_MODIFY_MONITORED_ITEM = 'opcua:modify-monitored-item'
+export const OPCUA_SET_PUBLISHING_MODE = 'opcua:set-publishing-mode'
+export const OPCUA_GET_SUBSCRIPTION_STATE = 'opcua:get-subscription-state'
+export const OPCUA_GET_SUBSCRIPTIONS = 'opcua:get-subscriptions'
 export const OPCUA_DATA_CHANGE = 'opcua:data-change'
 export const OPCUA_SUBSCRIPTION_STATUS = 'opcua:subscription-status'
 
@@ -362,6 +366,7 @@ export const IPC_CHANNELS = {
     // Read/Write
     read: OPCUA_READ,
     write: OPCUA_WRITE,
+    validateWriteAccess: OPCUA_VALIDATE_WRITE_ACCESS,
     readAttributes: OPCUA_READ_ATTRIBUTES,
     // Subscription
     createSubscription: OPCUA_CREATE_SUBSCRIPTION,
@@ -369,6 +374,9 @@ export const IPC_CHANNELS = {
     addMonitoredItem: OPCUA_ADD_MONITORED_ITEM,
     removeMonitoredItem: OPCUA_REMOVE_MONITORED_ITEM,
     modifyMonitoredItem: OPCUA_MODIFY_MONITORED_ITEM,
+    setPublishingMode: OPCUA_SET_PUBLISHING_MODE,
+    getSubscriptionState: OPCUA_GET_SUBSCRIPTION_STATE,
+    getSubscriptions: OPCUA_GET_SUBSCRIPTIONS,
     dataChange: OPCUA_DATA_CHANGE,
     subscriptionStatus: OPCUA_SUBSCRIPTION_STATUS,
     // Events

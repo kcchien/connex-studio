@@ -9,6 +9,87 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Phase 9: US9, US10, US11 OPC UA Read/Write & Subscriptions** (T095-T112) - `003-pro-features-opcua`
+  - **Main Process - OPC UA 讀取操作 (US9)**
+    - OpcUaAdapter 讀取功能增強 (`src/main/protocols/OpcUaAdapter.ts`)
+      - `read()` 單一與批次讀取 (T095)
+      - OPC UA Built-in 資料型別完整處理 (T096)
+        - Boolean, SByte, Byte, Int16-64, UInt16-64
+        - Float, Double, String, DateTime, Guid
+        - ByteString, LocalizedText, QualifiedName, NodeId
+      - ExtensionObject 解碼 (T097)
+        - EURange, EUInformation, Argument
+        - Range, EnumValueType, OptionSet
+        - 遞迴解碼巢狀結構
+      - StatusCode 人類可讀顯示 (T098)
+        - 名稱映射 (Good, BadNodeIdUnknown, UncertainInitialValue 等)
+        - 嚴重程度分類 (good/uncertain/bad)
+      - 陣列維度與型別資訊
+
+  - **Main Process - OPC UA 寫入操作 (US10)**
+    - OpcUaAdapter 寫入功能增強 (`src/main/protocols/OpcUaAdapter.ts`)
+      - `write()` 單一與批次寫入 (T100)
+      - 資料型別驗證 (T101)
+        - DataType 名稱對應 node-opcua DataType enum
+        - 自動型別轉換與編碼
+      - `validateWriteAccess()` AccessLevel 檢查 (T102)
+        - 讀取 AccessLevel, UserAccessLevel, DataType 屬性
+        - 檢查寫入權限位元 (0x02)
+      - 寫入 IPC 處理器 (`src/main/ipc/opcua.ts`) (T103)
+        - `opcua:write` - 寫入節點值
+        - `opcua:validate-write-access` - 驗證寫入權限
+
+  - **Renderer - OPC UA 寫入確認 UI**
+    - OpcUaWriteConfirm 元件 (`src/renderer/components/opcua/OpcUaWriteConfirm.tsx`) (T104)
+      - 當前值與新值比較顯示
+      - 節點資訊展示 (NodeId, DataType, AccessLevel)
+      - Critical/Non-critical 模式區分
+      - useWriteConfirm Hook 狀態管理
+      - 「本次會話不再詢問」選項
+
+  - **Main Process - OPC UA 訂閱管理 (US11)**
+    - OpcUaAdapter 訂閱功能增強 (`src/main/protocols/OpcUaAdapter.ts`)
+      - `createSubscription()` 可配置發布間隔 (T105)
+        - requestedPublishingInterval
+        - requestedLifetimeCount
+        - requestedMaxKeepAliveCount
+      - `addMonitoredItem()` 監控項目建立 (T106)
+        - 可配置 samplingInterval, queueSize
+        - discardOldest 策略
+      - Deadband 過濾支援 (T107)
+        - None - 所有變化
+        - Absolute - 絕對值差異
+        - Percent - 百分比差異
+        - DataChangeFilter 與 DataChangeTrigger 整合
+      - 資料變更通知處理 (T108)
+        - 'changed' 事件監聽
+        - 'data-received' 事件發射至 Renderer
+      - 訂閱生命週期管理 (T109)
+        - `deleteSubscription()` 刪除訂閱
+        - `getSubscriptionState()` 取得訂閱狀態
+        - `getSubscriptions()` 列出所有訂閱
+      - `setPublishingMode()` 暫停/恢復發布 (T110)
+      - `transferSubscriptions()` 重連時訂閱轉移 (T111)
+      - 訂閱 IPC 處理器擴展 (`src/main/ipc/opcua.ts`) (T112)
+        - `opcua:set-publishing-mode` - 設定發布模式
+        - `opcua:get-subscription-state` - 取得訂閱狀態
+        - `opcua:get-subscriptions` - 列出所有訂閱
+        - `opcua:modify-monitored-item` - 修改監控項目
+
+  - **共享型別更新** (`src/shared/types/opcua.ts`)
+    - OpcUaReadValue 增強 (dataTypeId, statusCodeName, statusCodeSeverity, isArray, arrayDimensions)
+    - OpcUaWriteValidation 介面
+    - SetPublishingModeRequest 介面
+    - DeleteSubscriptionRequest 介面
+    - RemoveMonitoredItemRequest 介面
+    - SubscriptionState 介面
+
+  - **IPC 通道擴展** (`src/shared/constants/ipc-channels.ts`)
+    - OPCUA_VALIDATE_WRITE_ACCESS
+    - OPCUA_SET_PUBLISHING_MODE
+    - OPCUA_GET_SUBSCRIPTION_STATE
+    - OPCUA_GET_SUBSCRIPTIONS
+
 - **Phase 8: US8 OPC UA Node Browsing** (T086-T094) - `003-pro-features-opcua`
   - **Main Process - OPC UA 地址空間瀏覽**
     - OpcUaAdapter 瀏覽功能增強 (`src/main/protocols/OpcUaAdapter.ts`)

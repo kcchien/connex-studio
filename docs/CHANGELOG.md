@@ -9,6 +9,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Phase 7: US7 OPC UA Connection** (T075-T085) - `003-pro-features-opcua`
+  - **Main Process - OPC UA 協定適配器**
+    - OpcUaAdapter 連線邏輯增強 (`src/main/protocols/OpcUaAdapter.ts`)
+      - 端點 URL 驗證函式 `validateEndpointUrl()`
+      - 端點 URL 解析函式 `parseEndpointUrl()`
+      - 安全模式對應：None, Sign, SignAndEncrypt
+      - 安全策略對應：None, Basic256Sha256, Aes128_Sha256_RsaOaep, Aes256_Sha256_RsaPss
+    - Session 管理增強
+      - Session 超時與續約機制 (75% timeout 時自動續約)
+      - Session 事件處理：session_closed, keepalive, keepalive_failure
+      - Client 事件處理：connection_lost, connection_reestablished
+      - 自動重連機制 `reconnect()`
+    - 認證方法支援
+      - Anonymous 認證
+      - Username/Password 認證
+      - Certificate 認證預留介面
+    - GetEndpoints 服務端點發現
+    - 伺服器資訊擷取 `extractServerInfo()`
+    - 新增 getter 方法：getServerInfo(), getSessionId(), getSessionTimeout()
+
+  - **Main Process - OPC UA IPC 處理器**
+    - 完整 OPC UA IPC 處理器 (`src/main/ipc/opcua.ts`)
+      - `opcua:get-endpoints` - 取得伺服器端點清單
+      - `opcua:test-connection` - 測試連線 (不建立持久連線)
+      - `opcua:session-status` - 取得 Session 狀態
+      - `opcua:browse` - 瀏覽子節點
+      - `opcua:read` - 讀取節點值
+      - `opcua:write` - 寫入節點值
+      - `opcua:create-subscription` - 建立訂閱
+      - `opcua:delete-subscription` - 刪除訂閱
+      - `opcua:add-monitored-item` - 新增監控項目
+      - `opcua:remove-monitored-item` - 移除監控項目
+      - `opcua:data-change` - 資料變更推送事件
+
+  - **Renderer - OPC UA UI**
+    - useOpcUa Hook (`src/renderer/hooks/useOpcUa.ts`)
+      - 端點發現：getEndpoints(), testConnection()
+      - Session 狀態：getSessionStatus()
+      - 瀏覽操作：browse()
+      - 讀寫操作：read(), write()
+      - 訂閱管理：createSubscription(), deleteSubscription(), addMonitoredItem(), removeMonitoredItem()
+      - 資料變更訂閱：onDataChange 即時事件
+      - 狀態管理：isLoading, error, dataChanges
+    - ConnectionForm OPC UA 支援 (`src/renderer/components/connection/ConnectionForm.tsx`)
+      - 三協定選擇器：Modbus TCP / MQTT / OPC UA
+      - OPC UA 設定欄位：Endpoint URL、Security Mode、Security Policy
+      - OPC UA 認證欄位：Username、Password (選填)
+      - 端點 URL 驗證
+
+  - **Preload API 擴展**
+    - 新增 opcua API 區段
+    - 完整型別定義與 IPC 橋接
+
 - **Phase 6: US4 Alert & Notification System** (T062-T074) - `003-pro-features-opcua`
   - **Main Process - AlertEngine 整合**
     - AlertEngine 與 AlertHistoryStore 整合 (`src/main/services/AlertEngine.ts`)

@@ -141,19 +141,19 @@
 
 ### Implementation for US4
 
-- [ ] T062 [US4] Implement AlertEngine rule evaluation in src/main/services/AlertEngine.ts
-- [ ] T063 [US4] Implement threshold-based alerts (>, <, =, !=, range) in src/main/services/AlertEngine.ts
-- [ ] T064 [US4] Implement duration conditions (debounce) in src/main/services/AlertEngine.ts
-- [ ] T065 [US4] Implement cooldown between alerts in src/main/services/AlertEngine.ts
-- [ ] T066 [US4] Implement desktop notification using Electron Notification API in src/main/services/AlertEngine.ts
-- [ ] T067 [US4] Implement sound playback using Web Audio API in src/main/services/AlertSoundPlayer.ts
-- [ ] T068 [US4] Implement AlertHistoryStore SQLite operations in src/main/services/AlertHistoryStore.ts
-- [ ] T069 [US4] Implement alert acknowledgement and muting in src/main/services/AlertEngine.ts
-- [ ] T070 [US4] Create alert IPC handlers in src/main/ipc/alert.ts
-- [ ] T071 [US4] Create useAlert hook in src/renderer/hooks/useAlert.ts
-- [ ] T072 [P] [US4] Create AlertRuleEditor component in src/renderer/components/alert/AlertRuleEditor.tsx
-- [ ] T073 [P] [US4] Create AlertHistory panel component in src/renderer/components/alert/AlertHistory.tsx
-- [ ] T074 [P] [US4] Create AlertNotification toast component in src/renderer/components/alert/AlertNotification.tsx
+- [X] T062 [US4] Implement AlertEngine rule evaluation in src/main/services/AlertEngine.ts
+- [X] T063 [US4] Implement threshold-based alerts (>, <, =, !=, range) in src/main/services/AlertEngine.ts
+- [X] T064 [US4] Implement duration conditions (debounce) in src/main/services/AlertEngine.ts
+- [X] T065 [US4] Implement cooldown between alerts in src/main/services/AlertEngine.ts
+- [X] T066 [US4] Implement desktop notification using Electron Notification API in src/main/services/AlertEngine.ts
+- [X] T067 [US4] Implement sound playback using Web Audio API in src/main/services/AlertSoundPlayer.ts
+- [X] T068 [US4] Implement AlertHistoryStore SQLite operations in src/main/services/AlertHistoryStore.ts
+- [X] T069 [US4] Implement alert acknowledgement and muting in src/main/services/AlertEngine.ts
+- [X] T070 [US4] Create alert IPC handlers in src/main/ipc/alert.ts
+- [X] T071 [US4] Create useAlert hook in src/renderer/hooks/useAlert.ts
+- [X] T072 [P] [US4] Create AlertRuleEditor component in src/renderer/components/alert/AlertRuleEditor.tsx
+- [X] T073 [P] [US4] Create AlertHistory panel component in src/renderer/components/alert/AlertHistory.tsx
+- [X] T074 [P] [US4] Create AlertNotification toast component in src/renderer/components/alert/AlertNotification.tsx
 
 **Checkpoint**: US-004 Alert system functional
 
@@ -167,17 +167,17 @@
 
 ### Implementation for US7
 
-- [ ] T075 [US7] Implement OpcUaAdapter connection logic in src/main/protocols/OpcUaAdapter.ts
-- [ ] T076 [US7] Implement endpoint URL parsing and validation in src/main/protocols/OpcUaAdapter.ts
-- [ ] T077 [US7] Implement security policy selection (None, Basic256Sha256, etc.) in src/main/protocols/OpcUaAdapter.ts
-- [ ] T078 [US7] Implement session management (create, activate, close) in src/main/protocols/OpcUaAdapter.ts
-- [ ] T079 [US7] Implement session timeout and renewal in src/main/protocols/OpcUaAdapter.ts
-- [ ] T080 [US7] Implement authentication methods (anonymous, username, certificate) in src/main/protocols/OpcUaAdapter.ts
-- [ ] T081 [US7] Implement GetEndpoints discovery in src/main/protocols/OpcUaAdapter.ts
-- [ ] T082 [US7] Integrate OpcUaAdapter with ConnectionManager in src/main/services/ConnectionManager.ts
-- [ ] T083 [US7] Create opcua connection IPC handlers in src/main/ipc/opcua.ts
-- [ ] T084 [US7] Create useOpcUa hook in src/renderer/hooks/useOpcUa.ts
-- [ ] T085 [US7] Add OPC UA connection type to connection dialog in src/renderer/components/connection/ConnectionDialog.tsx
+- [X] T075 [US7] Implement OpcUaAdapter connection logic in src/main/protocols/OpcUaAdapter.ts
+- [X] T076 [US7] Implement endpoint URL parsing and validation in src/main/protocols/OpcUaAdapter.ts
+- [X] T077 [US7] Implement security policy selection (None, Basic256Sha256, etc.) in src/main/protocols/OpcUaAdapter.ts
+- [X] T078 [US7] Implement session management (create, activate, close) in src/main/protocols/OpcUaAdapter.ts
+- [X] T079 [US7] Implement session timeout and renewal in src/main/protocols/OpcUaAdapter.ts
+- [X] T080 [US7] Implement authentication methods (anonymous, username, certificate) in src/main/protocols/OpcUaAdapter.ts
+- [X] T081 [US7] Implement GetEndpoints discovery in src/main/protocols/OpcUaAdapter.ts
+- [X] T082 [US7] Integrate OpcUaAdapter with ConnectionManager in src/main/services/ConnectionManager.ts
+- [X] T083 [US7] Create opcua connection IPC handlers in src/main/ipc/opcua.ts
+- [X] T084 [US7] Create useOpcUa hook in src/renderer/hooks/useOpcUa.ts
+- [X] T085 [US7] Add OPC UA connection type to connection dialog in src/renderer/components/connection/ConnectionForm.tsx
 
 **Checkpoint**: US-007 OPC UA connection functional
 

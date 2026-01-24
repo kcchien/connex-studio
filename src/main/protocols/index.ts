@@ -25,7 +25,7 @@ export {
   parseMqttAddress
 } from './MqttAdapter'
 
-export { OpcUaAdapter } from './OpcUaAdapter'
+export { OpcUaAdapter, validateEndpointUrl, parseEndpointUrl } from './OpcUaAdapter'
 
 // Register all protocol adapters
 import { getProtocolRegistry } from './ProtocolAdapter'

@@ -47,6 +47,21 @@ import type {
   CreateAlertRuleRequest,
   UpdateAlertRuleRequest
 } from '@shared/types/alert'
+import type {
+  OpcUaEndpoint,
+  OpcUaNode,
+  OpcUaBrowseRequest,
+  OpcUaReadRequest,
+  OpcUaReadResult,
+  OpcUaWriteRequest,
+  OpcUaWriteResult,
+  OpcUaSubscription,
+  CreateSubscriptionRequest,
+  AddMonitoredItemRequest,
+  MonitoredItem,
+  OpcUaDataChange,
+  OpcUaServerInfo
+} from '@shared/types/opcua'
 
 // Type-safe API exposed to renderer
 export interface ElectronAPI {
@@ -279,6 +294,48 @@ export interface ElectronAPI {
     onEventTriggered: (callback: (event: AlertEvent) => void) => () => void
     onEventAcknowledged: (callback: (eventId: number) => void) => () => void
   }
+
+  // OPC UA operations
+  opcua: {
+    // Discovery
+    getEndpoints: (endpointUrl: string) => Promise<OpcUaEndpoint[]>
+    testConnection: (params: {
+      endpointUrl: string
+      securityMode: string
+      securityPolicy: string
+    }) => Promise<{ success: boolean; message: string; serverInfo?: OpcUaServerInfo }>
+
+    // Session
+    getSessionStatus: (connectionId: string) => Promise<{
+      connected: boolean
+      sessionId?: string
+      timeout?: number
+      serverInfo?: OpcUaServerInfo
+    }>
+
+    // Browse
+    browse: (request: OpcUaBrowseRequest) => Promise<OpcUaNode[]>
+
+    // Read/Write
+    read: (request: OpcUaReadRequest) => Promise<OpcUaReadResult>
+    write: (request: OpcUaWriteRequest) => Promise<OpcUaWriteResult>
+
+    // Subscriptions
+    createSubscription: (request: CreateSubscriptionRequest) => Promise<OpcUaSubscription>
+    deleteSubscription: (params: {
+      connectionId: string
+      subscriptionId: string
+    }) => Promise<boolean>
+    addMonitoredItem: (request: AddMonitoredItemRequest) => Promise<MonitoredItem>
+    removeMonitoredItem: (params: {
+      connectionId: string
+      subscriptionId: string
+      itemId: string
+    }) => Promise<boolean>
+
+    // Real-time events
+    onDataChange: (callback: (change: OpcUaDataChange) => void) => () => void
+  }
 }
 
 // Implement the API
@@ -473,6 +530,36 @@ const electronAPI: ElectronAPI = {
         callback(eventId)
       ipcRenderer.on('alert:event-acknowledged', handler)
       return () => ipcRenderer.removeListener('alert:event-acknowledged', handler)
+    }
+  },
+
+  opcua: {
+    // Discovery
+    getEndpoints: (endpointUrl) => ipcRenderer.invoke('opcua:get-endpoints', endpointUrl),
+    testConnection: (params) => ipcRenderer.invoke('opcua:test-connection', params),
+
+    // Session
+    getSessionStatus: (connectionId) => ipcRenderer.invoke('opcua:session-status', connectionId),
+
+    // Browse
+    browse: (request) => ipcRenderer.invoke('opcua:browse', request),
+
+    // Read/Write
+    read: (request) => ipcRenderer.invoke('opcua:read', request),
+    write: (request) => ipcRenderer.invoke('opcua:write', request),
+
+    // Subscriptions
+    createSubscription: (request) => ipcRenderer.invoke('opcua:create-subscription', request),
+    deleteSubscription: (params) => ipcRenderer.invoke('opcua:delete-subscription', params),
+    addMonitoredItem: (request) => ipcRenderer.invoke('opcua:add-monitored-item', request),
+    removeMonitoredItem: (params) => ipcRenderer.invoke('opcua:remove-monitored-item', params),
+
+    // Real-time events
+    onDataChange: (callback) => {
+      const handler = (_event: Electron.IpcRendererEvent, change: OpcUaDataChange) =>
+        callback(change)
+      ipcRenderer.on('opcua:data-change', handler)
+      return () => ipcRenderer.removeListener('opcua:data-change', handler)
     }
   }
 }

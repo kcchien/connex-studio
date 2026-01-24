@@ -11,11 +11,14 @@ import {
   AttributeIds,
   StatusCodes,
   DataType,
+  MessageSecurityMode as OpcUaMessageSecurityMode,
+  SecurityPolicy as OpcUaSecurityPolicy,
   type ClientMonitoredItem,
   type EndpointDescription,
   type UserIdentityInfo,
   type ReferenceDescription
 } from 'node-opcua'
+import log from 'electron-log/main.js'
 import type {
   Connection,
   Tag,
@@ -35,11 +38,12 @@ import type {
   AddMonitoredItemRequest,
   MonitoredItem,
   OpcUaDataChange,
+  OpcUaServerInfo,
   SecurityPolicy,
   MessageSecurityMode,
   NodeClass
 } from '@shared/types'
-import { DEFAULT_PUBLISHING_INTERVAL } from '@shared/types'
+import { DEFAULT_PUBLISHING_INTERVAL, DEFAULT_SESSION_TIMEOUT } from '@shared/types'
 import { ProtocolAdapter, type ReadResult } from './ProtocolAdapter'
 
 /**
@@ -60,6 +64,65 @@ function mapNodeClass(nodeClass: number): NodeClass {
 }
 
 /**
+ * Validate OPC UA endpoint URL format.
+ * Valid formats: opc.tcp://host:port or opc.tcp://host:port/path
+ */
+export function validateEndpointUrl(url: string): { valid: boolean; error?: string } {
+  if (!url) {
+    return { valid: false, error: 'Endpoint URL is required' }
+  }
+
+  // Check protocol prefix
+  if (!url.startsWith('opc.tcp://')) {
+    return { valid: false, error: 'Endpoint URL must start with opc.tcp://' }
+  }
+
+  // Parse URL parts
+  const withoutProtocol = url.substring('opc.tcp://'.length)
+  const [hostPort] = withoutProtocol.split('/')
+
+  if (!hostPort) {
+    return { valid: false, error: 'Invalid endpoint URL format' }
+  }
+
+  // Check for host and port
+  const colonIndex = hostPort.lastIndexOf(':')
+  if (colonIndex === -1) {
+    return { valid: false, error: 'Endpoint URL must include port number (e.g., opc.tcp://localhost:4840)' }
+  }
+
+  const host = hostPort.substring(0, colonIndex)
+  const portStr = hostPort.substring(colonIndex + 1)
+
+  if (!host) {
+    return { valid: false, error: 'Host is required' }
+  }
+
+  const port = parseInt(portStr, 10)
+  if (isNaN(port) || port < 1 || port > 65535) {
+    return { valid: false, error: 'Invalid port number (must be 1-65535)' }
+  }
+
+  return { valid: true }
+}
+
+/**
+ * Parse endpoint URL into components.
+ */
+export function parseEndpointUrl(url: string): { host: string; port: number; path: string } {
+  const withoutProtocol = url.substring('opc.tcp://'.length)
+  const slashIndex = withoutProtocol.indexOf('/')
+  const hostPort = slashIndex === -1 ? withoutProtocol : withoutProtocol.substring(0, slashIndex)
+  const path = slashIndex === -1 ? '' : withoutProtocol.substring(slashIndex)
+
+  const colonIndex = hostPort.lastIndexOf(':')
+  const host = hostPort.substring(0, colonIndex)
+  const port = parseInt(hostPort.substring(colonIndex + 1), 10)
+
+  return { host, port, path }
+}
+
+/**
  * OPC UA Adapter for OPC UA server connections.
  */
 export class OpcUaAdapter extends ProtocolAdapter {
@@ -67,6 +130,8 @@ export class OpcUaAdapter extends ProtocolAdapter {
   private session: ClientSession | null = null
   private subscriptions: Map<string, ClientSubscription> = new Map()
   private monitoredItems: Map<string, ClientMonitoredItem> = new Map()
+  private sessionRenewalTimer: NodeJS.Timeout | null = null
+  private serverInfo: OpcUaServerInfo | null = null
 
   constructor(connection: Connection) {
     super(connection)
@@ -88,56 +153,265 @@ export class OpcUaAdapter extends ProtocolAdapter {
     try {
       const config = this.opcuaConfig
 
-      // Create client
+      // Validate endpoint URL
+      const validation = validateEndpointUrl(config.endpointUrl)
+      if (!validation.valid) {
+        throw new Error(validation.error)
+      }
+
+      log.info(`[OpcUaAdapter] Connecting to ${config.endpointUrl}`)
+
+      // Map security settings
+      const securityMode = this.mapSecurityModeToEnum(config.securityMode)
+      const securityPolicy = this.mapSecurityPolicyToUri(config.securityPolicy)
+
+      // Create client with proper settings
       this.client = OPCUAClient.create({
         applicationName: 'Connex Studio',
-        securityMode: this.mapSecurityMode(config.securityMode),
-        securityPolicy: config.securityPolicy,
-        endpointMustExist: false
+        applicationUri: 'urn:connex-studio:client',
+        securityMode,
+        securityPolicy,
+        endpointMustExist: false,
+        connectionStrategy: {
+          initialDelay: 1000,
+          maxDelay: 10000,
+          maxRetry: 3
+        },
+        keepSessionAlive: true
+      })
+
+      // Set up client event handlers
+      this.client.on('connection_lost', () => {
+        log.warn('[OpcUaAdapter] Connection lost')
+        this.setStatus('error', 'Connection lost')
+        this.emit('error', new Error('Connection lost'))
+      })
+
+      this.client.on('connection_reestablished', () => {
+        log.info('[OpcUaAdapter] Connection reestablished')
+        this.setStatus('connected')
       })
 
       // Connect to server
       await this.client.connect(config.endpointUrl)
+      log.info('[OpcUaAdapter] Client connected')
 
-      // Create session
+      // Create session with timeout
       const userIdentity = this.getUserIdentity()
+      const sessionTimeout = DEFAULT_SESSION_TIMEOUT
+
       this.session = await this.client.createSession(userIdentity)
+      log.info(`[OpcUaAdapter] Session created, timeout: ${this.session.timeout}ms`)
+
+      // Set up session event handlers
+      this.session.on('session_closed', () => {
+        log.warn('[OpcUaAdapter] Session closed')
+        this.stopSessionRenewal()
+        this.setStatus('disconnected')
+      })
+
+      this.session.on('keepalive', (state) => {
+        if (!state) {
+          log.warn('[OpcUaAdapter] Keep-alive failed')
+        }
+      })
+
+      this.session.on('keepalive_failure', () => {
+        log.error('[OpcUaAdapter] Keep-alive failure')
+        this.setStatus('error', 'Session keep-alive failed')
+      })
+
+      // Extract server info
+      this.serverInfo = await this.extractServerInfo()
+
+      // Start session renewal timer
+      this.startSessionRenewal()
 
       this.setStatus('connected')
+      log.info('[OpcUaAdapter] Connected successfully')
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
+      log.error(`[OpcUaAdapter] Connection failed: ${message}`)
       this.setStatus('error', message)
       throw error
     }
   }
 
   /**
+   * Extract server information from session.
+   */
+  private async extractServerInfo(): Promise<OpcUaServerInfo> {
+    const defaultInfo: OpcUaServerInfo = {
+      applicationName: 'Unknown Server',
+      productUri: ''
+    }
+
+    if (!this.session) return defaultInfo
+
+    try {
+      // Read server status node
+      const result = await this.session.read({
+        nodeId: 'i=2255', // Server_ServerStatus_BuildInfo
+        attributeId: AttributeIds.Value
+      })
+
+      if (result.value?.value) {
+        const buildInfo = result.value.value
+        return {
+          applicationName: this.client?.applicationName ?? 'OPC UA Server',
+          productUri: buildInfo.productUri ?? '',
+          buildInfo: {
+            productName: buildInfo.productName ?? '',
+            softwareVersion: buildInfo.softwareVersion ?? '',
+            buildNumber: buildInfo.buildNumber ?? ''
+          }
+        }
+      }
+    } catch {
+      log.debug('[OpcUaAdapter] Could not read server build info')
+    }
+
+    return defaultInfo
+  }
+
+  /**
+   * Start session renewal timer.
+   */
+  private startSessionRenewal(): void {
+    if (!this.session) return
+
+    // Renew session at 75% of timeout
+    const renewalInterval = Math.floor((this.session.timeout ?? DEFAULT_SESSION_TIMEOUT) * 0.75)
+
+    this.sessionRenewalTimer = setInterval(() => {
+      this.renewSession()
+    }, renewalInterval)
+
+    log.debug(`[OpcUaAdapter] Session renewal scheduled every ${renewalInterval}ms`)
+  }
+
+  /**
+   * Stop session renewal timer.
+   */
+  private stopSessionRenewal(): void {
+    if (this.sessionRenewalTimer) {
+      clearInterval(this.sessionRenewalTimer)
+      this.sessionRenewalTimer = null
+    }
+  }
+
+  /**
+   * Renew the current session.
+   * Note: node-opcua handles keep-alive automatically, this is a backup check.
+   */
+  private async renewSession(): Promise<void> {
+    if (!this.session || !this.client) return
+
+    try {
+      // Check if session is still valid by checking the client connection
+      if (!this.client.isReconnecting && !this.isConnected()) {
+        log.warn('[OpcUaAdapter] Session appears invalid, reconnecting...')
+        await this.reconnect()
+      }
+    } catch (error) {
+      log.error('[OpcUaAdapter] Session renewal failed:', error)
+      this.setStatus('error', 'Session renewal failed')
+    }
+  }
+
+  /**
+   * Reconnect to the server.
+   */
+  private async reconnect(): Promise<void> {
+    log.info('[OpcUaAdapter] Attempting reconnection...')
+
+    try {
+      // Save subscription references
+      const savedSubscriptions = new Map(this.subscriptions)
+
+      // Disconnect
+      await this.disconnect()
+
+      // Reconnect
+      await this.connect()
+
+      // Restore subscriptions if needed
+      // Note: node-opcua handles subscription transfer automatically
+      log.info('[OpcUaAdapter] Reconnection successful')
+    } catch (error) {
+      log.error('[OpcUaAdapter] Reconnection failed:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Get server information.
+   */
+  getServerInfo(): OpcUaServerInfo | null {
+    return this.serverInfo
+  }
+
+  /**
+   * Get session ID.
+   */
+  getSessionId(): string | undefined {
+    return this.session?.sessionId?.toString()
+  }
+
+  /**
+   * Get revised session timeout.
+   */
+  getSessionTimeout(): number {
+    return this.session?.timeout ?? DEFAULT_SESSION_TIMEOUT
+  }
+
+  /**
    * Disconnect from the server.
    */
   async disconnect(): Promise<void> {
+    log.info('[OpcUaAdapter] Disconnecting...')
+
+    // Stop session renewal
+    this.stopSessionRenewal()
+
     try {
       // Close all subscriptions
       for (const subscription of this.subscriptions.values()) {
-        await subscription.terminate()
+        try {
+          await subscription.terminate()
+        } catch (err) {
+          log.warn('[OpcUaAdapter] Error terminating subscription:', err)
+        }
       }
       this.subscriptions.clear()
       this.monitoredItems.clear()
 
       // Close session
       if (this.session) {
-        await this.session.close()
+        try {
+          await this.session.close()
+        } catch (err) {
+          log.warn('[OpcUaAdapter] Error closing session:', err)
+        }
         this.session = null
       }
 
       // Disconnect client
       if (this.client) {
-        await this.client.disconnect()
+        try {
+          await this.client.disconnect()
+        } catch (err) {
+          log.warn('[OpcUaAdapter] Error disconnecting client:', err)
+        }
         this.client = null
       }
 
+      this.serverInfo = null
       this.setStatus('disconnected')
+      log.info('[OpcUaAdapter] Disconnected')
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
+      log.error(`[OpcUaAdapter] Disconnect error: ${message}`)
       this.setStatus('error', message)
       throw error
     }
@@ -412,6 +686,40 @@ export class OpcUaAdapter extends ProtocolAdapter {
   // Helper Methods
   // =========================================================================
 
+  /**
+   * Map security mode string to node-opcua enum.
+   */
+  private mapSecurityModeToEnum(mode: MessageSecurityMode): OpcUaMessageSecurityMode {
+    switch (mode) {
+      case 'None':
+        return OpcUaMessageSecurityMode.None
+      case 'Sign':
+        return OpcUaMessageSecurityMode.Sign
+      case 'SignAndEncrypt':
+        return OpcUaMessageSecurityMode.SignAndEncrypt
+      default:
+        return OpcUaMessageSecurityMode.None
+    }
+  }
+
+  /**
+   * Map security policy string to URI.
+   */
+  private mapSecurityPolicyToUri(policy: string): OpcUaSecurityPolicy {
+    switch (policy) {
+      case 'None':
+        return OpcUaSecurityPolicy.None
+      case 'Basic256Sha256':
+        return OpcUaSecurityPolicy.Basic256Sha256
+      case 'Aes128_Sha256_RsaOaep':
+        return OpcUaSecurityPolicy.Aes128_Sha256_RsaOaep
+      case 'Aes256_Sha256_RsaPss':
+        return OpcUaSecurityPolicy.Aes256_Sha256_RsaPss
+      default:
+        return OpcUaSecurityPolicy.None
+    }
+  }
+
   private mapSecurityMode(mode: MessageSecurityMode): number {
     switch (mode) {
       case 'None':
@@ -453,15 +761,39 @@ export class OpcUaAdapter extends ProtocolAdapter {
     }
   }
 
+  /**
+   * Get user identity for session creation.
+   * Supports anonymous, username/password, and certificate authentication.
+   */
   private getUserIdentity(): UserIdentityInfo {
     const config = this.opcuaConfig
+
+    // Username/Password authentication
     if (config.username && config.password) {
+      log.debug('[OpcUaAdapter] Using username/password authentication')
       return {
         type: 1, // UserTokenType.UserName
         userName: config.username,
         password: config.password
       } as UserIdentityInfo
     }
+
+    // Certificate authentication would be handled here
+    // For now, we support it via the certificate store
+    // if (config.certificateId) {
+    //   const certStore = getOpcUaCertificateStore()
+    //   const cert = certStore.getCertificate(config.certificateId)
+    //   if (cert) {
+    //     return {
+    //       type: 2, // UserTokenType.Certificate
+    //       certificateData: cert.data,
+    //       privateKey: cert.privateKey
+    //     } as UserIdentityInfo
+    //   }
+    // }
+
+    // Default to anonymous
+    log.debug('[OpcUaAdapter] Using anonymous authentication')
     return { type: 0 } as UserIdentityInfo // Anonymous
   }
 

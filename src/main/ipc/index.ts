@@ -19,6 +19,7 @@ import { registerCollectionHandlers } from './collection'
 import { registerBridgeHandlers } from './bridge'
 import { registerDashboardHandlers } from './dashboard'
 import { registerAlertHandlers } from './alert'
+import { registerOpcUaHandlers } from './opcua'
 
 /**
  * Register all IPC handlers.
@@ -39,6 +40,7 @@ export function registerAllHandlers(): void {
   registerBridgeHandlers()
   registerDashboardHandlers()
   registerAlertHandlers()
+  registerOpcUaHandlers()
 }
 
 export { registerLogHandlers } from './log'
@@ -56,3 +58,4 @@ export { registerCollectionHandlers } from './collection'
 export { registerBridgeHandlers, setBridgeMainWindow } from './bridge'
 export { registerDashboardHandlers } from './dashboard'
 export { registerAlertHandlers, setAlertMainWindow } from './alert'
+export { registerOpcUaHandlers, setOpcUaMainWindow } from './opcua'

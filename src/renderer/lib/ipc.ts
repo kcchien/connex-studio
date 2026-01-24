@@ -21,6 +21,10 @@ export const logApi = api.log
 export const appApi = api.app
 export const environmentApi = api.environment
 export const collectionApi = api.collection
+export const bridgeApi = api.bridge
+export const dashboardApi = api.dashboard
+export const alertApi = api.alert
+export const opcuaApi = api.opcua
 
 // Utility function to handle IPC results
 export function handleIpcResult<T>(

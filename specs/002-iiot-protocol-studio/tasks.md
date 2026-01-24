@@ -233,19 +233,19 @@
 
 ### Main Process - Export Service
 
-- [ ] T100 [US7] Implement ExportService with CSV writer in src/main/services/ExportService.ts per [ipc-channels.md § export:csv](./contracts/ipc-channels.md#exportcsv)
-- [ ] T101 [US7] Implement HTML report generator with ECharts in ExportService per [research.md § ECharts](./research.md#4-data-visualization-uplot--echarts)
-- [ ] T102 [US7] Implement IPC handler `export:csv` in src/main/ipc/export.ts per [ipc-channels.md § export:csv](./contracts/ipc-channels.md#exportcsv)
-- [ ] T103 [US7] Implement IPC handler `export:html-report` in src/main/ipc/export.ts per [ipc-channels.md § export:html-report](./contracts/ipc-channels.md#exporthtml-report)
-- [ ] T104 [US7] Add progress tracking for large exports in ExportService per [spec.md US7 Scenario 3](./spec.md)
-- [ ] T105 [US7] Register all export IPC handlers in src/main/index.ts
+- [x] T100 [US7] Implement ExportService with CSV writer in src/main/services/ExportService.ts per [ipc-channels.md § export:csv](./contracts/ipc-channels.md#exportcsv)
+- [x] T101 [US7] Implement HTML report generator with ECharts in ExportService per [research.md § ECharts](./research.md#4-data-visualization-uplot--echarts)
+- [x] T102 [US7] Implement IPC handler `export:csv` in src/main/ipc/export.ts per [ipc-channels.md § export:csv](./contracts/ipc-channels.md#exportcsv)
+- [x] T103 [US7] Implement IPC handler `export:html-report` in src/main/ipc/export.ts per [ipc-channels.md § export:html-report](./contracts/ipc-channels.md#exporthtml-report)
+- [x] T104 [US7] Add progress tracking for large exports in ExportService per [spec.md US7 Scenario 3](./spec.md)
+- [x] T105 [US7] Register all export IPC handlers in src/main/index.ts
 
 ### Renderer - Export UI
 
-- [ ] T106 [US7] Build ExportDialog component in src/renderer/components/export/ExportDialog.tsx
-- [ ] T107 [US7] Build ReportPreview component in src/renderer/components/export/ReportPreview.tsx
-- [ ] T108 [US7] Build ExportProgress component with progress bar in src/renderer/components/export/ExportProgress.tsx
-- [ ] T109 [US7] Wire up Export components in src/renderer/App.tsx
+- [x] T106 [US7] Build ExportDialog component in src/renderer/components/export/ExportDialog.tsx
+- [x] T107 [US7] Build ReportPreview component in src/renderer/components/export/ReportPreview.tsx
+- [x] T108 [US7] Build ExportProgress component with progress bar in src/renderer/components/export/ExportProgress.tsx
+- [x] T109 [US7] Wire up Export components in src/renderer/App.tsx
 
 **Checkpoint**: US7 (Session Export & Report) fully functional - can export CSV and HTML reports.
 

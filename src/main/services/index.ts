@@ -46,3 +46,9 @@ export {
   type SaveProfileParams,
   type LoadProfileResult
 } from './ProfileService'
+
+export {
+  ExportService,
+  getExportService,
+  type ExportProgressCallback
+} from './ExportService'

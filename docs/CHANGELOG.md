@@ -7,6 +7,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2025-01-24
+
+### Added
+
+- **Phase 7: US7 Session 匯出與報告** (T100-T109)
+  - **Main Process - Export 服務**
+    - ExportService 完整實作 (`src/main/services/ExportService.ts`)
+      - CSV 匯出：Timestamp, DateTime, TagName, Value, Quality 欄位
+      - HTML 報告產生器：連線摘要、統計數據、趨勢圖
+      - 大量資料 (>10,000 筆) 進度追蹤與回報
+      - 整合 DataBuffer.getDataForExport() 取得時間範圍資料
+      - ECharts 圖表整合 (CDN 載入)
+    - 完整 Export IPC 處理器 (`src/main/ipc/export.ts`)
+      - `export:csv` - 匯出 CSV 檔案 (含檔案對話框)
+      - `export:html-report` - 產生 HTML 報告 (含檔案對話框)
+      - 大量匯出時透過 `export:progress` 事件回報進度
+
+  - **Renderer - Export UI**
+    - ExportDialog 元件 (`src/renderer/components/export/ExportDialog.tsx`)
+      - 格式選擇 (CSV / HTML Report)
+      - 時間範圍選擇器 (datetime-local)
+      - 標籤多選器 (全選/取消全選)
+      - HTML 報告選項：是否包含趨勢圖
+    - ExportProgress 元件 (`src/renderer/components/export/ExportProgress.tsx`)
+      - 進度條顯示
+      - 已處理/總筆數
+      - 完成狀態指示
+    - ReportPreview 元件 (`src/renderer/components/export/ReportPreview.tsx`)
+      - 匯出預覽資訊
+      - 預估資料筆數
+      - 欄位/區段說明
+    - App.tsx DVR 區塊新增「Export Data」按鈕
+
+### Changed
+
+- `src/main/ipc/index.ts` 註冊 Export IPC 處理器
+- `src/main/services/index.ts` 匯出 ExportService
+- `src/renderer/App.tsx` 整合 ExportDialog 與匯出回呼
+- `specs/002-iiot-protocol-studio/tasks.md` 更新 T100-T109 完成狀態
+
+### Technical Details
+
+- CSV 匯出效能：10,000 筆資料 < 5 秒 (符合 SC-006 規格)
+- HTML 報告包含統計摘要：Min, Max, Avg, 品質計數
+- 圖表資料降採樣：每序列最多 1,000 點防止效能問題
+- 使用 Electron dialog API 確保安全的檔案存取
+
 ## [0.4.0] - 2025-01-24
 
 ### Added
@@ -228,12 +275,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | 版本 | 日期 | 說明 |
 |------|------|------|
+| 0.5.0 | 2025-01-24 | Phase 7 實作：US7 Session 匯出與報告 (CSV/HTML Report) |
 | 0.4.0 | 2025-01-24 | Phase 6 實作：US4 連線組態管理 (Profile save/load/import/export) |
 | 0.3.0 | 2025-01-24 | Phase 3-5 實作：US1 連線測試、US2 標籤監控、US3 DVR 時光旅行 |
 | 0.2.0 | 2025-01-24 | Phase 1-2 實作：專案鷹架與基礎設施層 |
 | 0.1.0 | 2025-01-23 | 初始專案結構與 MVP 規格 |
 
-[Unreleased]: https://github.com/kcchien/connex-studio/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/kcchien/connex-studio/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/kcchien/connex-studio/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/kcchien/connex-studio/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/kcchien/connex-studio/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/kcchien/connex-studio/compare/v0.1.0...v0.2.0

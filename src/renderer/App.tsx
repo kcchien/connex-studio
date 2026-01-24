@@ -6,6 +6,7 @@ import { QuickReadPanel } from '@renderer/components/connection/QuickReadPanel'
 import { TagEditor, TagGrid, PollingControls } from '@renderer/components/tags'
 import { TimelineSlider, PlaybackControls, ModeIndicator } from '@renderer/components/dvr'
 import { ProfileList, ProfileDialog, ImportExportButtons } from '@renderer/components/profile'
+import { ExportDialog } from '@renderer/components/export'
 import { useConnectionStore } from '@renderer/stores/connectionStore'
 import { useTagStore } from '@renderer/stores/tagStore'
 import { usePolling } from '@renderer/hooks/usePolling'
@@ -30,6 +31,7 @@ function App(): React.ReactElement {
 
   const [editingTag, setEditingTag] = useState<Tag | undefined>(undefined)
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false)
+  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false)
   const [profileListKey, setProfileListKey] = useState(0) // For refreshing profile list
 
   // Get selected connection
@@ -152,6 +154,43 @@ function App(): React.ReactElement {
     }
   }, [])
 
+  // Export data callback
+  const handleExportData = useCallback(
+    async (params: {
+      format: 'csv' | 'html'
+      tagIds: string[]
+      startTimestamp: number
+      endTimestamp: number
+      includeCharts: boolean
+    }) => {
+      try {
+        let result
+        if (params.format === 'csv') {
+          result = await window.electronAPI.export.csv({
+            tagIds: params.tagIds,
+            startTimestamp: params.startTimestamp,
+            endTimestamp: params.endTimestamp
+          })
+        } else {
+          result = await window.electronAPI.export.htmlReport({
+            tagIds: params.tagIds,
+            startTimestamp: params.startTimestamp,
+            endTimestamp: params.endTimestamp,
+            includeCharts: params.includeCharts
+          })
+        }
+
+        if (!result.success && !result.cancelled) {
+          throw new Error(result.error || 'Export failed')
+        }
+      } catch (err) {
+        console.error('Export failed:', err)
+        throw err
+      }
+    },
+    []
+  )
+
   // Initialize connection list and subscribe to status changes on mount
   useEffect(() => {
     // Fetch existing connections on mount
@@ -238,6 +277,14 @@ function App(): React.ReactElement {
         onSave={handleSaveProfile}
       />
 
+      {/* Export Dialog */}
+      <ExportDialog
+        isOpen={isExportDialogOpen}
+        connectionId={selectedConnectionId}
+        onClose={() => setIsExportDialogOpen(false)}
+        onExport={handleExportData}
+      />
+
       <AppShell sidebarContent={sidebarContent}>
         <div className="p-4 space-y-4">
         {/* Quick Read Panel */}
@@ -289,6 +336,29 @@ function App(): React.ReactElement {
                   onSeek={seek}
                   disabled={isDvrLoading}
                 />
+
+                {/* Export Button */}
+                <button
+                  onClick={() => setIsExportDialogOpen(true)}
+                  className="flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-medium bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" x2="12" y1="15" y2="3" />
+                  </svg>
+                  Export Data
+                </button>
               </div>
             )}
 

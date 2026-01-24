@@ -7,6 +7,80 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2025-01-24
+
+### Added
+
+- **Phase 10: Polish & Cross-Cutting Concerns** (T130-T145)
+  - **Main Process - App Lifecycle Handlers**
+    - App lifecycle IPC handlers (`src/main/ipc/app.ts`)
+      - `app:check-unsaved` - 檢查是否有未儲存的變更或進行中的輪詢
+      - `app:force-quit` - 強制關閉應用程式
+      - `app:confirm-close` - 從選單觸發的關閉確認
+    - Window close 確認對話框
+      - 偵測進行中的輪詢會話
+      - 優雅停止所有輪詢再關閉
+    - `handleWindowClose()` 整合至 main/index.ts
+
+  - **Main Process - 自動重連機制**
+    - ConnectionManager 指數退避重連 (`src/main/services/ConnectionManager.ts`)
+      - 基礎延遲 1 秒，最大延遲 30 秒
+      - 最多嘗試 5 次重連
+      - 網路斷線偵測 (3 秒逾時)
+    - 新增方法：
+      - `connectWithTimeout()` - 帶逾時的連線
+      - `scheduleReconnect()` - 排程重連
+      - `setAutoReconnect()` - 開啟/關閉自動重連
+      - `cancelReconnect()` - 取消待處理重連
+
+  - **Renderer - UI Polish**
+    - uiStore Zustand 狀態管理 (`src/renderer/stores/uiStore.ts`)
+      - Theme 管理 (light/dark/system)
+      - 自動偵測系統主題變更
+      - 側邊欄折疊狀態
+      - Log viewer 開關狀態
+      - 使用 localStorage 持久化
+    - ThemeToggle 元件 (`src/renderer/components/common/ThemeToggle.tsx`)
+      - 循環切換 light → dark → system
+      - 各主題專屬圖示
+    - LogViewer 元件 (`src/renderer/components/common/LogViewer.tsx`)
+      - 顯示應用程式日誌
+      - 等級篩選器 (debug/info/warn/error/verbose)
+      - 自動重整 (5 秒間隔)
+      - 自動捲動至最新
+      - 開啟日誌資料夾按鈕
+    - useKeyboardShortcuts Hook (`src/renderer/hooks/useKeyboardShortcuts.ts`)
+      - `Ctrl+Enter` (Mac: `Cmd+Enter`) - 連線/斷線
+      - `F5` - 開始輪詢
+      - `Shift+F5` - 停止輪詢
+      - `Ctrl+L` (Mac: `Cmd+L`) - 切換日誌檢視器
+    - App.tsx 整合
+      - 鍵盤快捷鍵啟用
+      - 側邊欄 Theme Toggle
+      - 側邊欄 Log Viewer 切換按鈕
+      - 主內容區底部 Log Viewer 面板
+
+  - **E2E Tests**
+    - monitoring.spec.ts - US2 標籤監控測試
+    - dvr.spec.ts - US3 DVR 時光旅行測試
+    - profile.spec.ts - US4 組態管理測試
+    - 測試採用彈性設計，伺服器不可用時優雅跳過
+
+### Changed
+
+- `src/main/index.ts` 整合 app lifecycle handlers
+- `src/main/ipc/index.ts` 註冊 App lifecycle IPC 處理器
+- `src/main/services/ConnectionManager.ts` 新增自動重連邏輯
+- `src/renderer/App.tsx` 整合 UI polish 功能
+
+### Technical Details
+
+- 自動重連使用指數退避演算法：delay = min(base * 2^attempts, max)
+- Theme provider 監聽 `prefers-color-scheme` media query
+- 日誌檢視器使用分頁載入，每次最多 200 筆
+- E2E 測試使用 Playwright + Electron 整合
+- 鍵盤快捷鍵跨平台支援 (Windows/Mac)
+
 ## [0.7.0] - 2025-01-24
 
 ### Added
@@ -393,6 +467,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | 版本 | 日期 | 說明 |
 |------|------|------|
+| 0.8.0 | 2025-01-24 | Phase 10 實作：Polish & Cross-Cutting (App lifecycle、自動重連、UI polish、E2E tests) |
 | 0.7.0 | 2025-01-24 | Phase 9 實作：US6 多協定支援 (MQTT 適配器、多協定 UI) |
 | 0.6.0 | 2025-01-24 | Phase 8 實作：US5 虛擬伺服器 (內建 Modbus TCP 模擬器) |
 | 0.5.0 | 2025-01-24 | Phase 7 實作：US7 Session 匯出與報告 (CSV/HTML Report) |
@@ -401,7 +476,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 | 0.2.0 | 2025-01-24 | Phase 1-2 實作：專案鷹架與基礎設施層 |
 | 0.1.0 | 2025-01-23 | 初始專案結構與 MVP 規格 |
 
-[Unreleased]: https://github.com/kcchien/connex-studio/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/kcchien/connex-studio/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/kcchien/connex-studio/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/kcchien/connex-studio/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/kcchien/connex-studio/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/kcchien/connex-studio/compare/v0.4.0...v0.5.0

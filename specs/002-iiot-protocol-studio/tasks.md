@@ -288,18 +288,18 @@
 
 ### Main Process - MQTT Adapter
 
-- [ ] T121 [US6] Implement MqttAdapter in src/main/protocols/MqttAdapter.ts per [research.md § mqtt.js](./research.md#2-protocol-libraries)
-- [ ] T122 [US6] Implement MQTT address handling (topic, jsonPath) in MqttAdapter per [data-model.md § MqttAddress](./data-model.md#tag)
-- [ ] T123 [US6] Implement MQTT authentication (username/password, TLS) in MqttAdapter per [data-model.md § MqttConfig](./data-model.md#connection)
-- [ ] T124 [US6] Register MqttAdapter in ConnectionManager protocol registry
-- [ ] T125 [P] [US6] Add unit tests for MqttAdapter in tests/unit/main/MqttAdapter.test.ts
+- [x] T121 [US6] Implement MqttAdapter in src/main/protocols/MqttAdapter.ts per [research.md § mqtt.js](./research.md#2-protocol-libraries)
+- [x] T122 [US6] Implement MQTT address handling (topic, jsonPath) in MqttAdapter per [data-model.md § MqttAddress](./data-model.md#tag)
+- [x] T123 [US6] Implement MQTT authentication (username/password, TLS) in MqttAdapter per [data-model.md § MqttConfig](./data-model.md#connection)
+- [x] T124 [US6] Register MqttAdapter in ConnectionManager protocol registry
+- [x] T125 [P] [US6] Add unit tests for MqttAdapter in tests/unit/main/MqttAdapter.test.ts
 
 ### Renderer - Multi-Protocol UI
 
-- [ ] T126 [US6] Update ConnectionForm for MQTT protocol in src/renderer/components/connection/ConnectionForm.tsx per [data-model.md § MqttConfig](./data-model.md#connection)
-- [ ] T127 [US6] Add protocol selector to ConnectionForm
-- [ ] T128 [US6] Add protocol icon/color differentiation in TagGrid per [spec.md US6 Scenario 2](./spec.md)
-- [ ] T129 [US6] Update TagEditor for MQTT address type in src/renderer/components/tags/TagEditor.tsx
+- [x] T126 [US6] Update ConnectionForm for MQTT protocol in src/renderer/components/connection/ConnectionForm.tsx per [data-model.md § MqttConfig](./data-model.md#connection)
+- [x] T127 [US6] Add protocol selector to ConnectionForm
+- [x] T128 [US6] Add protocol icon/color differentiation in TagGrid per [spec.md US6 Scenario 2](./spec.md)
+- [x] T129 [US6] Update TagEditor for MQTT address type in src/renderer/components/tags/TagEditor.tsx
 
 **Checkpoint**: US6 (Multi-Protocol Support) fully functional - can monitor Modbus and MQTT simultaneously.
 
@@ -312,34 +312,34 @@
 
 ### App Lifecycle
 
-- [ ] T130 Implement app close confirmation with save prompt in src/main/index.ts per [spec.md Clarifications](./spec.md#clarifications)
-- [ ] T131 Implement IPC handlers `app:check-unsaved`, `app:force-quit` in src/main/ipc/app.ts per [ipc-channels.md § App Lifecycle](./contracts/ipc-channels.md#app-lifecycle-channels)
-- [ ] T132 Ensure polling stops gracefully on app close in PollingEngine
+- [x] T130 Implement app close confirmation with save prompt in src/main/index.ts per [spec.md Clarifications](./spec.md#clarifications)
+- [x] T131 Implement IPC handlers `app:check-unsaved`, `app:force-quit` in src/main/ipc/app.ts per [ipc-channels.md § App Lifecycle](./contracts/ipc-channels.md#app-lifecycle-channels)
+- [x] T132 Ensure polling stops gracefully on app close in PollingEngine
 
 ### Reconnection & Error Handling
 
-- [ ] T133 Implement reconnection with exponential backoff in ConnectionManager per [spec.md Edge Cases](./spec.md)
-- [ ] T134 Add network disconnection detection (3s timeout) in ProtocolAdapters per [spec.md Edge Cases](./spec.md)
+- [x] T133 Implement reconnection with exponential backoff in ConnectionManager per [spec.md Edge Cases](./spec.md)
+- [x] T134 Add network disconnection detection (3s timeout) in ProtocolAdapters per [spec.md Edge Cases](./spec.md)
 
 ### UI Polish
 
-- [ ] T135 [P] Add keyboard shortcuts (Ctrl+Enter, F5, Shift+F5) per [spec.md FR-027](./spec.md)
-- [ ] T136 [P] Implement Light/Dark theme toggle in src/renderer/stores/uiStore.ts per [spec.md FR-026](./spec.md)
-- [ ] T137 [P] Add theme provider in src/renderer/App.tsx per [data-model.md § ProfileSettings.theme](./data-model.md#profile)
-- [ ] T138 [P] Build LogViewer component in src/renderer/components/common/LogViewer.tsx per [ipc-channels.md § Log Channels](./contracts/ipc-channels.md#log-channels)
+- [x] T135 [P] Add keyboard shortcuts (Ctrl+Enter, F5, Shift+F5) per [spec.md FR-027](./spec.md)
+- [x] T136 [P] Implement Light/Dark theme toggle in src/renderer/stores/uiStore.ts per [spec.md FR-026](./spec.md)
+- [x] T137 [P] Add theme provider in src/renderer/App.tsx per [data-model.md § ProfileSettings.theme](./data-model.md#profile)
+- [x] T138 [P] Build LogViewer component in src/renderer/components/common/LogViewer.tsx per [ipc-channels.md § Log Channels](./contracts/ipc-channels.md#log-channels)
 
 ### E2E Testing
 
-- [ ] T139 Write E2E test for US1 (Quick Connection) in tests/e2e/connection.spec.ts
-- [ ] T140 [P] Write E2E test for US2 (Tag Monitoring) in tests/e2e/monitoring.spec.ts
-- [ ] T141 [P] Write E2E test for US3 (DVR) in tests/e2e/dvr.spec.ts
-- [ ] T142 [P] Write E2E test for US4 (Profile) in tests/e2e/profile.spec.ts
-- [ ] T143 Run full E2E test suite and fix failures
+- [x] T139 Write E2E test for US1 (Quick Connection) in tests/e2e/connection.spec.ts
+- [x] T140 [P] Write E2E test for US2 (Tag Monitoring) in tests/e2e/monitoring.spec.ts
+- [x] T141 [P] Write E2E test for US3 (DVR) in tests/e2e/dvr.spec.ts
+- [x] T142 [P] Write E2E test for US4 (Profile) in tests/e2e/profile.spec.ts
+- [x] T143 Run full E2E test suite and fix failures
 
 ### Documentation
 
-- [ ] T144 [P] Update CHANGELOG.md with new feature
-- [ ] T145 [P] Validate quickstart.md instructions work end-to-end
+- [x] T144 [P] Update CHANGELOG.md with new feature
+- [x] T145 [P] Validate quickstart.md instructions work end-to-end
 
 **Checkpoint**: All user stories pass E2E tests, app is production ready.
 

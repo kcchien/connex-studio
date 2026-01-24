@@ -1,6 +1,6 @@
 # Quickstart: IIoT Protocol Studio Development
 
-**Date**: 2025-01-23
+**Date**: 2025-01-24
 **Purpose**: Get the development environment running in < 10 minutes
 
 ## Prerequisites
@@ -8,7 +8,7 @@
 | Tool | Version | Check Command |
 |------|---------|---------------|
 | Node.js | 22 LTS | `node --version` |
-| npm | 10+ | `npm --version` |
+| pnpm | 9+ | `pnpm --version` |
 | Git | 2.40+ | `git --version` |
 | Python | 3.11+ | `python3 --version` (for native modules) |
 
@@ -24,13 +24,13 @@
 cd connex-studio
 
 # Install dependencies
-npm install
+pnpm install
 
 # Rebuild native modules for Electron
-npm run rebuild
+pnpm rebuild
 
 # Start development server
-npm run dev
+pnpm dev
 ```
 
 **Expected Output**:
@@ -47,22 +47,22 @@ The Electron window should open automatically with hot reload enabled.
 
 | Script | Purpose |
 |--------|---------|
-| `npm run dev` | Start Vite + Electron in development mode |
-| `npm run build` | Build for production (output in `dist/`) |
-| `npm run preview` | Preview production build locally |
-| `npm run rebuild` | Rebuild native modules for current Electron version |
-| `npm run lint` | Run ESLint on all TypeScript files |
-| `npm run typecheck` | Run TypeScript compiler in check mode |
-| `npm run test` | Run all tests (Vitest + Jest) |
-| `npm run test:unit` | Run unit tests only |
-| `npm run test:e2e` | Run Playwright E2E tests |
+| `pnpm dev` | Start Vite + Electron in development mode |
+| `pnpm build` | Build for production (output in `dist/`) |
+| `pnpm preview` | Preview production build locally |
+| `pnpm rebuild` | Rebuild native modules for current Electron version |
+| `pnpm lint` | Run ESLint on all TypeScript files |
+| `pnpm typecheck` | Run TypeScript compiler in check mode |
+| `pnpm test` | Run all tests (Vitest + Jest) |
+| `pnpm test:unit` | Run unit tests only |
+| `pnpm test:e2e` | Run Playwright E2E tests |
 
 ## Development Workflow
 
 ### 1. Start Development
 
 ```bash
-npm run dev
+pnpm dev
 ```
 
 This starts:
@@ -83,24 +83,33 @@ This starts:
 
 ```bash
 # Run unit tests in watch mode
-npm run test:unit -- --watch
+pnpm test:unit -- --watch
 
 # Run specific test file
-npm run test:unit -- src/main/services/ConnectionManager.test.ts
+pnpm test:unit -- src/main/services/ConnectionManager.test.ts
 
 # Run E2E tests (requires app built)
-npm run build && npm run test:e2e
+pnpm build && pnpm test:e2e
 ```
 
 ### 4. Type Check
 
 ```bash
 # Full type check
-npm run typecheck
+pnpm typecheck
 
 # Watch mode (in separate terminal)
-npx tsc --noEmit --watch
+pnpm exec tsc --noEmit --watch
 ```
+
+### 5. Keyboard Shortcuts
+
+| Shortcut | Action | Note |
+|----------|--------|------|
+| `Ctrl+Enter` / `Cmd+Enter` | Connect/Disconnect | Toggle connection state |
+| `F5` | Start Polling | Requires connected state |
+| `Shift+F5` | Stop Polling | Stop all active polling |
+| `Ctrl+L` / `Cmd+L` | Toggle Log Viewer | Show/hide application logs |
 
 ## Directory Quick Reference
 
@@ -166,8 +175,8 @@ ELECTRON_LOG_LEVEL=debug     # Main process log level
 ```bash
 # Clear node_modules and reinstall
 rm -rf node_modules
-npm install
-npm run rebuild
+pnpm install
+pnpm rebuild
 ```
 
 ### Electron Doesn't Start
@@ -185,17 +194,17 @@ rm -rf ~/.config/connex-studio                        # Linux
 
 ```bash
 # Regenerate TypeScript definitions
-npm run typecheck
+pnpm typecheck
 ```
 
 ### Tests Fail with Module Not Found
 
 ```bash
 # Ensure native modules are rebuilt
-npm run rebuild
+pnpm rebuild
 
 # For E2E tests, ensure app is built
-npm run build
+pnpm build
 ```
 
 ## IDE Setup
@@ -228,4 +237,4 @@ Recommended extensions (in `.vscode/extensions.json`):
 2. Review `plan.md` for architecture overview
 3. Check `data-model.md` for entity schemas
 4. See `contracts/ipc-channels.md` for API reference
-5. Run `npm run dev` and explore the codebase!
+5. Run `pnpm dev` and explore the codebase!

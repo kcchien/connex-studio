@@ -13,6 +13,7 @@ import { registerDvrHandlers } from './dvr'
 import { registerProfileHandlers } from './profile'
 import { registerExportHandlers } from './export'
 import { registerVirtualServerHandlers } from './virtual-server'
+import { registerAppHandlers } from './app'
 
 /**
  * Register all IPC handlers.
@@ -27,6 +28,7 @@ export function registerAllHandlers(): void {
   registerProfileHandlers()
   registerExportHandlers()
   registerVirtualServerHandlers()
+  registerAppHandlers()
 }
 
 export { registerLogHandlers } from './log'
@@ -37,3 +39,5 @@ export { registerDvrHandlers } from './dvr'
 export { registerProfileHandlers } from './profile'
 export { registerExportHandlers } from './export'
 export { registerVirtualServerHandlers } from './virtual-server'
+export { registerAppHandlers } from './app'
+export { handleWindowClose, setForceQuit, resetForceQuitFlag, stopAllPollingGracefully } from './app'

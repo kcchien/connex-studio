@@ -2,7 +2,7 @@ import { app, BrowserWindow, ipcMain, shell, dialog } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import log from 'electron-log/main.js'
-import { registerAllHandlers } from './ipc'
+import { registerAllHandlers, handleWindowClose, stopAllPollingGracefully } from './ipc'
 import { initializeProtocols } from './protocols'
 import { getDataBuffer, closeDataBuffer, getConnectionManager, getPollingEngine, disposePollingEngine } from './services'
 
@@ -45,9 +45,8 @@ function createWindow(): void {
     log.info('Main window ready')
   })
 
-  mainWindow.on('close', async (event) => {
-    // TODO: Check for unsaved changes before closing
-    log.info('Main window closing')
+  mainWindow.on('close', (event) => {
+    handleWindowClose(event, mainWindow!)
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
@@ -114,25 +113,12 @@ app.on('window-all-closed', () => {
   }
 })
 
-app.on('before-quit', () => {
+app.on('before-quit', async () => {
   log.info('App quitting')
-  // Stop polling and close data buffer connection
+  // Stop polling gracefully and close data buffer connection
+  await stopAllPollingGracefully()
   disposePollingEngine()
   closeDataBuffer()
-})
-
-// App lifecycle IPC handlers (not part of domain-specific handlers)
-ipcMain.handle('app:check-unsaved', async () => {
-  // TODO: Implement actual check with ConnectionManager state
-  return {
-    hasUnsavedChanges: false,
-    pollingActive: false
-  }
-})
-
-ipcMain.on('app:force-quit', () => {
-  log.info('Force quit requested')
-  app.quit()
 })
 
 // Export log instance for use in other modules

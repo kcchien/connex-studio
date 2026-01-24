@@ -11,6 +11,10 @@
  *              -> error (connection failure)
  * error        -> disconnected (reset)
  *              -> connecting (reconnect)
+ *
+ * Features:
+ * - Automatic reconnection with exponential backoff
+ * - Network disconnection detection (3s timeout)
  */
 
 import { v4 as uuidv4 } from 'uuid'
@@ -39,11 +43,24 @@ export interface ConnectionManagerEvents {
 
 type Protocol = 'modbus-tcp' | 'mqtt' | 'opcua'
 
+// Reconnection constants
+const RECONNECT_BASE_DELAY_MS = 1000 // 1 second initial delay
+const RECONNECT_MAX_DELAY_MS = 30000 // 30 seconds max delay
+const RECONNECT_MAX_ATTEMPTS = 5 // Max attempts before giving up
+const NETWORK_TIMEOUT_MS = 3000 // 3 seconds timeout for detecting disconnection
+
+interface ReconnectionState {
+  attempts: number
+  timer: NodeJS.Timeout | null
+  enabled: boolean
+}
+
 export class ConnectionManager {
   private connections = new Map<string, Connection>()
   private adapters = new Map<string, ProtocolAdapter>()
   private tags = new Map<string, Tag[]>() // connectionId -> tags
   private mainWindow: BrowserWindow | null = null
+  private reconnectionStates = new Map<string, ReconnectionState>()
 
   /**
    * Set the main window for sending push events.
@@ -121,8 +138,9 @@ export class ConnectionManager {
 
   /**
    * Connect to a device/broker.
+   * @param enableReconnect - If true, auto-reconnect on failure
    */
-  async connect(connectionId: string): Promise<void> {
+  async connect(connectionId: string, enableReconnect = true): Promise<void> {
     const connection = this.connections.get(connectionId)
     if (!connection) {
       throw new Error(`Connection not found: ${connectionId}`)
@@ -138,6 +156,18 @@ export class ConnectionManager {
       return
     }
 
+    // Initialize reconnection state
+    if (!this.reconnectionStates.has(connectionId)) {
+      this.reconnectionStates.set(connectionId, {
+        attempts: 0,
+        timer: null,
+        enabled: enableReconnect
+      })
+    } else {
+      const state = this.reconnectionStates.get(connectionId)!
+      state.enabled = enableReconnect
+    }
+
     // Update status to connecting
     this.updateStatus(connectionId, 'connecting')
 
@@ -151,24 +181,149 @@ export class ConnectionManager {
 
         // Listen to adapter status changes
         adapter.on('status-changed', (status, error) => {
-          this.updateStatus(connectionId, status, error)
+          this.handleStatusChange(connectionId, status, error)
         })
 
         adapter.on('error', (error) => {
           log.error(`[ConnectionManager] Adapter error for ${connectionId}: ${error.message}`)
-          this.updateStatus(connectionId, 'error', error.message)
+          this.handleConnectionError(connectionId, error.message)
         })
       }
 
-      // Connect
-      await adapter.connect()
+      // Connect with timeout
+      await this.connectWithTimeout(adapter, connectionId)
+
+      // Reset reconnection attempts on successful connect
+      const state = this.reconnectionStates.get(connectionId)
+      if (state) {
+        state.attempts = 0
+      }
+
       this.updateStatus(connectionId, 'connected')
       log.info(`[ConnectionManager] Connected: ${connectionId}`)
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
-      this.updateStatus(connectionId, 'error', message)
-      log.error(`[ConnectionManager] Connection failed for ${connectionId}: ${message}`)
+      this.handleConnectionError(connectionId, message)
       throw error
+    }
+  }
+
+  /**
+   * Connect with network timeout detection.
+   */
+  private async connectWithTimeout(adapter: ProtocolAdapter, connectionId: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error(`Connection timeout after ${NETWORK_TIMEOUT_MS}ms`))
+      }, NETWORK_TIMEOUT_MS)
+
+      adapter.connect()
+        .then(() => {
+          clearTimeout(timeout)
+          resolve()
+        })
+        .catch((error) => {
+          clearTimeout(timeout)
+          reject(error)
+        })
+    })
+  }
+
+  /**
+   * Handle status changes from adapter.
+   */
+  private handleStatusChange(connectionId: string, status: ConnectionStatus, error?: string): void {
+    if (status === 'error' || status === 'disconnected') {
+      this.handleConnectionError(connectionId, error)
+    } else {
+      this.updateStatus(connectionId, status, error)
+    }
+  }
+
+  /**
+   * Handle connection error with potential reconnection.
+   */
+  private handleConnectionError(connectionId: string, error?: string): void {
+    this.updateStatus(connectionId, 'error', error)
+
+    const state = this.reconnectionStates.get(connectionId)
+    if (state?.enabled) {
+      this.scheduleReconnect(connectionId)
+    }
+  }
+
+  /**
+   * Schedule a reconnection attempt with exponential backoff.
+   */
+  private scheduleReconnect(connectionId: string): void {
+    const state = this.reconnectionStates.get(connectionId)
+    if (!state || !state.enabled) return
+
+    // Clear existing timer
+    if (state.timer) {
+      clearTimeout(state.timer)
+      state.timer = null
+    }
+
+    // Check max attempts
+    if (state.attempts >= RECONNECT_MAX_ATTEMPTS) {
+      log.warn(`[ConnectionManager] Max reconnection attempts reached for ${connectionId}`)
+      state.enabled = false
+      return
+    }
+
+    // Calculate delay with exponential backoff
+    const delay = Math.min(
+      RECONNECT_BASE_DELAY_MS * Math.pow(2, state.attempts),
+      RECONNECT_MAX_DELAY_MS
+    )
+
+    state.attempts++
+    log.info(`[ConnectionManager] Scheduling reconnect for ${connectionId} in ${delay}ms (attempt ${state.attempts}/${RECONNECT_MAX_ATTEMPTS})`)
+
+    state.timer = setTimeout(async () => {
+      const connection = this.connections.get(connectionId)
+      if (!connection) return
+
+      // Only reconnect if still in error state
+      if (connection.status !== 'error') return
+
+      try {
+        log.info(`[ConnectionManager] Attempting reconnect for ${connectionId}`)
+        await this.connect(connectionId, true)
+      } catch (error) {
+        // Error handling is done in connect(), just log here
+        log.warn(`[ConnectionManager] Reconnect attempt ${state.attempts} failed for ${connectionId}`)
+      }
+    }, delay)
+  }
+
+  /**
+   * Enable or disable auto-reconnect for a connection.
+   */
+  setAutoReconnect(connectionId: string, enabled: boolean): void {
+    const state = this.reconnectionStates.get(connectionId)
+    if (state) {
+      state.enabled = enabled
+      if (!enabled && state.timer) {
+        clearTimeout(state.timer)
+        state.timer = null
+      }
+    }
+  }
+
+  /**
+   * Cancel any pending reconnection attempts.
+   */
+  private cancelReconnect(connectionId: string): void {
+    const state = this.reconnectionStates.get(connectionId)
+    if (state) {
+      if (state.timer) {
+        clearTimeout(state.timer)
+        state.timer = null
+      }
+      state.attempts = 0
+      state.enabled = false
     }
   }
 
@@ -180,6 +335,9 @@ export class ConnectionManager {
     if (!connection) {
       throw new Error(`Connection not found: ${connectionId}`)
     }
+
+    // Disable auto-reconnect when explicitly disconnecting
+    this.cancelReconnect(connectionId)
 
     const adapter = this.adapters.get(connectionId)
     if (adapter) {
@@ -361,6 +519,15 @@ export class ConnectionManager {
    */
   async dispose(): Promise<void> {
     log.info('[ConnectionManager] Disposing all connections...')
+
+    // Cancel all pending reconnection timers
+    for (const [id, state] of this.reconnectionStates.entries()) {
+      if (state.timer) {
+        clearTimeout(state.timer)
+        state.timer = null
+      }
+    }
+    this.reconnectionStates.clear()
 
     // Disconnect and dispose all adapters
     for (const [id, adapter] of this.adapters.entries()) {

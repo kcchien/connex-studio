@@ -250,17 +250,17 @@
 
 ### Implementation for US5
 
-- [ ] T113 [US5] Implement Modbus CRC-16 calculator in src/main/services/ProtocolCalculator.ts
-- [ ] T114 [US5] Implement LRC calculator in src/main/services/ProtocolCalculator.ts
-- [ ] T115 [US5] Implement Byte Order converter in src/main/services/ProtocolCalculator.ts
-- [ ] T116 [US5] Implement IEEE 754 Float encoder/decoder in src/main/services/ProtocolCalculator.ts
-- [ ] T117 [US5] Implement Modbus address format converter in src/main/services/ProtocolCalculator.ts
-- [ ] T118 [US5] Implement Packet Analyzer with Modbus RTU/TCP detection in src/main/services/ProtocolCalculator.ts
-- [ ] T119 [US5] Create calculator IPC handlers in src/main/ipc/calculator.ts
-- [ ] T120 [P] [US5] Create CrcCalculator UI in src/renderer/components/calculator/CrcCalculator.tsx
-- [ ] T121 [P] [US5] Create ByteOrderConverter UI in src/renderer/components/calculator/ByteOrderConverter.tsx
-- [ ] T122 [P] [US5] Create FloatDecoder UI in src/renderer/components/calculator/FloatDecoder.tsx
-- [ ] T123 [P] [US5] Create PacketAnalyzer UI in src/renderer/components/calculator/PacketAnalyzer.tsx
+- [X] T113 [US5] Implement Modbus CRC-16 calculator in src/main/services/ProtocolCalculator.ts
+- [X] T114 [US5] Implement LRC calculator in src/main/services/ProtocolCalculator.ts
+- [X] T115 [US5] Implement Byte Order converter in src/main/services/ProtocolCalculator.ts
+- [X] T116 [US5] Implement IEEE 754 Float encoder/decoder in src/main/services/ProtocolCalculator.ts
+- [X] T117 [US5] Implement Modbus address format converter in src/main/services/ProtocolCalculator.ts
+- [X] T118 [US5] Implement Packet Analyzer with Modbus RTU/TCP detection in src/main/services/ProtocolCalculator.ts
+- [X] T119 [US5] Create calculator IPC handlers in src/main/ipc/calculator.ts
+- [X] T120 [P] [US5] Create CrcCalculator UI in src/renderer/components/calculator/CrcCalculator.tsx
+- [X] T121 [P] [US5] Create ByteOrderConverter UI in src/renderer/components/calculator/ByteOrderConverter.tsx
+- [X] T122 [P] [US5] Create FloatDecoder UI in src/renderer/components/calculator/FloatDecoder.tsx
+- [X] T123 [P] [US5] Create PacketAnalyzer UI in src/renderer/components/calculator/PacketAnalyzer.tsx
 
 **Checkpoint**: US-005 Protocol Calculator functional
 

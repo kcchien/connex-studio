@@ -25,6 +25,7 @@ export const bridgeApi = api.bridge
 export const dashboardApi = api.dashboard
 export const alertApi = api.alert
 export const opcuaApi = api.opcua
+export const calculatorApi = api.calculator
 
 // Utility function to handle IPC results
 export function handleIpcResult<T>(

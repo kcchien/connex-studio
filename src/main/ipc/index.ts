@@ -20,6 +20,7 @@ import { registerBridgeHandlers } from './bridge'
 import { registerDashboardHandlers } from './dashboard'
 import { registerAlertHandlers } from './alert'
 import { registerOpcUaHandlers } from './opcua'
+import { registerCalculatorHandlers } from './calculator'
 
 /**
  * Register all IPC handlers.
@@ -41,6 +42,7 @@ export function registerAllHandlers(): void {
   registerDashboardHandlers()
   registerAlertHandlers()
   registerOpcUaHandlers()
+  registerCalculatorHandlers()
 }
 
 export { registerLogHandlers } from './log'
@@ -59,3 +61,4 @@ export { registerBridgeHandlers, setBridgeMainWindow } from './bridge'
 export { registerDashboardHandlers } from './dashboard'
 export { registerAlertHandlers, setAlertMainWindow } from './alert'
 export { registerOpcUaHandlers, setOpcUaMainWindow } from './opcua'
+export { registerCalculatorHandlers } from './calculator'

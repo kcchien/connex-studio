@@ -9,6 +9,83 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Phase 10: US5 Protocol Calculator & Tools** (T113-T123) - `003-pro-features-opcua`
+  - **Main Process - Protocol Calculator Service**
+    - ProtocolCalculator 服務 (`src/main/services/ProtocolCalculator.ts`)
+      - CRC-16/Modbus 計算 (T113)
+        - 預先計算 CRC 查找表 (0xA001 多項式)
+        - 支援 hex 字串與 byte 陣列輸入
+        - 輸出: crc, hex, hexSwapped, bytes
+      - LRC (Longitudinal Redundancy Check) 計算 (T114)
+        - 二補數計算
+        - 用於 Modbus ASCII 模式
+      - Byte Order 轉換 (T115)
+        - Big-Endian (ABCD), Little-Endian (DCBA)
+        - Mid-Big (CDAB), Mid-Little (BADC)
+        - swapBytes(), swapWords(), convertByteOrder()
+      - IEEE 754 Float 編解碼 (T116)
+        - Float32 與 Float64 解碼
+        - Float32 編碼
+        - 支援多種 byte order
+        - 輸出: value, sign, exponent, mantissa, binary, hex
+        - 特殊值處理: NaN, Infinity, Zero
+      - Modbus 位址格式轉換 (T117)
+        - Modicon 5-digit 格式 (0xxxx, 1xxxx, 3xxxx, 4xxxx)
+        - IEC 格式 (HR100, IR100, DI100, CO100)
+        - 原始位址解析
+        - 輸出: registerType, address, modiconAddress, iecAddress, functionCodes
+      - Modbus 封包分析 (T118)
+        - 自動偵測 RTU 或 TCP 協定
+        - RTU: Slave ID, Function Code, Data, CRC 驗證
+        - TCP: Transaction ID, Protocol ID, Length, Unit ID, FC, Data
+        - Function Code 名稱對應 (FC01-FC23)
+
+  - **Main Process - Calculator IPC Handlers** (`src/main/ipc/calculator.ts`) (T119)
+    - `calculator:crc16-modbus` - CRC-16/Modbus 計算
+    - `calculator:lrc` - LRC 計算
+    - `calculator:decode-float32` - Float32 解碼
+    - `calculator:encode-float32` - Float32 編碼
+    - `calculator:decode-float64` - Float64 解碼
+    - `calculator:swap-bytes` - Byte 交換
+    - `calculator:swap-words` - Word 交換
+    - `calculator:convert-byte-order` - Byte Order 轉換
+    - `calculator:parse-modbus-address` - Modbus 位址解析
+    - `calculator:analyze-packet` - 封包分析
+    - `calculator:hex-to-bytes` - Hex 轉 Bytes
+    - `calculator:bytes-to-hex` - Bytes 轉 Hex
+
+  - **Renderer - Calculator UI Components**
+    - CrcCalculator 元件 (`src/renderer/components/calculator/CrcCalculator.tsx`) (T120)
+      - Hex 輸入驗證
+      - CRC-16/Modbus 與 LRC 計算
+      - 多格式輸出顯示 (decimal, hex, swapped)
+      - 複製到剪貼簿功能
+    - ByteOrderConverter 元件 (`src/renderer/components/calculator/ByteOrderConverter.tsx`) (T121)
+      - Byte/Word 交換快捷按鈕
+      - 4 種 byte order 轉換
+      - 視覺化 byte 顯示 (藍色/綠色區分)
+    - FloatDecoder 元件 (`src/renderer/components/calculator/FloatDecoder.tsx`) (T122)
+      - 解碼/編碼模式切換
+      - Float32/Float64 支援
+      - 多種 byte order 選項
+      - Binary 分解顯示 (sign/exponent/mantissa 色彩區分)
+    - PacketAnalyzer 元件 (`src/renderer/components/calculator/PacketAnalyzer.tsx`) (T123)
+      - RTU/TCP 自動偵測
+      - 視覺化封包結構 (色彩區分各欄位)
+      - CRC 驗證狀態顯示
+      - 範例資料快速載入
+
+  - **共享型別更新** (`src/shared/types/calculator.ts`)
+    - ByteOrder 型別 (big-endian, little-endian, mid-big, mid-little)
+    - CrcResult, LrcResult 介面
+    - FloatDecodeResult, FloatEncodeResult 介面
+    - ByteSwapResult 介面
+    - ModbusAddressInfo, RegisterType 介面
+    - PacketAnalysis, ModbusRtuAnalysis, ModbusTcpAnalysis 介面
+
+  - **Preload 更新** (`src/preload/index.ts`)
+    - ElectronAPI.calculator 介面與實作
+
 - **Phase 9: US9, US10, US11 OPC UA Read/Write & Subscriptions** (T095-T112) - `003-pro-features-opcua`
   - **Main Process - OPC UA 讀取操作 (US9)**
     - OpcUaAdapter 讀取功能增強 (`src/main/protocols/OpcUaAdapter.ts`)

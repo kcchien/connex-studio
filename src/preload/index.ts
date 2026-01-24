@@ -70,6 +70,16 @@ import type {
   OpcUaDataChange,
   OpcUaServerInfo
 } from '@shared/types/opcua'
+import type {
+  CrcResult,
+  LrcResult,
+  FloatDecodeResult,
+  FloatEncodeResult,
+  ByteSwapResult,
+  ByteOrder,
+  ModbusAddressInfo,
+  PacketAnalysis
+} from '@shared/types/calculator'
 
 // Type-safe API exposed to renderer
 export interface ElectronAPI {
@@ -348,6 +358,22 @@ export interface ElectronAPI {
     // Real-time events
     onDataChange: (callback: (change: OpcUaDataChange) => void) => () => void
   }
+
+  // Calculator operations
+  calculator: {
+    crc16Modbus: (data: number[] | string) => Promise<CrcResult>
+    lrc: (data: number[] | string) => Promise<LrcResult>
+    decodeFloat32: (params: { data: number[] | string; byteOrder?: ByteOrder }) => Promise<FloatDecodeResult>
+    encodeFloat32: (params: { value: number; byteOrder?: ByteOrder }) => Promise<FloatEncodeResult>
+    decodeFloat64: (params: { data: number[] | string; byteOrder?: ByteOrder }) => Promise<FloatDecodeResult>
+    swapBytes: (data: number[] | string) => Promise<ByteSwapResult>
+    swapWords: (data: number[] | string) => Promise<ByteSwapResult>
+    convertByteOrder: (params: { data: number[] | string; from: ByteOrder; to: ByteOrder }) => Promise<ByteSwapResult>
+    parseModbusAddress: (params: { address: string; registerType?: string }) => Promise<ModbusAddressInfo>
+    analyzePacket: (data: number[] | string) => Promise<PacketAnalysis>
+    hexToBytes: (hex: string) => Promise<number[]>
+    bytesToHex: (params: { bytes: number[]; separator?: string }) => Promise<string>
+  }
 }
 
 // Implement the API
@@ -577,6 +603,21 @@ const electronAPI: ElectronAPI = {
       ipcRenderer.on('opcua:data-change', handler)
       return () => ipcRenderer.removeListener('opcua:data-change', handler)
     }
+  },
+
+  calculator: {
+    crc16Modbus: (data) => ipcRenderer.invoke('calculator:crc16-modbus', data),
+    lrc: (data) => ipcRenderer.invoke('calculator:lrc', data),
+    decodeFloat32: (params) => ipcRenderer.invoke('calculator:decode-float32', params),
+    encodeFloat32: (params) => ipcRenderer.invoke('calculator:encode-float32', params),
+    decodeFloat64: (params) => ipcRenderer.invoke('calculator:decode-float64', params),
+    swapBytes: (data) => ipcRenderer.invoke('calculator:swap-bytes', data),
+    swapWords: (data) => ipcRenderer.invoke('calculator:swap-words', data),
+    convertByteOrder: (params) => ipcRenderer.invoke('calculator:convert-byte-order', params),
+    parseModbusAddress: (params) => ipcRenderer.invoke('calculator:parse-modbus-address', params),
+    analyzePacket: (data) => ipcRenderer.invoke('calculator:analyze-packet', data),
+    hexToBytes: (hex) => ipcRenderer.invoke('calculator:hex-to-bytes', hex),
+    bytesToHex: (params) => ipcRenderer.invoke('calculator:bytes-to-hex', params)
   }
 }
 

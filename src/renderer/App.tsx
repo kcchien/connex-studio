@@ -5,6 +5,7 @@ import { ConnectionList } from '@renderer/components/connection/ConnectionList'
 import { QuickReadPanel } from '@renderer/components/connection/QuickReadPanel'
 import { TagEditor, TagGrid, PollingControls } from '@renderer/components/tags'
 import { TimelineSlider, PlaybackControls, ModeIndicator } from '@renderer/components/dvr'
+import { ProfileList, ProfileDialog, ImportExportButtons } from '@renderer/components/profile'
 import { useConnectionStore } from '@renderer/stores/connectionStore'
 import { useTagStore } from '@renderer/stores/tagStore'
 import { usePolling } from '@renderer/hooks/usePolling'
@@ -28,6 +29,8 @@ function App(): React.ReactElement {
   const removeTag = useTagStore((state) => state.removeTag)
 
   const [editingTag, setEditingTag] = useState<Tag | undefined>(undefined)
+  const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false)
+  const [profileListKey, setProfileListKey] = useState(0) // For refreshing profile list
 
   // Get selected connection
   const selectedConnection = connections.find((c) => c.id === selectedConnectionId)
@@ -76,6 +79,79 @@ function App(): React.ReactElement {
     setEditingTag(tag)
   }, [])
 
+  // Profile management callbacks
+  const handleSaveProfile = useCallback(async (name: string, connectionIds: string[]) => {
+    const result = await window.electronAPI.profile.save({ name, connectionIds })
+    if (!result.success) {
+      throw new Error(result.error)
+    }
+    setProfileListKey((k) => k + 1) // Refresh list
+  }, [])
+
+  const handleLoadProfile = useCallback(async (name: string) => {
+    try {
+      const result = await window.electronAPI.profile.load(name)
+      if (result.success) {
+        // Refresh connections list
+        const connResult = await window.electronAPI.connection.list()
+        setConnections(connResult.connections)
+
+        if (result.credentialsRequired.length > 0) {
+          console.warn('Some connections require credentials:', result.credentialsRequired)
+          // Could show a dialog here to prompt for credentials
+        }
+      } else {
+        console.error('Failed to load profile:', result.error)
+      }
+    } catch (err) {
+      console.error('Failed to load profile:', err)
+    }
+  }, [setConnections])
+
+  const handleExportProfile = useCallback(async (name: string) => {
+    try {
+      const result = await window.electronAPI.profile.export(name)
+      if (!result.success) {
+        // Check if cancelled (exists on the result from IPC)
+        const cancelled = 'cancelled' in result && result.cancelled
+        if (!cancelled) {
+          console.error('Failed to export profile:', result.error)
+        }
+      }
+    } catch (err) {
+      console.error('Failed to export profile:', err)
+    }
+  }, [])
+
+  const handleDeleteProfile = useCallback(async (name: string) => {
+    try {
+      const result = await window.electronAPI.profile.delete(name)
+      if (!result.success) {
+        console.error('Failed to delete profile:', result.error)
+      }
+      setProfileListKey((k) => k + 1) // Refresh list
+    } catch (err) {
+      console.error('Failed to delete profile:', err)
+    }
+  }, [])
+
+  const handleImportProfile = useCallback(async () => {
+    try {
+      const result = await window.electronAPI.profile.import()
+      if (result.success) {
+        setProfileListKey((k) => k + 1) // Refresh list
+      } else {
+        // Check if cancelled (exists on the result from IPC)
+        const cancelled = 'cancelled' in result && result.cancelled
+        if (!cancelled) {
+          console.error('Failed to import profile:', result.error)
+        }
+      }
+    } catch (err) {
+      console.error('Failed to import profile:', err)
+    }
+  }, [])
+
   // Initialize connection list and subscribe to status changes on mount
   useEffect(() => {
     // Fetch existing connections on mount
@@ -121,7 +197,7 @@ function App(): React.ReactElement {
     loadTags()
   }, [selectedConnectionId, setTags])
 
-  // Sidebar content: ConnectionForm (collapsible) + ConnectionList
+  // Sidebar content: ConnectionForm (collapsible) + ConnectionList + Profiles
   const sidebarContent = (
     <div className="flex flex-col gap-4">
       <ConnectionForm onCreated={handleConnectionCreated} />
@@ -131,12 +207,39 @@ function App(): React.ReactElement {
         </h3>
         <ConnectionList />
       </div>
+
+      {/* Profile Management */}
+      <div className="flex flex-col gap-2 pt-4 border-t border-border">
+        <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-1">
+          Profiles
+        </h3>
+        <ImportExportButtons
+          onSaveClick={() => setIsProfileDialogOpen(true)}
+          onImport={handleImportProfile}
+          saveDisabled={connections.length === 0}
+        />
+        <ProfileList
+          key={profileListKey}
+          onLoad={handleLoadProfile}
+          onExport={handleExportProfile}
+          onDelete={handleDeleteProfile}
+        />
+      </div>
     </div>
   )
 
   return (
-    <AppShell sidebarContent={sidebarContent}>
-      <div className="p-4 space-y-4">
+    <>
+      {/* Profile Save Dialog */}
+      <ProfileDialog
+        isOpen={isProfileDialogOpen}
+        connections={connections}
+        onClose={() => setIsProfileDialogOpen(false)}
+        onSave={handleSaveProfile}
+      />
+
+      <AppShell sidebarContent={sidebarContent}>
+        <div className="p-4 space-y-4">
         {/* Quick Read Panel */}
         <QuickReadPanel className="max-w-md" />
 
@@ -220,7 +323,8 @@ function App(): React.ReactElement {
           </div>
         )}
       </div>
-    </AppShell>
+      </AppShell>
+    </>
   )
 }
 

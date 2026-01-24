@@ -7,6 +7,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2025-01-24
+
+### Added
+
+- **Phase 6: US4 連線組態管理** (T086-T099)
+  - **Main Process - Profile 服務**
+    - ProfileService 完整實作 (`src/main/services/ProfileService.ts`)
+      - JSON 序列化儲存至 `{userData}/profiles/` 目錄
+      - Schema 版本驗證 (v1.0.0)
+      - 支援 save/load/import/export 操作
+      - 整合 ConnectionManager 與 CredentialService
+    - 完整 Profile IPC 處理器 (`src/main/ipc/profile.ts`)
+      - `profile:save` - 儲存當前設定為組態檔
+      - `profile:load` - 載入組態並還原連線與標籤
+      - `profile:list` - 列出所有已儲存組態
+      - `profile:delete` - 刪除指定組態
+      - `profile:import` - 從檔案匯入組態 (含檔案對話框)
+      - `profile:export` - 匯出組態至檔案 (含檔案對話框)
+    - ConnectionManager 新增 `addTag()` 方法支援組態載入
+
+  - **Renderer - Profile UI**
+    - ProfileList 元件 (`src/renderer/components/profile/ProfileList.tsx`)
+      - 列出已儲存組態
+      - 支援載入/匯出/刪除操作
+    - ProfileDialog 元件 (`src/renderer/components/profile/ProfileDialog.tsx`)
+      - 儲存新組態對話框
+      - 連線選擇器 (全選/取消全選)
+    - ImportExportButtons 元件 (`src/renderer/components/profile/ImportExportButtons.tsx`)
+      - Save Profile 按鈕
+      - Import 按鈕 (含載入狀態)
+    - App.tsx 整合 Profile 管理功能至側邊欄
+
+### Changed
+
+- `src/main/services/ConnectionManager.ts` 新增 `addTag()` 方法
+- `src/main/ipc/index.ts` 註冊 Profile IPC 處理器
+- `src/main/services/index.ts` 匯出 ProfileService
+- `src/preload/index.ts` 擴展 profile API 型別定義
+- `src/renderer/App.tsx` 整合 Profile 元件與回呼函式
+- `specs/002-iiot-protocol-studio/tasks.md` 更新 T086-T099 完成狀態
+
+### Security
+
+- Profile 檔案不儲存敏感憑證，僅記錄需要憑證的連線 ID
+- 載入組態時透過 keytar 從 OS 金鑰鏈取得憑證
+- 匯出/匯入使用標準檔案對話框，避免任意路徑存取
+
 ## [0.3.0] - 2025-01-24
 
 ### Added
@@ -181,11 +228,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | 版本 | 日期 | 說明 |
 |------|------|------|
+| 0.4.0 | 2025-01-24 | Phase 6 實作：US4 連線組態管理 (Profile save/load/import/export) |
 | 0.3.0 | 2025-01-24 | Phase 3-5 實作：US1 連線測試、US2 標籤監控、US3 DVR 時光旅行 |
 | 0.2.0 | 2025-01-24 | Phase 1-2 實作：專案鷹架與基礎設施層 |
 | 0.1.0 | 2025-01-23 | 初始專案結構與 MVP 規格 |
 
-[Unreleased]: https://github.com/kcchien/connex-studio/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/kcchien/connex-studio/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/kcchien/connex-studio/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/kcchien/connex-studio/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/kcchien/connex-studio/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/kcchien/connex-studio/releases/tag/v0.1.0

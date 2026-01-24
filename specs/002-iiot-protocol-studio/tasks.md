@@ -202,23 +202,23 @@
 
 ### Main Process - Profile Service
 
-- [ ] T086 [US4] Implement ProfileService with JSON serialization in src/main/services/ProfileService.ts per [data-model.md § Profile](./data-model.md#profile)
-- [ ] T087 [US4] Integrate keytar for credential extraction in ProfileService per [research.md § keytar Pattern](./research.md#6-secure-credential-storage-keytar)
-- [ ] T088 [US4] Implement IPC handler `profile:save` in src/main/ipc/profile.ts per [ipc-channels.md § profile:save](./contracts/ipc-channels.md#profilesave)
-- [ ] T089 [P] [US4] Implement IPC handler `profile:load` in src/main/ipc/profile.ts per [ipc-channels.md § profile:load](./contracts/ipc-channels.md#profileload)
-- [ ] T090 [P] [US4] Implement IPC handler `profile:list` in src/main/ipc/profile.ts per [ipc-channels.md § profile:list](./contracts/ipc-channels.md#profilelist)
-- [ ] T091 [P] [US4] Implement IPC handler `profile:delete` in src/main/ipc/profile.ts per [ipc-channels.md § profile:delete](./contracts/ipc-channels.md#profiledelete)
-- [ ] T092 [US4] Implement `profile:import` with file dialog in src/main/ipc/profile.ts per [ipc-channels.md § profile:import](./contracts/ipc-channels.md#profileimport)
-- [ ] T093 [US4] Implement `profile:export` with file dialog in src/main/ipc/profile.ts per [ipc-channels.md § profile:export](./contracts/ipc-channels.md#profileexport)
-- [ ] T094 [US4] Implement profile schema version validation in ProfileService per [spec.md FR-023](./spec.md)
-- [ ] T095 [US4] Register all profile IPC handlers in src/main/index.ts
+- [x] T086 [US4] Implement ProfileService with JSON serialization in src/main/services/ProfileService.ts per [data-model.md § Profile](./data-model.md#profile)
+- [x] T087 [US4] Integrate keytar for credential extraction in ProfileService per [research.md § keytar Pattern](./research.md#6-secure-credential-storage-keytar)
+- [x] T088 [US4] Implement IPC handler `profile:save` in src/main/ipc/profile.ts per [ipc-channels.md § profile:save](./contracts/ipc-channels.md#profilesave)
+- [x] T089 [P] [US4] Implement IPC handler `profile:load` in src/main/ipc/profile.ts per [ipc-channels.md § profile:load](./contracts/ipc-channels.md#profileload)
+- [x] T090 [P] [US4] Implement IPC handler `profile:list` in src/main/ipc/profile.ts per [ipc-channels.md § profile:list](./contracts/ipc-channels.md#profilelist)
+- [x] T091 [P] [US4] Implement IPC handler `profile:delete` in src/main/ipc/profile.ts per [ipc-channels.md § profile:delete](./contracts/ipc-channels.md#profiledelete)
+- [x] T092 [US4] Implement `profile:import` with file dialog in src/main/ipc/profile.ts per [ipc-channels.md § profile:import](./contracts/ipc-channels.md#profileimport)
+- [x] T093 [US4] Implement `profile:export` with file dialog in src/main/ipc/profile.ts per [ipc-channels.md § profile:export](./contracts/ipc-channels.md#profileexport)
+- [x] T094 [US4] Implement profile schema version validation in ProfileService per [spec.md FR-023](./spec.md)
+- [x] T095 [US4] Register all profile IPC handlers in src/main/index.ts
 
 ### Renderer - Profile UI
 
-- [ ] T096 [US4] Build ProfileList component in src/renderer/components/profile/ProfileList.tsx
-- [ ] T097 [US4] Build ProfileDialog (save/load) in src/renderer/components/profile/ProfileDialog.tsx
-- [ ] T098 [US4] Build ImportExportButtons component in src/renderer/components/profile/ImportExportButtons.tsx
-- [ ] T099 [US4] Wire up Profile components in src/renderer/App.tsx
+- [x] T096 [US4] Build ProfileList component in src/renderer/components/profile/ProfileList.tsx
+- [x] T097 [US4] Build ProfileDialog (save/load) in src/renderer/components/profile/ProfileDialog.tsx
+- [x] T098 [US4] Build ImportExportButtons component in src/renderer/components/profile/ImportExportButtons.tsx
+- [x] T099 [US4] Wire up Profile components in src/renderer/App.tsx
 
 **Checkpoint**: US4 (Profile Management) fully functional - can save/load/import/export profiles.
 

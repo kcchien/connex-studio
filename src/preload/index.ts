@@ -88,13 +88,13 @@ export interface ElectronAPI {
       connectionIds: string[]
     }) => Promise<IpcResult<{ path: string }>>
     load: (name: string) => Promise<IpcResult<{
-      profile: Profile
       connections: Connection[]
       tags: Tag[]
+      credentialsRequired: string[]
     }>>
     list: () => Promise<{ profiles: ProfileSummary[] }>
     delete: (name: string) => Promise<IpcResult<void>>
-    import: (filePath: string) => Promise<IpcResult<{ name: string }>>
+    import: (filePath?: string) => Promise<IpcResult<{ name: string; cancelled?: boolean }>>
     export: (name: string) => Promise<IpcResult<{ path: string; cancelled?: boolean }>>
   }
 
@@ -200,7 +200,7 @@ const electronAPI: ElectronAPI = {
     load: (name) => ipcRenderer.invoke('profile:load', { name }),
     list: () => ipcRenderer.invoke('profile:list'),
     delete: (name) => ipcRenderer.invoke('profile:delete', { name }),
-    import: (filePath) => ipcRenderer.invoke('profile:import', { filePath }),
+    import: (filePath) => ipcRenderer.invoke('profile:import', filePath ? { filePath } : {}),
     export: (name) => ipcRenderer.invoke('profile:export', { name })
   },
 

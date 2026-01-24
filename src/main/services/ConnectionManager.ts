@@ -299,6 +299,21 @@ export class ConnectionManager {
   }
 
   /**
+   * Add an existing tag (used for profile loading).
+   */
+  addTag(tag: Tag): void {
+    if (!this.connections.has(tag.connectionId)) {
+      throw new Error(`Connection not found: ${tag.connectionId}`)
+    }
+
+    const connectionTags = this.tags.get(tag.connectionId) ?? []
+    connectionTags.push(tag)
+    this.tags.set(tag.connectionId, connectionTags)
+
+    log.info(`[ConnectionManager] Added tag: ${tag.name} (${tag.id}) for connection ${tag.connectionId}`)
+  }
+
+  /**
    * Get a specific tag by ID.
    */
   getTag(tagId: string): Tag | undefined {

@@ -39,3 +39,10 @@ export {
   getPollingEngine,
   disposePollingEngine
 } from './PollingEngine'
+
+export {
+  ProfileService,
+  getProfileService,
+  type SaveProfileParams,
+  type LoadProfileResult
+} from './ProfileService'

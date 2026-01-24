@@ -25,6 +25,7 @@ export interface ElectronAPI {
     readOnce: (params: {
       connectionId: string
       address: ModbusAddress | MqttAddress | OpcUaAddress
+      dataType?: DataType
     }) => Promise<IpcResult<{ value: number | boolean | string; quality: string }>>
     onStatusChanged: (callback: (payload: {
       connectionId: string

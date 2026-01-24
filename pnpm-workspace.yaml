@@ -1,0 +1,9 @@
+allowBuild: '@serialport/bindings-cpp better-sqlite3 electron esbuild keytar lzma-native'
+
+ignoredBuiltDependencies:
+  - '@serialport/bindings-cpp'
+  - better-sqlite3
+  - electron
+  - esbuild
+  - keytar
+  - lzma-native

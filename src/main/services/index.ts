@@ -27,3 +27,15 @@ export {
   log,
   type LogServiceConfig
 } from './LogService'
+
+export {
+  ConnectionManager,
+  getConnectionManager,
+  disposeConnectionManager
+} from './ConnectionManager'
+
+export {
+  PollingEngine,
+  getPollingEngine,
+  disposePollingEngine
+} from './PollingEngine'

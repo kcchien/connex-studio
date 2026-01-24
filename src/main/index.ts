@@ -4,7 +4,7 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import log from 'electron-log/main.js'
 import { registerAllHandlers } from './ipc'
 import { initializeProtocols } from './protocols'
-import { getDataBuffer, closeDataBuffer } from './services'
+import { getDataBuffer, closeDataBuffer, getConnectionManager, getPollingEngine, disposePollingEngine } from './services'
 
 // Configure electron-log
 log.initialize()
@@ -33,7 +33,7 @@ function createWindow(): void {
     show: false,
     autoHideMenuBar: true,
     webPreferences: {
-      preload: join(__dirname, '../preload/index.js'),
+      preload: join(__dirname, '../preload/index.mjs'),
       sandbox: false,
       contextIsolation: true,
       nodeIntegration: false
@@ -92,6 +92,12 @@ app.whenReady().then(() => {
 
   createWindow()
 
+  // Set mainWindow on ConnectionManager for push events
+  getConnectionManager().setMainWindow(mainWindow)
+
+  // Set mainWindow on PollingEngine for push events
+  getPollingEngine().setMainWindow(mainWindow)
+
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow()
@@ -110,7 +116,8 @@ app.on('window-all-closed', () => {
 
 app.on('before-quit', () => {
   log.info('App quitting')
-  // Close data buffer connection
+  // Stop polling and close data buffer connection
+  disposePollingEngine()
   closeDataBuffer()
 })
 

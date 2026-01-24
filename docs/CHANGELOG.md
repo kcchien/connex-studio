@@ -7,6 +7,74 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2025-01-24
+
+### Added
+
+- **Phase 3: US1 快速連線測試** (T031-T048)
+  - **Main Process - 連線管理**
+    - ConnectionManager 單例服務 (`src/main/services/ConnectionManager.ts`)
+    - 狀態機實作 (disconnected → connecting → connected → error)
+    - 完整連線 IPC 處理器 (`src/main/ipc/connection.ts`)
+      - `connection:create` - 建立新連線
+      - `connection:connect` / `connection:disconnect` - 連線控制
+      - `connection:delete` / `connection:list` - 連線管理
+      - `connection:read-once` - 單次讀取測試
+    - `connection:status-changed` 推送事件
+
+  - **Renderer - 連線 UI**
+    - connectionStore Zustand 狀態管理 (`src/renderer/stores/connectionStore.ts`)
+    - AppShell 版面配置 (`src/renderer/components/layout/`)
+    - ConnectionForm 元件 (Modbus TCP 設定)
+    - ConnectionCard 含狀態指示器
+    - ConnectionList 連線清單
+    - QuickReadPanel 快速讀取面板
+
+- **Phase 4: US2 標籤式持續監控** (T049-T073)
+  - **Main Process - 標籤管理**
+    - Tag 儲存與驗證規則
+    - 完整標籤 IPC 處理器 (`src/main/ipc/tag.ts`)
+      - `tag:create` / `tag:update` / `tag:delete` / `tag:list`
+      - `tag:import-csv` CSV 匯入支援
+
+  - **Main Process - 輪詢引擎**
+    - PollingEngine 服務 (`src/main/services/PollingEngine.ts`)
+    - 整合 ProtocolAdapter.read() 與 DataBuffer
+    - 完整輪詢 IPC 處理器 (`src/main/ipc/polling.ts`)
+      - `polling:start` / `polling:stop` / `polling:status`
+    - `polling:data` 推送事件
+
+  - **Renderer - 標籤格線與迷你圖**
+    - tagStore Zustand 狀態管理 (`src/renderer/stores/tagStore.ts`)
+    - usePolling Hook (`src/renderer/hooks/usePolling.ts`)
+    - TagEditor 標籤編輯器元件
+    - Sparkline 迷你圖元件 (uPlot 實作，1000 點無掉幀)
+    - TagGrid 虛擬化格線 (支援 100+ 標籤 @ 60 FPS)
+    - 閾值式列高亮 (warning/alarm 狀態)
+    - PollingControls 輪詢控制面板
+
+- **Phase 5: US3 資料 DVR 時光旅行** (T074-T085)
+  - **Main Process - DVR IPC**
+    - 完整 DVR IPC 處理器 (`src/main/ipc/dvr.ts`)
+      - `dvr:get-range` - 取得緩衝區時間範圍
+      - `dvr:seek` - 跳轉至指定時間戳
+      - `dvr:get-sparkline` - 取得降採樣迷你圖資料 (LTTB 演算法)
+
+  - **Renderer - DVR UI**
+    - dvrStore Zustand 狀態管理 (`src/renderer/stores/dvrStore.ts`)
+    - useDvr Hook (`src/renderer/hooks/useDvr.ts`)
+    - TimelineSlider 時間軸滑桿元件
+    - PlaybackControls 播放控制元件 (Live/Historical 切換、前進/後退)
+    - ModeIndicator 模式指示器 (LIVE 綠色脈動 / HISTORICAL 琥珀色)
+    - TagGrid 整合 DVR 歷史模式顯示
+
+### Changed
+
+- `src/renderer/App.tsx` 整合連線、標籤、DVR 元件
+- `src/main/ipc/index.ts` 註冊所有 IPC 處理器
+- `src/preload/index.ts` 擴展 contextBridge API
+- `specs/002-iiot-protocol-studio/tasks.md` 更新任務完成狀態 (T001-T085)
+
 ## [0.2.0] - 2025-01-24
 
 ### Added
@@ -113,9 +181,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | 版本 | 日期 | 說明 |
 |------|------|------|
+| 0.3.0 | 2025-01-24 | Phase 3-5 實作：US1 連線測試、US2 標籤監控、US3 DVR 時光旅行 |
 | 0.2.0 | 2025-01-24 | Phase 1-2 實作：專案鷹架與基礎設施層 |
 | 0.1.0 | 2025-01-23 | 初始專案結構與 MVP 規格 |
 
-[Unreleased]: https://github.com/kcchien/connex-studio/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/kcchien/connex-studio/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/kcchien/connex-studio/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/kcchien/connex-studio/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/kcchien/connex-studio/releases/tag/v0.1.0

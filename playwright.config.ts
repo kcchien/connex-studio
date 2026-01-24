@@ -1,30 +1,19 @@
-import { defineConfig, devices } from '@playwright/test'
+import { defineConfig } from '@playwright/test'
 
 export default defineConfig({
   testDir: './tests/e2e',
-  fullyParallel: true,
+  fullyParallel: false, // Electron tests should run sequentially
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
-  reporter: 'html',
+  workers: 1, // Single worker for Electron
+  reporter: [['html'], ['list']],
   use: {
     trace: 'on-first-retry',
     screenshot: 'only-on-failure'
   },
-  projects: [
-    {
-      name: 'electron',
-      use: {
-        // Electron-specific configuration will be added
-        // when setting up E2E tests
-      }
-    }
-  ],
   outputDir: 'test-results/',
-  // Timeout for each test
-  timeout: 30000,
-  // Timeout for assertions
+  timeout: 60000, // Longer timeout for Electron startup
   expect: {
-    timeout: 5000
+    timeout: 10000
   }
 })

@@ -6,6 +6,10 @@
  */
 
 import { registerLogHandlers } from './log'
+import { registerConnectionHandlers } from './connection'
+import { registerTagHandlers } from './tag'
+import { registerPollingHandlers } from './polling'
+import { registerDvrHandlers } from './dvr'
 
 /**
  * Register all IPC handlers.
@@ -13,16 +17,19 @@ import { registerLogHandlers } from './log'
  */
 export function registerAllHandlers(): void {
   registerLogHandlers()
+  registerConnectionHandlers()
+  registerTagHandlers()
+  registerPollingHandlers()
+  registerDvrHandlers()
 
   // Future handlers will be registered here:
-  // registerConnectionHandlers()
-  // registerTagHandlers()
-  // registerPollingHandlers()
-  // registerDvrHandlers()
   // registerProfileHandlers()
   // registerExportHandlers()
   // registerVirtualServerHandlers()
-  // registerAppHandlers()
 }
 
 export { registerLogHandlers } from './log'
+export { registerConnectionHandlers } from './connection'
+export { registerTagHandlers } from './tag'
+export { registerPollingHandlers } from './polling'
+export { registerDvrHandlers } from './dvr'

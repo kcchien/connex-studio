@@ -93,27 +93,27 @@
 
 ### Main Process - Connection Management
 
-- [ ] T031 [US1] Implement ConnectionManager singleton in src/main/services/ConnectionManager.ts per [data-model.md § Connection](./data-model.md#connection)
-- [ ] T032 [US1] Implement state machine (disconnected→connecting→connected→error) in ConnectionManager per [data-model.md § State Transitions](./data-model.md#connection)
-- [ ] T033 [US1] Implement IPC handler `connection:create` in src/main/ipc/connection.ts per [ipc-channels.md § connection:create](./contracts/ipc-channels.md#connectioncreate)
-- [ ] T034 [P] [US1] Implement IPC handler `connection:connect` in src/main/ipc/connection.ts per [ipc-channels.md § connection:connect](./contracts/ipc-channels.md#connectionconnect)
-- [ ] T035 [P] [US1] Implement IPC handler `connection:disconnect` in src/main/ipc/connection.ts per [ipc-channels.md § connection:disconnect](./contracts/ipc-channels.md#connectiondisconnect)
-- [ ] T036 [P] [US1] Implement IPC handler `connection:delete` in src/main/ipc/connection.ts per [ipc-channels.md § connection:delete](./contracts/ipc-channels.md#connectiondelete)
-- [ ] T037 [P] [US1] Implement IPC handler `connection:list` in src/main/ipc/connection.ts per [ipc-channels.md § connection:list](./contracts/ipc-channels.md#connectionlist)
-- [ ] T038 [US1] Implement `connection:read-once` for quick test in src/main/ipc/connection.ts per [ipc-channels.md § connection:read-once](./contracts/ipc-channels.md#connectionread-once)
-- [ ] T039 [US1] Push `connection:status-changed` events to Renderer in ConnectionManager per [ipc-channels.md § Push Channels](./contracts/ipc-channels.md#push-channels-main--renderer)
-- [ ] T040 [US1] Register all connection IPC handlers in src/main/index.ts
+- [x] T031 [US1] Implement ConnectionManager singleton in src/main/services/ConnectionManager.ts per [data-model.md § Connection](./data-model.md#connection)
+- [x] T032 [US1] Implement state machine (disconnected→connecting→connected→error) in ConnectionManager per [data-model.md § State Transitions](./data-model.md#connection)
+- [x] T033 [US1] Implement IPC handler `connection:create` in src/main/ipc/connection.ts per [ipc-channels.md § connection:create](./contracts/ipc-channels.md#connectioncreate)
+- [x] T034 [P] [US1] Implement IPC handler `connection:connect` in src/main/ipc/connection.ts per [ipc-channels.md § connection:connect](./contracts/ipc-channels.md#connectionconnect)
+- [x] T035 [P] [US1] Implement IPC handler `connection:disconnect` in src/main/ipc/connection.ts per [ipc-channels.md § connection:disconnect](./contracts/ipc-channels.md#connectiondisconnect)
+- [x] T036 [P] [US1] Implement IPC handler `connection:delete` in src/main/ipc/connection.ts per [ipc-channels.md § connection:delete](./contracts/ipc-channels.md#connectiondelete)
+- [x] T037 [P] [US1] Implement IPC handler `connection:list` in src/main/ipc/connection.ts per [ipc-channels.md § connection:list](./contracts/ipc-channels.md#connectionlist)
+- [x] T038 [US1] Implement `connection:read-once` for quick test in src/main/ipc/connection.ts per [ipc-channels.md § connection:read-once](./contracts/ipc-channels.md#connectionread-once)
+- [x] T039 [US1] Push `connection:status-changed` events to Renderer in ConnectionManager per [ipc-channels.md § Push Channels](./contracts/ipc-channels.md#push-channels-main--renderer)
+- [x] T040 [US1] Register all connection IPC handlers in src/main/index.ts
 
 ### Renderer - Connection UI
 
-- [ ] T041 [US1] Create connectionStore Zustand store in src/renderer/stores/connectionStore.ts per [research.md § Zustand](./research.md#3-state-management-zustand)
-- [ ] T042 [US1] Implement useConnection hook in src/renderer/hooks/useConnection.ts wrapping IPC calls
-- [ ] T043 [US1] Build app shell layout (Sidebar, Header) in src/renderer/components/layout/ per [plan.md § layout](./plan.md#source-code-repository-root)
-- [ ] T044 [US1] Build ConnectionForm component (Modbus TCP config) in src/renderer/components/connection/ConnectionForm.tsx per [data-model.md § ModbusTcpConfig](./data-model.md#connection)
-- [ ] T045 [US1] Build ConnectionCard with status indicator in src/renderer/components/connection/ConnectionCard.tsx per [data-model.md § ConnectionStatus](./data-model.md#connection)
-- [ ] T046 [US1] Build ConnectionList component in src/renderer/components/connection/ConnectionList.tsx
-- [ ] T047 [US1] Build QuickReadPanel component for single read in src/renderer/components/connection/QuickReadPanel.tsx
-- [ ] T048 [US1] Wire up Connection components in src/renderer/App.tsx
+- [x] T041 [US1] Create connectionStore Zustand store in src/renderer/stores/connectionStore.ts per [research.md § Zustand](./research.md#3-state-management-zustand)
+- [x] T042 [US1] Implement useConnection hook in src/renderer/hooks/useConnection.ts wrapping IPC calls
+- [x] T043 [US1] Build app shell layout (Sidebar, Header) in src/renderer/components/layout/ per [plan.md § layout](./plan.md#source-code-repository-root)
+- [x] T044 [US1] Build ConnectionForm component (Modbus TCP config) in src/renderer/components/connection/ConnectionForm.tsx per [data-model.md § ModbusTcpConfig](./data-model.md#connection)
+- [x] T045 [US1] Build ConnectionCard with status indicator in src/renderer/components/connection/ConnectionCard.tsx per [data-model.md § ConnectionStatus](./data-model.md#connection)
+- [x] T046 [US1] Build ConnectionList component in src/renderer/components/connection/ConnectionList.tsx
+- [x] T047 [US1] Build QuickReadPanel component for single read in src/renderer/components/connection/QuickReadPanel.tsx
+- [x] T048 [US1] Wire up Connection components in src/renderer/App.tsx
 
 **Checkpoint**: US1 (Quick Connection Test) fully functional - can connect to Modbus device and read registers.
 
@@ -128,37 +128,37 @@
 
 ### Main Process - Tag Management
 
-- [ ] T049 [US2] Implement Tag storage in ConnectionManager in src/main/services/ConnectionManager.ts per [data-model.md § Tag](./data-model.md#tag)
-- [ ] T050 [US2] Implement Tag validation rules per [data-model.md § Tag Validation](./data-model.md#tag)
-- [ ] T051 [US2] Implement IPC handler `tag:create` in src/main/ipc/tag.ts per [ipc-channels.md § tag:create](./contracts/ipc-channels.md#tagcreate)
-- [ ] T052 [P] [US2] Implement IPC handler `tag:update` in src/main/ipc/tag.ts per [ipc-channels.md § tag:update](./contracts/ipc-channels.md#tagupdate)
-- [ ] T053 [P] [US2] Implement IPC handler `tag:delete` in src/main/ipc/tag.ts per [ipc-channels.md § tag:delete](./contracts/ipc-channels.md#tagdelete)
-- [ ] T054 [P] [US2] Implement IPC handler `tag:list` in src/main/ipc/tag.ts per [ipc-channels.md § tag:list](./contracts/ipc-channels.md#taglist)
-- [ ] T055 [US2] Implement `tag:import-csv` with CSV parsing in src/main/ipc/tag.ts per [ipc-channels.md § tag:import-csv](./contracts/ipc-channels.md#tagimport-csv)
-- [ ] T056 [US2] Register all tag IPC handlers in src/main/index.ts
+- [x] T049 [US2] Implement Tag storage in ConnectionManager in src/main/services/ConnectionManager.ts per [data-model.md § Tag](./data-model.md#tag)
+- [x] T050 [US2] Implement Tag validation rules per [data-model.md § Tag Validation](./data-model.md#tag)
+- [x] T051 [US2] Implement IPC handler `tag:create` in src/main/ipc/tag.ts per [ipc-channels.md § tag:create](./contracts/ipc-channels.md#tagcreate)
+- [x] T052 [P] [US2] Implement IPC handler `tag:update` in src/main/ipc/tag.ts per [ipc-channels.md § tag:update](./contracts/ipc-channels.md#tagupdate)
+- [x] T053 [P] [US2] Implement IPC handler `tag:delete` in src/main/ipc/tag.ts per [ipc-channels.md § tag:delete](./contracts/ipc-channels.md#tagdelete)
+- [x] T054 [P] [US2] Implement IPC handler `tag:list` in src/main/ipc/tag.ts per [ipc-channels.md § tag:list](./contracts/ipc-channels.md#taglist)
+- [x] T055 [US2] Implement `tag:import-csv` with CSV parsing in src/main/ipc/tag.ts per [ipc-channels.md § tag:import-csv](./contracts/ipc-channels.md#tagimport-csv)
+- [x] T056 [US2] Register all tag IPC handlers in src/main/index.ts
 
 ### Main Process - Polling Engine
 
-- [ ] T057 [US2] Implement PollingEngine with interval timer in src/main/services/PollingEngine.ts per [spec.md FR-010](./spec.md)
-- [ ] T058 [US2] Integrate PollingEngine with ProtocolAdapter.read() per [data-model.md § DataPoint](./data-model.md#datapoint)
-- [ ] T059 [US2] Write DataPoints to DataBuffer on each poll in PollingEngine
-- [ ] T060 [US2] Implement IPC handler `polling:start` in src/main/ipc/polling.ts per [ipc-channels.md § polling:start](./contracts/ipc-channels.md#pollingstart)
-- [ ] T061 [P] [US2] Implement IPC handler `polling:stop` in src/main/ipc/polling.ts per [ipc-channels.md § polling:stop](./contracts/ipc-channels.md#pollingstop)
-- [ ] T062 [P] [US2] Implement IPC handler `polling:status` in src/main/ipc/polling.ts per [ipc-channels.md § polling:status](./contracts/ipc-channels.md#pollingstatus)
-- [ ] T063 [US2] Push `polling:data` events to Renderer in PollingEngine per [ipc-channels.md § polling:data](./contracts/ipc-channels.md#pollingdata)
-- [ ] T064 [US2] Register all polling IPC handlers in src/main/index.ts
+- [x] T057 [US2] Implement PollingEngine with interval timer in src/main/services/PollingEngine.ts per [spec.md FR-010](./spec.md)
+- [x] T058 [US2] Integrate PollingEngine with ProtocolAdapter.read() per [data-model.md § DataPoint](./data-model.md#datapoint)
+- [x] T059 [US2] Write DataPoints to DataBuffer on each poll in PollingEngine
+- [x] T060 [US2] Implement IPC handler `polling:start` in src/main/ipc/polling.ts per [ipc-channels.md § polling:start](./contracts/ipc-channels.md#pollingstart)
+- [x] T061 [P] [US2] Implement IPC handler `polling:stop` in src/main/ipc/polling.ts per [ipc-channels.md § polling:stop](./contracts/ipc-channels.md#pollingstop)
+- [x] T062 [P] [US2] Implement IPC handler `polling:status` in src/main/ipc/polling.ts per [ipc-channels.md § polling:status](./contracts/ipc-channels.md#pollingstatus)
+- [x] T063 [US2] Push `polling:data` events to Renderer in PollingEngine per [ipc-channels.md § polling:data](./contracts/ipc-channels.md#pollingdata)
+- [x] T064 [US2] Register all polling IPC handlers in src/main/index.ts
 
 ### Renderer - Tag Grid with Sparklines
 
-- [ ] T065 [US2] Create tagStore Zustand store in src/renderer/stores/tagStore.ts per [data-model.md § TagDisplayState](./data-model.md#derived-state-renderer)
-- [ ] T066 [US2] Implement usePolling hook in src/renderer/hooks/usePolling.ts
-- [ ] T067 [US2] Build TagEditor component in src/renderer/components/tags/TagEditor.tsx per [data-model.md § Tag](./data-model.md#tag)
-- [ ] T068 [US2] Implement Sparkline component with uPlot in src/renderer/components/tags/Sparkline.tsx per [research.md § uPlot](./research.md#4-data-visualization-uplot--echarts)
-- [ ] T069 [US2] Build TagGrid with virtualization for 100+ tags in src/renderer/components/tags/TagGrid.tsx per [spec.md SC-002](./spec.md)
-- [ ] T070 [US2] Implement threshold-based row highlighting in TagGrid per [data-model.md § Thresholds](./data-model.md#tag)
-- [ ] T071 [US2] Listen to `polling:data` push events and update tagStore in src/renderer/stores/tagStore.ts
-- [ ] T072 [US2] Build PollingControls component in src/renderer/components/tags/PollingControls.tsx
-- [ ] T073 [US2] Wire up Tag components in src/renderer/App.tsx
+- [x] T065 [US2] Create tagStore Zustand store in src/renderer/stores/tagStore.ts per [data-model.md § TagDisplayState](./data-model.md#derived-state-renderer)
+- [x] T066 [US2] Implement usePolling hook in src/renderer/hooks/usePolling.ts
+- [x] T067 [US2] Build TagEditor component in src/renderer/components/tags/TagEditor.tsx per [data-model.md § Tag](./data-model.md#tag)
+- [x] T068 [US2] Implement Sparkline component with uPlot in src/renderer/components/tags/Sparkline.tsx per [research.md § uPlot](./research.md#4-data-visualization-uplot--echarts)
+- [x] T069 [US2] Build TagGrid with virtualization for 100+ tags in src/renderer/components/tags/TagGrid.tsx per [spec.md SC-002](./spec.md)
+- [x] T070 [US2] Implement threshold-based row highlighting in TagGrid per [data-model.md § Thresholds](./data-model.md#tag)
+- [x] T071 [US2] Listen to `polling:data` push events and update tagStore in src/renderer/stores/tagStore.ts
+- [x] T072 [US2] Build PollingControls component in src/renderer/components/tags/PollingControls.tsx
+- [x] T073 [US2] Wire up Tag components in src/renderer/App.tsx
 
 **Checkpoint**: US2 (Tag-Based Monitoring) fully functional - real-time data updates with sparklines.
 
@@ -173,21 +173,21 @@
 
 ### Main Process - DVR
 
-- [ ] T074 [US3] Implement IPC handler `dvr:get-range` in src/main/ipc/dvr.ts per [ipc-channels.md § dvr:get-range](./contracts/ipc-channels.md#dvrget-range)
-- [ ] T075 [US3] Implement IPC handler `dvr:seek` in src/main/ipc/dvr.ts per [ipc-channels.md § dvr:seek](./contracts/ipc-channels.md#dvrseek)
-- [ ] T076 [US3] Implement IPC handler `dvr:get-sparkline` in src/main/ipc/dvr.ts per [ipc-channels.md § dvr:get-sparkline](./contracts/ipc-channels.md#dvrget-sparkline)
-- [ ] T077 [US3] Add downsampling logic for sparkline data in DataBuffer per [ipc-channels.md § maxPoints](./contracts/ipc-channels.md#dvrget-sparkline)
-- [ ] T078 [US3] Register all dvr IPC handlers in src/main/index.ts
+- [x] T074 [US3] Implement IPC handler `dvr:get-range` in src/main/ipc/dvr.ts per [ipc-channels.md § dvr:get-range](./contracts/ipc-channels.md#dvrget-range)
+- [x] T075 [US3] Implement IPC handler `dvr:seek` in src/main/ipc/dvr.ts per [ipc-channels.md § dvr:seek](./contracts/ipc-channels.md#dvrseek)
+- [x] T076 [US3] Implement IPC handler `dvr:get-sparkline` in src/main/ipc/dvr.ts per [ipc-channels.md § dvr:get-sparkline](./contracts/ipc-channels.md#dvrget-sparkline)
+- [x] T077 [US3] Add downsampling logic for sparkline data in DataBuffer per [ipc-channels.md § maxPoints](./contracts/ipc-channels.md#dvrget-sparkline)
+- [x] T078 [US3] Register all dvr IPC handlers in src/main/index.ts
 
 ### Renderer - DVR UI
 
-- [ ] T079 [US3] Create dvrStore Zustand store in src/renderer/stores/dvrStore.ts per [data-model.md § DvrState](./data-model.md#derived-state-renderer)
-- [ ] T080 [US3] Implement useDvr hook in src/renderer/hooks/useDvr.ts
-- [ ] T081 [US3] Build TimelineSlider component in src/renderer/components/dvr/TimelineSlider.tsx per [spec.md US3](./spec.md)
-- [ ] T082 [US3] Build PlaybackControls (Live/Historical toggle) in src/renderer/components/dvr/PlaybackControls.tsx per [data-model.md § DvrState.isLive](./data-model.md#derived-state-renderer)
-- [ ] T083 [US3] Integrate DVR seek with TagGrid display in src/renderer/components/tags/TagGrid.tsx
-- [ ] T084 [US3] Add visual indicator for historical vs live mode in src/renderer/components/dvr/ModeIndicator.tsx
-- [ ] T085 [US3] Wire up DVR components in src/renderer/App.tsx
+- [x] T079 [US3] Create dvrStore Zustand store in src/renderer/stores/dvrStore.ts per [data-model.md § DvrState](./data-model.md#derived-state-renderer)
+- [x] T080 [US3] Implement useDvr hook in src/renderer/hooks/useDvr.ts
+- [x] T081 [US3] Build TimelineSlider component in src/renderer/components/dvr/TimelineSlider.tsx per [spec.md US3](./spec.md)
+- [x] T082 [US3] Build PlaybackControls (Live/Historical toggle) in src/renderer/components/dvr/PlaybackControls.tsx per [data-model.md § DvrState.isLive](./data-model.md#derived-state-renderer)
+- [x] T083 [US3] Integrate DVR seek with TagGrid display in src/renderer/components/tags/TagGrid.tsx
+- [x] T084 [US3] Add visual indicator for historical vs live mode in src/renderer/components/dvr/ModeIndicator.tsx
+- [x] T085 [US3] Wire up DVR components in src/renderer/App.tsx
 
 **Checkpoint**: US3 (Data DVR Time-Travel) fully functional - can scrub through historical data.
 

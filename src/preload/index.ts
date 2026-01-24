@@ -28,6 +28,16 @@ import type {
   BridgeStatus,
   BridgeStats
 } from '@shared/types/bridge'
+import type {
+  Dashboard,
+  DashboardWidget,
+  WidgetLayout,
+  CreateDashboardRequest,
+  UpdateDashboardRequest,
+  AddWidgetRequest,
+  UpdateWidgetRequest,
+  UpdateLayoutRequest
+} from '@shared/types/dashboard'
 
 // Type-safe API exposed to renderer
 export interface ElectronAPI {
@@ -214,6 +224,21 @@ export interface ElectronAPI {
     onError: (callback: (payload: { bridgeId: string; error: string }) => void) => () => void
     onStats: (callback: (stats: BridgeStats) => void) => () => void
   }
+
+  // Dashboard operations
+  dashboard: {
+    list: () => Promise<Dashboard[]>
+    get: (id: string) => Promise<Dashboard | null>
+    create: (params: CreateDashboardRequest) => Promise<Dashboard>
+    update: (params: UpdateDashboardRequest) => Promise<Dashboard>
+    delete: (id: string) => Promise<boolean>
+    setDefault: (id: string) => Promise<Dashboard>
+    getDefault: () => Promise<Dashboard | null>
+    addWidget: (params: AddWidgetRequest) => Promise<DashboardWidget>
+    updateWidget: (params: UpdateWidgetRequest) => Promise<DashboardWidget>
+    removeWidget: (dashboardId: string, widgetId: string) => Promise<boolean>
+    updateLayout: (params: UpdateLayoutRequest) => Promise<boolean>
+  }
 }
 
 // Implement the API
@@ -353,6 +378,21 @@ const electronAPI: ElectronAPI = {
       ipcRenderer.on('bridge:stats', handler)
       return () => ipcRenderer.removeListener('bridge:stats', handler)
     }
+  },
+
+  dashboard: {
+    list: () => ipcRenderer.invoke('dashboard:list'),
+    get: (id) => ipcRenderer.invoke('dashboard:get', id),
+    create: (params) => ipcRenderer.invoke('dashboard:create', params),
+    update: (params) => ipcRenderer.invoke('dashboard:update', params),
+    delete: (id) => ipcRenderer.invoke('dashboard:delete', id),
+    setDefault: (id) => ipcRenderer.invoke('dashboard:set-default', id),
+    getDefault: () => ipcRenderer.invoke('dashboard:get-default'),
+    addWidget: (params) => ipcRenderer.invoke('dashboard:add-widget', params),
+    updateWidget: (params) => ipcRenderer.invoke('dashboard:update-widget', params),
+    removeWidget: (dashboardId, widgetId) =>
+      ipcRenderer.invoke('dashboard:remove-widget', { dashboardId, widgetId }),
+    updateLayout: (params) => ipcRenderer.invoke('dashboard:update-layout', params)
   }
 }
 

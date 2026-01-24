@@ -17,6 +17,7 @@ import { registerAppHandlers } from './app'
 import { registerEnvironmentHandlers } from './environment'
 import { registerCollectionHandlers } from './collection'
 import { registerBridgeHandlers } from './bridge'
+import { registerDashboardHandlers } from './dashboard'
 
 /**
  * Register all IPC handlers.
@@ -35,6 +36,7 @@ export function registerAllHandlers(): void {
   registerEnvironmentHandlers()
   registerCollectionHandlers()
   registerBridgeHandlers()
+  registerDashboardHandlers()
 }
 
 export { registerLogHandlers } from './log'
@@ -50,3 +52,4 @@ export { handleWindowClose, setForceQuit, resetForceQuitFlag, stopAllPollingGrac
 export { registerEnvironmentHandlers } from './environment'
 export { registerCollectionHandlers } from './collection'
 export { registerBridgeHandlers, setBridgeMainWindow } from './bridge'
+export { registerDashboardHandlers } from './dashboard'

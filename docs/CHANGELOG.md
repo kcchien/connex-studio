@@ -9,6 +9,73 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Phase 5: US3 Dashboard View with Gauges** (T050-T061) - `003-pro-features-opcua`
+  - **Main Process - Dashboard IPC 處理器**
+    - Dashboard IPC handlers 完整實作 (`src/main/ipc/dashboard.ts`)
+      - `dashboard:list` - 列出所有 Dashboard
+      - `dashboard:get` - 取得單一 Dashboard
+      - `dashboard:create` - 建立新 Dashboard
+      - `dashboard:update` - 更新 Dashboard 設定
+      - `dashboard:delete` - 刪除 Dashboard
+      - `dashboard:set-default` - 設為預設 Dashboard
+      - `dashboard:get-default` - 取得預設 Dashboard
+      - `dashboard:add-widget` - 新增 Widget 至 Dashboard
+      - `dashboard:update-widget` - 更新 Widget 設定
+      - `dashboard:remove-widget` - 移除 Widget
+      - `dashboard:update-layout` - 更新 Widget 佈局
+    - Preload API 擴展 - Dashboard 相關操作
+
+  - **Renderer - Dashboard Widgets**
+    - useDashboard Hook (`src/renderer/hooks/useDashboard.ts`)
+      - Dashboard 狀態管理 (dashboards, currentDashboard, isLoading, error)
+      - CRUD 操作 (createDashboard/updateDashboard/deleteDashboard)
+      - Widget 操作 (addWidget/updateWidget/removeWidget)
+      - 佈局操作 (updateLayout)
+      - IPC 事件監聽自動訂閱
+    - WidgetBase 介面 (`src/renderer/components/dashboard/WidgetBase.tsx`)
+      - WidgetContainer 共用容器元件
+      - 工具函式：getColorForValue, formatValue, getPrimaryValue, toNumericValue
+      - 常數定義：WIDGET_TYPE_LABELS, WIDGET_TYPE_ICONS, WIDGET_MIN_SIZES, WIDGET_DEFAULT_SIZES
+    - GaugeWidget 元件 (`src/renderer/components/dashboard/widgets/GaugeWidget.tsx`)
+      - SVG 圓弧儀表板
+      - 支援 semicircle/full 模式
+      - 可配置 min/max、unit、thresholds、showValue
+      - 閾值色彩變化 (normal/warning/critical)
+    - LEDWidget 元件 (`src/renderer/components/dashboard/widgets/LEDWidget.tsx`)
+      - On/Off LED 指示燈
+      - circle/square 形狀切換
+      - 可配置 onColor/offColor、onValue 匹配值
+      - 發光效果 (glow)
+    - NumberCardWidget 元件 (`src/renderer/components/dashboard/widgets/NumberCardWidget.tsx`)
+      - 大字體數值顯示
+      - title、unit、decimals 配置
+      - fontSize 選項 (small/medium/large)
+      - 閾值色彩支援
+    - ChartWidget 元件 (`src/renderer/components/dashboard/widgets/ChartWidget.tsx`)
+      - SVG 時間序列折線圖
+      - 整合 DVR sparkline 資料
+      - 可配置 timeRange、showGrid、showLegend
+      - 多標籤支援
+
+  - **Renderer - Dashboard Canvas**
+    - DashboardCanvas 元件 (`src/renderer/components/dashboard/DashboardCanvas.tsx`)
+      - react-grid-layout v2 整合
+      - 12 欄網格系統、80px 列高
+      - Edit/View 模式切換
+      - Widget 拖放與調整大小
+      - GridConfig/DragConfig/ResizeConfig 配置
+    - WidgetPalette 元件 (`src/renderer/components/dashboard/WidgetPalette.tsx`)
+      - Widget 類型選擇對話框
+      - 視覺預覽 (Gauge/LED/NumberCard/Chart)
+      - 預設尺寸提示
+    - WidgetConfig 元件 (`src/renderer/components/dashboard/WidgetConfig.tsx`)
+      - Widget 屬性編輯對話框
+      - 依 Widget 類型顯示對應設定
+      - Gauge：min/max/unit/thresholds/gaugeType
+      - LED：shape/onColor/offColor/onValue
+      - NumberCard：title/unit/decimals/fontSize
+      - Chart：timeRange/showGrid/showLegend
+
 - **Phase 4: US1 Bridge Protocol Bridging** (T040-T049) - `003-pro-features-opcua`
   - **Main Process - BridgeManager 服務**
     - BridgeManager 完整實作 (`src/main/services/BridgeManager.ts`)

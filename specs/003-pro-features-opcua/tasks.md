@@ -16,14 +16,14 @@
 
 **Purpose**: Project initialization, shared types, and base services structure
 
-- [ ] T001 Create shared type definitions for professional features in src/shared/types/bridge.ts
-- [ ] T002 [P] Create shared type definitions for environment in src/shared/types/environment.ts
-- [ ] T003 [P] Create shared type definitions for collection in src/shared/types/collection.ts
-- [ ] T004 [P] Create shared type definitions for dashboard in src/shared/types/dashboard.ts
-- [ ] T005 [P] Create shared type definitions for alert in src/shared/types/alert.ts
-- [ ] T006 [P] Extend OPC UA type definitions in src/shared/types/opcua.ts
-- [ ] T007 Add IPC channel constants for all new features in src/shared/types/ipc.ts
-- [ ] T008 Install new dependencies: react-grid-layout, js-yaml in package.json
+- [X] T001 Create shared type definitions for professional features in src/shared/types/bridge.ts
+- [X] T002 [P] Create shared type definitions for environment in src/shared/types/environment.ts
+- [X] T003 [P] Create shared type definitions for collection in src/shared/types/collection.ts
+- [X] T004 [P] Create shared type definitions for dashboard in src/shared/types/dashboard.ts
+- [X] T005 [P] Create shared type definitions for alert in src/shared/types/alert.ts
+- [X] T006 [P] Extend OPC UA type definitions in src/shared/types/opcua.ts
+- [X] T007 Add IPC channel constants for all new features in src/shared/types/ipc.ts
+- [X] T008 Install new dependencies: react-grid-layout, js-yaml in package.json
 
 ---
 
@@ -33,22 +33,22 @@
 
 **CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T009 Create EnvironmentManager service skeleton in src/main/services/EnvironmentManager.ts
-- [ ] T010 [P] Create variable substitution engine in src/main/services/VariableSubstitution.ts
-- [ ] T011 [P] Create BridgeManager service skeleton in src/main/services/BridgeManager.ts
-- [ ] T012 [P] Create DashboardService skeleton in src/main/services/DashboardService.ts
-- [ ] T013 [P] Create AlertEngine service skeleton in src/main/services/AlertEngine.ts
-- [ ] T014 [P] Create AlertHistoryStore with SQLite schema in src/main/services/AlertHistoryStore.ts
-- [ ] T015 Create alert SQLite schema in src/main/db/alert-schema.sql
-- [ ] T016 [P] Create CollectionRunner service skeleton in src/main/services/CollectionRunner.ts
-- [ ] T017 [P] Create OpcUaAdapter extending ProtocolAdapter in src/main/protocols/OpcUaAdapter.ts
-- [ ] T018 [P] Create OpcUaCertificateStore service in src/main/services/OpcUaCertificateStore.ts
-- [ ] T019 Create Zustand stores for renderer: bridgeStore in src/renderer/stores/bridgeStore.ts
-- [ ] T020 [P] Create environmentStore in src/renderer/stores/environmentStore.ts
-- [ ] T021 [P] Create collectionStore in src/renderer/stores/collectionStore.ts
-- [ ] T022 [P] Create dashboardStore in src/renderer/stores/dashboardStore.ts
-- [ ] T023 [P] Create alertStore in src/renderer/stores/alertStore.ts
-- [ ] T024 [P] Create opcuaStore in src/renderer/stores/opcuaStore.ts
+- [X] T009 Create EnvironmentManager service skeleton in src/main/services/EnvironmentManager.ts
+- [X] T010 [P] Create variable substitution engine in src/main/services/VariableSubstitution.ts
+- [X] T011 [P] Create BridgeManager service skeleton in src/main/services/BridgeManager.ts
+- [X] T012 [P] Create DashboardService skeleton in src/main/services/DashboardService.ts
+- [X] T013 [P] Create AlertEngine service skeleton in src/main/services/AlertEngine.ts
+- [X] T014 [P] Create AlertHistoryStore with SQLite schema in src/main/services/AlertHistoryStore.ts
+- [X] T015 Create alert SQLite schema in src/main/db/alert-schema.sql
+- [X] T016 [P] Create CollectionRunner service skeleton in src/main/services/CollectionRunner.ts
+- [X] T017 [P] Create OpcUaAdapter extending ProtocolAdapter in src/main/protocols/OpcUaAdapter.ts
+- [X] T018 [P] Create OpcUaCertificateStore service in src/main/services/OpcUaCertificateStore.ts
+- [X] T019 Create Zustand stores for renderer: bridgeStore in src/renderer/stores/bridgeStore.ts
+- [X] T020 [P] Create environmentStore in src/renderer/stores/environmentStore.ts
+- [X] T021 [P] Create collectionStore in src/renderer/stores/collectionStore.ts
+- [X] T022 [P] Create dashboardStore in src/renderer/stores/dashboardStore.ts
+- [X] T023 [P] Create alertStore in src/renderer/stores/alertStore.ts
+- [X] T024 [P] Create opcuaStore in src/renderer/stores/opcuaStore.ts
 
 **Checkpoint**: Foundation ready - all service skeletons and stores in place
 
@@ -62,24 +62,24 @@
 
 ### Implementation for US2 - Environment
 
-- [ ] T025 [US2] Implement EnvironmentManager CRUD operations in src/main/services/EnvironmentManager.ts
-- [ ] T026 [US2] Implement variable parsing ${VAR_NAME} and ${VAR_NAME:default} in src/main/services/VariableSubstitution.ts
-- [ ] T027 [US2] Implement environment switching with connection reload in src/main/services/EnvironmentManager.ts
-- [ ] T028 [US2] Create environment IPC handlers in src/main/ipc/environment.ts
-- [ ] T029 [US2] Create useEnvironment hook in src/renderer/hooks/useEnvironment.ts
-- [ ] T030 [P] [US2] Create EnvironmentSwitcher component in src/renderer/components/environment/EnvironmentSwitcher.tsx
-- [ ] T031 [P] [US2] Create EnvironmentEditor component in src/renderer/components/environment/EnvironmentEditor.tsx
-- [ ] T032 [P] [US2] Create VariableList component in src/renderer/components/environment/VariableList.tsx
+- [X] T025 [US2] Implement EnvironmentManager CRUD operations in src/main/services/EnvironmentManager.ts
+- [X] T026 [US2] Implement variable parsing ${VAR_NAME} and ${VAR_NAME:default} in src/main/services/VariableSubstitution.ts
+- [X] T027 [US2] Implement environment switching with connection reload in src/main/services/EnvironmentManager.ts
+- [X] T028 [US2] Create environment IPC handlers in src/main/ipc/environment.ts
+- [X] T029 [US2] Create useEnvironment hook in src/renderer/hooks/useEnvironment.ts
+- [X] T030 [P] [US2] Create EnvironmentSwitcher component in src/renderer/components/environment/EnvironmentSwitcher.tsx
+- [X] T031 [P] [US2] Create EnvironmentEditor component in src/renderer/components/environment/EnvironmentEditor.tsx
+- [X] T032 [P] [US2] Create VariableList component in src/renderer/components/environment/VariableList.tsx
 
 ### Implementation for US2 - Collection
 
-- [ ] T033 [US2] Implement CollectionRunner sequential execution in src/main/services/CollectionRunner.ts
-- [ ] T034 [US2] Implement assertion evaluation (equals, contains, range, regex) in src/main/services/CollectionRunner.ts
-- [ ] T035 [US2] Create collection IPC handlers in src/main/ipc/collection.ts
-- [ ] T036 [US2] Create useCollection hook in src/renderer/hooks/useCollection.ts
-- [ ] T037 [P] [US2] Create CollectionList component in src/renderer/components/collection/CollectionList.tsx
-- [ ] T038 [P] [US2] Create CollectionRunner UI component in src/renderer/components/collection/CollectionRunner.tsx
-- [ ] T039 [P] [US2] Create AssertionEditor component in src/renderer/components/collection/AssertionEditor.tsx
+- [X] T033 [US2] Implement CollectionRunner sequential execution in src/main/services/CollectionRunner.ts
+- [X] T034 [US2] Implement assertion evaluation (equals, contains, range, regex) in src/main/services/CollectionRunner.ts
+- [X] T035 [US2] Create collection IPC handlers in src/main/ipc/collection.ts
+- [X] T036 [US2] Create useCollection hook in src/renderer/hooks/useCollection.ts
+- [X] T037 [P] [US2] Create CollectionList component in src/renderer/components/collection/CollectionList.tsx
+- [X] T038 [P] [US2] Create CollectionRunner UI component in src/renderer/components/collection/CollectionRunner.tsx
+- [X] T039 [P] [US2] Create AssertionEditor component in src/renderer/components/collection/AssertionEditor.tsx
 
 **Checkpoint**: US-002 Environment switching and Collection execution functional
 
@@ -93,16 +93,16 @@
 
 ### Implementation for US1
 
-- [ ] T040 [US1] Implement BridgeManager CRUD and state machine in src/main/services/BridgeManager.ts
-- [ ] T041 [US1] Implement Payload Template Engine with ${tags.name.value} syntax in src/main/services/PayloadTemplateEngine.ts
-- [ ] T042 [US1] Implement change-only forwarding with threshold in src/main/services/BridgeManager.ts
-- [ ] T043 [US1] Implement auto-resume on reconnection in src/main/services/BridgeManager.ts
-- [ ] T044 [US1] Implement local buffering when target unavailable in src/main/services/BridgeManager.ts
-- [ ] T045 [US1] Create bridge IPC handlers in src/main/ipc/bridge.ts
-- [ ] T046 [US1] Create useBridge hook in src/renderer/hooks/useBridge.ts
-- [ ] T047 [P] [US1] Create BridgeMapper drag-and-drop component in src/renderer/components/bridge/BridgeMapper.tsx
-- [ ] T048 [P] [US1] Create BridgeStatus display component in src/renderer/components/bridge/BridgeStatus.tsx
-- [ ] T049 [P] [US1] Create PayloadEditor template editor in src/renderer/components/bridge/PayloadEditor.tsx
+- [X] T040 [US1] Implement BridgeManager CRUD and state machine in src/main/services/BridgeManager.ts
+- [X] T041 [US1] Implement Payload Template Engine with ${tags.name.value} syntax in src/main/services/PayloadTemplateEngine.ts
+- [X] T042 [US1] Implement change-only forwarding with threshold in src/main/services/BridgeManager.ts
+- [X] T043 [US1] Implement auto-resume on reconnection in src/main/services/BridgeManager.ts
+- [X] T044 [US1] Implement local buffering when target unavailable in src/main/services/BridgeManager.ts
+- [X] T045 [US1] Create bridge IPC handlers in src/main/ipc/bridge.ts
+- [X] T046 [US1] Create useBridge hook in src/renderer/hooks/useBridge.ts
+- [X] T047 [P] [US1] Create BridgeMapper drag-and-drop component in src/renderer/components/bridge/BridgeMapper.tsx
+- [X] T048 [P] [US1] Create BridgeStatus display component in src/renderer/components/bridge/BridgeStatus.tsx
+- [X] T049 [P] [US1] Create PayloadEditor template editor in src/renderer/components/bridge/PayloadEditor.tsx
 
 **Checkpoint**: US-001 Bridge forwarding functional
 
@@ -116,18 +116,18 @@
 
 ### Implementation for US3
 
-- [ ] T050 [US3] Implement DashboardService CRUD and persistence in src/main/services/DashboardService.ts
-- [ ] T051 [US3] Create dashboard IPC handlers in src/main/ipc/dashboard.ts
-- [ ] T052 [US3] Create useDashboard hook in src/renderer/hooks/useDashboard.ts
-- [ ] T053 [US3] Create widget base interface and types in src/renderer/components/dashboard/WidgetBase.tsx
-- [ ] T054 [P] [US3] Create GaugeWidget with ECharts in src/renderer/components/dashboard/widgets/GaugeWidget.tsx
-- [ ] T055 [P] [US3] Create LEDWidget indicator in src/renderer/components/dashboard/widgets/LEDWidget.tsx
-- [ ] T056 [P] [US3] Create NumberCardWidget display in src/renderer/components/dashboard/widgets/NumberCardWidget.tsx
-- [ ] T057 [P] [US3] Create ChartWidget integrating DVR Chart in src/renderer/components/dashboard/widgets/ChartWidget.tsx
-- [ ] T058 [US3] Create DashboardCanvas with react-grid-layout in src/renderer/components/dashboard/DashboardCanvas.tsx
-- [ ] T059 [P] [US3] Create WidgetPalette selection panel in src/renderer/components/dashboard/WidgetPalette.tsx
-- [ ] T060 [P] [US3] Create WidgetConfig property editor in src/renderer/components/dashboard/WidgetConfig.tsx
-- [ ] T061 [US3] Implement edit mode vs view mode toggle in src/renderer/components/dashboard/DashboardCanvas.tsx
+- [X] T050 [US3] Implement DashboardService CRUD and persistence in src/main/services/DashboardService.ts
+- [X] T051 [US3] Create dashboard IPC handlers in src/main/ipc/dashboard.ts
+- [X] T052 [US3] Create useDashboard hook in src/renderer/hooks/useDashboard.ts
+- [X] T053 [US3] Create widget base interface and types in src/renderer/components/dashboard/WidgetBase.tsx
+- [X] T054 [P] [US3] Create GaugeWidget with ECharts in src/renderer/components/dashboard/widgets/GaugeWidget.tsx
+- [X] T055 [P] [US3] Create LEDWidget indicator in src/renderer/components/dashboard/widgets/LEDWidget.tsx
+- [X] T056 [P] [US3] Create NumberCardWidget display in src/renderer/components/dashboard/widgets/NumberCardWidget.tsx
+- [X] T057 [P] [US3] Create ChartWidget integrating DVR Chart in src/renderer/components/dashboard/widgets/ChartWidget.tsx
+- [X] T058 [US3] Create DashboardCanvas with react-grid-layout in src/renderer/components/dashboard/DashboardCanvas.tsx
+- [X] T059 [P] [US3] Create WidgetPalette selection panel in src/renderer/components/dashboard/WidgetPalette.tsx
+- [X] T060 [P] [US3] Create WidgetConfig property editor in src/renderer/components/dashboard/WidgetConfig.tsx
+- [X] T061 [US3] Implement edit mode vs view mode toggle in src/renderer/components/dashboard/DashboardCanvas.tsx
 
 **Checkpoint**: US-003 Dashboard with widgets functional
 

@@ -9,6 +9,72 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Phase 4: US1 Bridge Protocol Bridging** (T040-T049) - `003-pro-features-opcua`
+  - **Main Process - BridgeManager 服務**
+    - BridgeManager 完整實作 (`src/main/services/BridgeManager.ts`)
+      - Bridge 生命週期管理 (create/update/delete/start/stop/pause/resume)
+      - Change-only 轉發模式 (僅值變化時轉發)
+      - 數值閾值支援 (deadband 過濾)
+      - 本地緩衝機制 (目標連線不可用時)
+      - 自動重連恢復轉發
+      - 統計追蹤 (messagesForwarded/messagesDropped/bytesTransferred/uptime)
+    - PayloadTemplateEngine 範本引擎 (`src/main/services/PayloadTemplateEngine.ts`)
+      - 變數解析：`${value}`, `${timestamp}`, `${isoTimestamp}`, `${tagName}`, `${connectionId}`, `${quality}`
+      - 巢狀變數支援：`${tags.NAME.value}`, `${tags.NAME.quality}`, `${tag.property}`
+      - Topic 與 Payload 範本處理
+    - 完整 Bridge IPC 處理器 (`src/main/ipc/bridge.ts`)
+      - `bridge:list` - 列出所有 Bridge
+      - `bridge:get` - 取得單一 Bridge
+      - `bridge:create` - 建立新 Bridge
+      - `bridge:update` - 更新 Bridge 設定
+      - `bridge:delete` - 刪除 Bridge
+      - `bridge:start` / `bridge:stop` / `bridge:pause` / `bridge:resume` - 生命週期控制
+      - `bridge:get-stats` - 取得 Bridge 統計資料
+    - Bridge 事件訂閱
+      - `bridge:status-changed` - 狀態變更推送
+      - `bridge:error` - 錯誤事件推送
+      - `bridge:stats` - 統計更新推送
+
+  - **Renderer - Bridge UI**
+    - useBridge Hook (`src/renderer/hooks/useBridge.ts`)
+      - Bridge 狀態管理 (bridges, stats, isLoading, error)
+      - CRUD 操作 (createBridge/updateBridge/deleteBridge)
+      - 生命週期操作 (startBridge/stopBridge/pauseBridge/resumeBridge)
+      - 事件監聽器自動訂閱/取消訂閱
+    - BridgeMapper 元件 (`src/renderer/components/bridge/BridgeMapper.tsx`)
+      - 來源/目標連線顯示
+      - 可用標籤清單 (多選)
+      - Tag-to-Topic 對應編輯
+      - 全域目標設定 (QoS Level、Retain)
+    - BridgeStatus 元件 (`src/renderer/components/bridge/BridgeStatus.tsx`)
+      - 狀態徽章 (Active/Paused/Error/Idle)
+      - 統計資訊顯示 (Messages Forwarded/Data Transferred/Uptime/Errors)
+      - 最後錯誤訊息
+      - 最後轉發時間
+    - PayloadEditor 元件 (`src/renderer/components/bridge/PayloadEditor.tsx`)
+      - 範本編輯器 (語法高亮)
+      - 變數插入面板 (點擊插入)
+      - JSON 結構驗證
+      - 複製到剪貼簿功能
+    - TopicEditor 元件 - 簡化版主題範本編輯器
+    - BridgeStatusCard 元件 - 卡片式狀態顯示
+
+- **Phase 1-3: 基礎建設** (T001-T039) - `003-pro-features-opcua`
+  - **Phase 1 Setup**: 共享類型定義
+    - Bridge 相關型別 (`src/shared/types/bridge.ts`)
+    - Environment/Collection 型別 (`src/shared/types/environment.ts`, `collection.ts`)
+    - Dashboard/Alert/OPC UA 型別
+    - IPC 通道常數擴展
+  - **Phase 2 Foundational**: 服務骨架與狀態管理
+    - BridgeManager 骨架
+    - EnvironmentManager 服務
+    - CollectionRunner 服務
+    - Zustand stores (bridgeStore, environmentStore, collectionStore)
+  - **Phase 3 US2**: Environment & Collections
+    - 環境變數切換功能
+    - Collection 執行引擎
+    - 完整 IPC 處理器
+
 - **Phase 2 Professional Features + Full OPC UA 規格文件** (`specs/003-pro-features-opcua/`)
   - **spec.md** - 完整功能規格
     - 16 個使用者故事 (Part A: 專業功能 US-001~US-006, Part B: OPC UA US-007~US-016)

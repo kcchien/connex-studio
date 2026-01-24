@@ -31,9 +31,18 @@ import {
   OPCUA_GET_SUBSCRIPTIONS,
   OPCUA_DATA_CHANGE,
   OPCUA_SESSION_STATUS,
-  OPCUA_TEST_CONNECTION
+  OPCUA_TEST_CONNECTION,
+  OPCUA_LIST_CERTIFICATES,
+  OPCUA_IMPORT_CERTIFICATE,
+  OPCUA_EXPORT_CERTIFICATE,
+  OPCUA_DELETE_CERTIFICATE,
+  OPCUA_GENERATE_CERTIFICATE,
+  OPCUA_TRUST_CERTIFICATE,
+  OPCUA_REJECT_CERTIFICATE,
+  OPCUA_GET_SERVER_CERTIFICATE
 } from '@shared/constants/ipc-channels'
 import { getConnectionManager } from '../services/ConnectionManager'
+import { getOpcUaCertificateStore } from '../services/OpcUaCertificateStore'
 import { OpcUaAdapter, validateEndpointUrl } from '../protocols/OpcUaAdapter'
 import type {
   OpcUaEndpoint,
@@ -48,6 +57,10 @@ import type {
   OpcUaNodeAttributes,
   OpcUaReadRequest,
   OpcUaReadResult,
+  OpcUaCertificate,
+  ImportCertificateRequest,
+  GenerateCertificateRequest,
+  CertificateValidationResult,
   OpcUaWriteRequest,
   OpcUaWriteResult,
   OpcUaWriteValidation,
@@ -494,6 +507,146 @@ export function registerOpcUaHandlers(): void {
 
       const adapter = getOpcUaAdapter(connectionId)
       return adapter.getSubscriptions()
+    }
+  )
+
+  // ==========================================================================
+  // Certificate Management (T124-T131)
+  // ==========================================================================
+
+  /**
+   * List all certificates in the store.
+   */
+  ipcMain.handle(
+    OPCUA_LIST_CERTIFICATES,
+    async (): Promise<OpcUaCertificate[]> => {
+      log.debug('[OpcUaIPC] Listing certificates')
+
+      const store = getOpcUaCertificateStore()
+      await store.initialize()
+      return store.list()
+    }
+  )
+
+  /**
+   * Import a certificate from file.
+   */
+  ipcMain.handle(
+    OPCUA_IMPORT_CERTIFICATE,
+    async (_, request: ImportCertificateRequest): Promise<OpcUaCertificate> => {
+      log.debug(`[OpcUaIPC] Importing certificate from: ${request.certificatePath}`)
+
+      const store = getOpcUaCertificateStore()
+      await store.initialize()
+      const cert = await store.import(request)
+
+      log.info(`[OpcUaIPC] Certificate imported: ${cert.subject}`)
+      return cert
+    }
+  )
+
+  /**
+   * Export a certificate to file.
+   */
+  ipcMain.handle(
+    OPCUA_EXPORT_CERTIFICATE,
+    async (_, params: { id: string; exportPath: string }): Promise<boolean> => {
+      log.debug(`[OpcUaIPC] Exporting certificate: ${params.id}`)
+
+      const store = getOpcUaCertificateStore()
+      await store.initialize()
+      const result = await store.export(params.id, params.exportPath)
+
+      if (result) {
+        log.info(`[OpcUaIPC] Certificate exported to: ${params.exportPath}`)
+      }
+      return result
+    }
+  )
+
+  /**
+   * Delete a certificate from the store.
+   */
+  ipcMain.handle(
+    OPCUA_DELETE_CERTIFICATE,
+    async (_, id: string): Promise<boolean> => {
+      log.debug(`[OpcUaIPC] Deleting certificate: ${id}`)
+
+      const store = getOpcUaCertificateStore()
+      await store.initialize()
+      const result = await store.delete(id)
+
+      if (result) {
+        log.info(`[OpcUaIPC] Certificate deleted: ${id}`)
+      }
+      return result
+    }
+  )
+
+  /**
+   * Generate a self-signed certificate.
+   */
+  ipcMain.handle(
+    OPCUA_GENERATE_CERTIFICATE,
+    async (_, request: GenerateCertificateRequest): Promise<OpcUaCertificate> => {
+      log.debug('[OpcUaIPC] Generating self-signed certificate')
+
+      const store = getOpcUaCertificateStore()
+      await store.initialize()
+      const cert = await store.generate(request)
+
+      log.info(`[OpcUaIPC] Certificate generated: ${cert.subject}`)
+      return cert
+    }
+  )
+
+  /**
+   * Trust a certificate.
+   */
+  ipcMain.handle(
+    OPCUA_TRUST_CERTIFICATE,
+    async (_, id: string): Promise<OpcUaCertificate> => {
+      log.debug(`[OpcUaIPC] Trusting certificate: ${id}`)
+
+      const store = getOpcUaCertificateStore()
+      await store.initialize()
+      const cert = await store.trust(id)
+
+      log.info(`[OpcUaIPC] Certificate trusted: ${cert.subject}`)
+      return cert
+    }
+  )
+
+  /**
+   * Reject a certificate.
+   */
+  ipcMain.handle(
+    OPCUA_REJECT_CERTIFICATE,
+    async (_, id: string): Promise<boolean> => {
+      log.debug(`[OpcUaIPC] Rejecting certificate: ${id}`)
+
+      const store = getOpcUaCertificateStore()
+      await store.initialize()
+      const result = await store.reject(id)
+
+      if (result) {
+        log.info(`[OpcUaIPC] Certificate rejected: ${id}`)
+      }
+      return result
+    }
+  )
+
+  /**
+   * Get server certificate from endpoint URL.
+   */
+  ipcMain.handle(
+    OPCUA_GET_SERVER_CERTIFICATE,
+    async (_, endpointUrl: string): Promise<OpcUaCertificate | null> => {
+      log.debug(`[OpcUaIPC] Getting server certificate from: ${endpointUrl}`)
+
+      const store = getOpcUaCertificateStore()
+      await store.initialize()
+      return store.getServerCertificate(endpointUrl)
     }
   )
 

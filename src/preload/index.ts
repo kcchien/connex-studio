@@ -68,7 +68,11 @@ import type {
   AddMonitoredItemRequest,
   MonitoredItem,
   OpcUaDataChange,
-  OpcUaServerInfo
+  OpcUaServerInfo,
+  OpcUaCertificate,
+  ImportCertificateRequest,
+  GenerateCertificateRequest,
+  CertificateValidationResult
 } from '@shared/types/opcua'
 import type {
   CrcResult,
@@ -357,6 +361,16 @@ export interface ElectronAPI {
 
     // Real-time events
     onDataChange: (callback: (change: OpcUaDataChange) => void) => () => void
+
+    // Certificate Management
+    listCertificates: () => Promise<OpcUaCertificate[]>
+    importCertificate: (request: ImportCertificateRequest) => Promise<OpcUaCertificate>
+    exportCertificate: (params: { id: string; exportPath: string }) => Promise<boolean>
+    deleteCertificate: (id: string) => Promise<boolean>
+    generateCertificate: (request: GenerateCertificateRequest) => Promise<OpcUaCertificate>
+    trustCertificate: (id: string) => Promise<OpcUaCertificate>
+    rejectCertificate: (id: string) => Promise<boolean>
+    getServerCertificate: (endpointUrl: string) => Promise<OpcUaCertificate | null>
   }
 
   // Calculator operations
@@ -602,7 +616,17 @@ const electronAPI: ElectronAPI = {
         callback(change)
       ipcRenderer.on('opcua:data-change', handler)
       return () => ipcRenderer.removeListener('opcua:data-change', handler)
-    }
+    },
+
+    // Certificate Management
+    listCertificates: () => ipcRenderer.invoke('opcua:list-certificates'),
+    importCertificate: (request) => ipcRenderer.invoke('opcua:import-certificate', request),
+    exportCertificate: (params) => ipcRenderer.invoke('opcua:export-certificate', params),
+    deleteCertificate: (id) => ipcRenderer.invoke('opcua:delete-certificate', id),
+    generateCertificate: (request) => ipcRenderer.invoke('opcua:generate-certificate', request),
+    trustCertificate: (id) => ipcRenderer.invoke('opcua:trust-certificate', id),
+    rejectCertificate: (id) => ipcRenderer.invoke('opcua:reject-certificate', id),
+    getServerCertificate: (endpointUrl) => ipcRenderer.invoke('opcua:get-server-certificate', endpointUrl)
   },
 
   calculator: {

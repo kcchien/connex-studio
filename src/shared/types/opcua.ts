@@ -514,6 +514,15 @@ export interface GenerateCertificateRequest {
   keySize?: 2048 | 4096
 }
 
+export interface CertificateValidationResult {
+  valid: boolean
+  expired: boolean
+  notYetValid: boolean
+  selfSigned: boolean
+  trusted: boolean
+  errors: string[]
+}
+
 // -----------------------------------------------------------------------------
 // Discovery Types
 // -----------------------------------------------------------------------------

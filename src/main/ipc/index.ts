@@ -16,6 +16,7 @@ import { registerVirtualServerHandlers } from './virtual-server'
 import { registerAppHandlers } from './app'
 import { registerEnvironmentHandlers } from './environment'
 import { registerCollectionHandlers } from './collection'
+import { registerBridgeHandlers } from './bridge'
 
 /**
  * Register all IPC handlers.
@@ -33,6 +34,7 @@ export function registerAllHandlers(): void {
   registerAppHandlers()
   registerEnvironmentHandlers()
   registerCollectionHandlers()
+  registerBridgeHandlers()
 }
 
 export { registerLogHandlers } from './log'
@@ -47,3 +49,4 @@ export { registerAppHandlers } from './app'
 export { handleWindowClose, setForceQuit, resetForceQuitFlag, stopAllPollingGracefully } from './app'
 export { registerEnvironmentHandlers } from './environment'
 export { registerCollectionHandlers } from './collection'
+export { registerBridgeHandlers, setBridgeMainWindow } from './bridge'

@@ -21,6 +21,13 @@ import type {
   CollectionRunResult,
   CollectionProgress
 } from '@shared/types/collection'
+import type {
+  Bridge,
+  CreateBridgeRequest,
+  UpdateBridgeRequest,
+  BridgeStatus,
+  BridgeStats
+} from '@shared/types/bridge'
 
 // Type-safe API exposed to renderer
 export interface ElectronAPI {
@@ -190,6 +197,23 @@ export interface ElectronAPI {
     onProgress: (callback: (progress: CollectionProgress) => void) => () => void
     onResult: (callback: (result: CollectionRunResult) => void) => () => void
   }
+
+  // Bridge operations
+  bridge: {
+    list: () => Promise<IpcResult<{ bridges: Bridge[] }>>
+    get: (id: string) => Promise<IpcResult<{ bridge: Bridge }>>
+    create: (params: CreateBridgeRequest) => Promise<IpcResult<{ bridge: Bridge }>>
+    update: (params: UpdateBridgeRequest) => Promise<IpcResult<{ bridge: Bridge }>>
+    delete: (id: string) => Promise<IpcResult<void>>
+    start: (id: string) => Promise<IpcResult<void>>
+    stop: (id: string) => Promise<IpcResult<void>>
+    pause: (id: string) => Promise<IpcResult<void>>
+    resume: (id: string) => Promise<IpcResult<void>>
+    getStats: (id: string) => Promise<IpcResult<{ stats: BridgeStats }>>
+    onStatusChanged: (callback: (payload: { bridgeId: string; status: BridgeStatus }) => void) => () => void
+    onError: (callback: (payload: { bridgeId: string; error: string }) => void) => () => void
+    onStats: (callback: (stats: BridgeStats) => void) => () => void
+  }
 }
 
 // Implement the API
@@ -294,6 +318,40 @@ const electronAPI: ElectronAPI = {
         callback(payload)
       ipcRenderer.on('collection:result', handler)
       return () => ipcRenderer.removeListener('collection:result', handler)
+    }
+  },
+
+  bridge: {
+    list: () => ipcRenderer.invoke('bridge:list'),
+    get: (id) => ipcRenderer.invoke('bridge:get', { id }),
+    create: (params) => ipcRenderer.invoke('bridge:create', params),
+    update: (params) => ipcRenderer.invoke('bridge:update', params),
+    delete: (id) => ipcRenderer.invoke('bridge:delete', { id }),
+    start: (id) => ipcRenderer.invoke('bridge:start', { id }),
+    stop: (id) => ipcRenderer.invoke('bridge:stop', { id }),
+    pause: (id) => ipcRenderer.invoke('bridge:pause', { id }),
+    resume: (id) => ipcRenderer.invoke('bridge:resume', { id }),
+    getStats: (id) => ipcRenderer.invoke('bridge:get-stats', { id }),
+    onStatusChanged: (callback) => {
+      const handler = (
+        _event: Electron.IpcRendererEvent,
+        payload: { bridgeId: string; status: BridgeStatus }
+      ) => callback(payload)
+      ipcRenderer.on('bridge:status-changed', handler)
+      return () => ipcRenderer.removeListener('bridge:status-changed', handler)
+    },
+    onError: (callback) => {
+      const handler = (
+        _event: Electron.IpcRendererEvent,
+        payload: { bridgeId: string; error: string }
+      ) => callback(payload)
+      ipcRenderer.on('bridge:error', handler)
+      return () => ipcRenderer.removeListener('bridge:error', handler)
+    },
+    onStats: (callback) => {
+      const handler = (_event: Electron.IpcRendererEvent, stats: BridgeStats) => callback(stats)
+      ipcRenderer.on('bridge:stats', handler)
+      return () => ipcRenderer.removeListener('bridge:stats', handler)
     }
   }
 }

@@ -8,6 +8,19 @@ import type { DvrRange, DvrSnapshot, SparklineData } from '@shared/types/dvr'
 import type { ExportResult } from '@shared/types/export'
 import type { VirtualServer } from '@shared/types/virtual-server'
 import type { LogEntry, LogLevel } from '@shared/types/log'
+import type {
+  Environment,
+  CreateEnvironmentRequest,
+  UpdateEnvironmentRequest,
+  ResolutionResult
+} from '@shared/types/environment'
+import type {
+  Collection,
+  CreateCollectionRequest,
+  UpdateCollectionRequest,
+  CollectionRunResult,
+  CollectionProgress
+} from '@shared/types/collection'
 
 // Type-safe API exposed to renderer
 export interface ElectronAPI {
@@ -152,6 +165,31 @@ export interface ElectronAPI {
     }>
     forceQuit: () => void
   }
+
+  // Environment operations
+  environment: {
+    list: () => Promise<IpcResult<{ environments: Environment[] }>>
+    get: (id: string) => Promise<IpcResult<{ environment: Environment }>>
+    create: (params: CreateEnvironmentRequest) => Promise<IpcResult<{ environment: Environment }>>
+    update: (params: UpdateEnvironmentRequest) => Promise<IpcResult<{ environment: Environment }>>
+    delete: (id: string) => Promise<IpcResult<void>>
+    setDefault: (id: string) => Promise<IpcResult<{ environment: Environment }>>
+    getDefault: () => Promise<IpcResult<{ environment: Environment | null }>>
+    resolve: (template: string, customVariables?: Record<string, string>) => Promise<IpcResult<{ result: ResolutionResult }>>
+  }
+
+  // Collection operations
+  collection: {
+    list: () => Promise<IpcResult<{ collections: Collection[] }>>
+    get: (id: string) => Promise<IpcResult<{ collection: Collection }>>
+    create: (params: CreateCollectionRequest) => Promise<IpcResult<{ collection: Collection }>>
+    update: (params: UpdateCollectionRequest) => Promise<IpcResult<{ collection: Collection }>>
+    delete: (id: string) => Promise<IpcResult<void>>
+    run: (id: string) => Promise<IpcResult<{ result: CollectionRunResult }>>
+    stop: (runId: string) => Promise<IpcResult<void>>
+    onProgress: (callback: (progress: CollectionProgress) => void) => () => void
+    onResult: (callback: (result: CollectionRunResult) => void) => () => void
+  }
 }
 
 // Implement the API
@@ -223,6 +261,40 @@ const electronAPI: ElectronAPI = {
   app: {
     checkUnsaved: () => ipcRenderer.invoke('app:check-unsaved'),
     forceQuit: () => ipcRenderer.send('app:force-quit')
+  },
+
+  environment: {
+    list: () => ipcRenderer.invoke('environment:list'),
+    get: (id) => ipcRenderer.invoke('environment:get', { id }),
+    create: (params) => ipcRenderer.invoke('environment:create', params),
+    update: (params) => ipcRenderer.invoke('environment:update', params),
+    delete: (id) => ipcRenderer.invoke('environment:delete', { id }),
+    setDefault: (id) => ipcRenderer.invoke('environment:set-default', { id }),
+    getDefault: () => ipcRenderer.invoke('environment:get-default'),
+    resolve: (template, customVariables) =>
+      ipcRenderer.invoke('environment:resolve', { template, customVariables })
+  },
+
+  collection: {
+    list: () => ipcRenderer.invoke('collection:list'),
+    get: (id) => ipcRenderer.invoke('collection:get', { id }),
+    create: (params) => ipcRenderer.invoke('collection:create', params),
+    update: (params) => ipcRenderer.invoke('collection:update', params),
+    delete: (id) => ipcRenderer.invoke('collection:delete', { id }),
+    run: (id) => ipcRenderer.invoke('collection:run', { id }),
+    stop: (runId) => ipcRenderer.invoke('collection:stop', { runId }),
+    onProgress: (callback) => {
+      const handler = (_event: Electron.IpcRendererEvent, payload: CollectionProgress) =>
+        callback(payload)
+      ipcRenderer.on('collection:progress', handler)
+      return () => ipcRenderer.removeListener('collection:progress', handler)
+    },
+    onResult: (callback) => {
+      const handler = (_event: Electron.IpcRendererEvent, payload: CollectionRunResult) =>
+        callback(payload)
+      ipcRenderer.on('collection:result', handler)
+      return () => ipcRenderer.removeListener('collection:result', handler)
+    }
   }
 }
 

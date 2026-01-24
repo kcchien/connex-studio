@@ -19,6 +19,8 @@ export const exportApi = api.export
 export const virtualServerApi = api.virtualServer
 export const logApi = api.log
 export const appApi = api.app
+export const environmentApi = api.environment
+export const collectionApi = api.collection
 
 // Utility function to handle IPC results
 export function handleIpcResult<T>(

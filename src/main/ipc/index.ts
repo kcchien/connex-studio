@@ -14,6 +14,8 @@ import { registerProfileHandlers } from './profile'
 import { registerExportHandlers } from './export'
 import { registerVirtualServerHandlers } from './virtual-server'
 import { registerAppHandlers } from './app'
+import { registerEnvironmentHandlers } from './environment'
+import { registerCollectionHandlers } from './collection'
 
 /**
  * Register all IPC handlers.
@@ -29,6 +31,8 @@ export function registerAllHandlers(): void {
   registerExportHandlers()
   registerVirtualServerHandlers()
   registerAppHandlers()
+  registerEnvironmentHandlers()
+  registerCollectionHandlers()
 }
 
 export { registerLogHandlers } from './log'
@@ -41,3 +45,5 @@ export { registerExportHandlers } from './export'
 export { registerVirtualServerHandlers } from './virtual-server'
 export { registerAppHandlers } from './app'
 export { handleWindowClose, setForceQuit, resetForceQuitFlag, stopAllPollingGracefully } from './app'
+export { registerEnvironmentHandlers } from './environment'
+export { registerCollectionHandlers } from './collection'

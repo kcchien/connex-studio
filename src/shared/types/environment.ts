@@ -42,6 +42,9 @@ export interface VariableResolutionResult {
   unresolved: string[]
 }
 
+/** Alias for VariableResolutionResult (used by IPC) */
+export type ResolutionResult = VariableResolutionResult
+
 // -----------------------------------------------------------------------------
 // Validation
 // -----------------------------------------------------------------------------

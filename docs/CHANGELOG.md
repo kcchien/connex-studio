@@ -9,6 +9,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Phase 8: US8 OPC UA Node Browsing** (T086-T094) - `003-pro-features-opcua`
+  - **Main Process - OPC UA 地址空間瀏覽**
+    - OpcUaAdapter 瀏覽功能增強 (`src/main/protocols/OpcUaAdapter.ts`)
+      - `browse()` 返回 OpcUaBrowseResult 含 continuationPoint 支援分頁
+      - `browseNext()` 續點瀏覽大量子節點 (T087)
+      - `readNodeAttributes()` 讀取完整節點屬性 (T088)
+        - Variable 專屬：value, dataType, valueRank, accessLevel, historizing
+        - Method 專屬：executable, userExecutable
+      - `searchNodes()` 依 DisplayName 模式搜尋 (T089)
+        - 廣度優先搜尋演算法
+        - 支援 maxDepth, maxResults, nodeClassFilter
+      - `translateBrowsePath()` 相對路徑轉換為 NodeId (T090)
+
+  - **Main Process - OPC UA IPC 處理器擴展**
+    - 新增 IPC 通道 (`src/main/ipc/opcua.ts`)
+      - `opcua:browse` - 返回 OpcUaBrowseResult 含分頁資訊
+      - `opcua:browse-next` - 續點瀏覽
+      - `opcua:browse-path` - 路徑轉換
+      - `opcua:search-nodes` - 節點搜尋
+      - `opcua:read-node-attributes` - 讀取節點屬性
+
+  - **Renderer - OPC UA 瀏覽器 UI**
+    - useOpcUa Hook 擴展 (`src/renderer/hooks/useOpcUa.ts`)
+      - 新增：browseNext(), browsePath(), searchNodes(), readNodeAttributes()
+    - OpcUaBrowser 樹狀瀏覽器元件 (`src/renderer/components/opcua/OpcUaBrowser.tsx`)
+      - 階層式節點展開/折疊 (lazy loading)
+      - 續點處理「載入更多」按鈕
+      - DisplayName 搜尋功能
+      - 拖放支援 (Variable 節點可拖曳建立 Tag)
+      - 節點類別圖示 (Object/Variable/Method/ObjectType 等)
+    - OpcUaNodeDetails 節點屬性檢視器 (`src/renderer/components/opcua/OpcUaNodeDetails.tsx`)
+      - 基本屬性：NodeId, NodeClass, BrowseName, DisplayName
+      - Variable 專屬：Value, DataType, AccessLevel, Historizing
+      - Method 專屬：Executable, UserExecutable
+      - 自動重新整理功能 (可配置間隔)
+      - 複製到剪貼簿功能
+
+  - **Preload API 擴展**
+    - 新增 browseNext, browsePath, searchNodes, readNodeAttributes 至 opcua 區段
+
+  - **共享型別更新** (`src/shared/types/opcua.ts`)
+    - OpcUaBrowseResult (nodes + continuationPoint + hasMore)
+    - OpcUaBrowseNextRequest
+    - OpcUaBrowsePathResult
+    - OpcUaSearchNodesRequest / OpcUaSearchResult
+    - OpcUaNodeAttributesRequest / OpcUaNodeAttributes
+
 - **Phase 7: US7 OPC UA Connection** (T075-T085) - `003-pro-features-opcua`
   - **Main Process - OPC UA 協定適配器**
     - OpcUaAdapter 連線邏輯增強 (`src/main/protocols/OpcUaAdapter.ts`)

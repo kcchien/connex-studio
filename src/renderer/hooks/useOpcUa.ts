@@ -9,6 +9,14 @@ import type {
   OpcUaEndpoint,
   OpcUaNode,
   OpcUaBrowseRequest,
+  OpcUaBrowseResult,
+  OpcUaBrowseNextRequest,
+  OpcUaBrowsePathRequest,
+  OpcUaBrowsePathResult,
+  OpcUaSearchNodesRequest,
+  OpcUaSearchResult,
+  OpcUaNodeAttributesRequest,
+  OpcUaNodeAttributes,
   OpcUaReadRequest,
   OpcUaReadResult,
   OpcUaWriteRequest,
@@ -47,7 +55,11 @@ export interface UseOpcUaReturn {
   getSessionStatus: (connectionId: string) => Promise<SessionStatus | null>
 
   // Browse
-  browse: (request: OpcUaBrowseRequest) => Promise<OpcUaNode[] | null>
+  browse: (request: OpcUaBrowseRequest) => Promise<OpcUaBrowseResult | null>
+  browseNext: (request: OpcUaBrowseNextRequest) => Promise<OpcUaBrowseResult | null>
+  browsePath: (request: OpcUaBrowsePathRequest) => Promise<OpcUaBrowsePathResult | null>
+  searchNodes: (request: OpcUaSearchNodesRequest) => Promise<OpcUaSearchResult | null>
+  readNodeAttributes: (request: OpcUaNodeAttributesRequest) => Promise<OpcUaNodeAttributes | null>
 
   // Read/Write
   read: (request: OpcUaReadRequest) => Promise<OpcUaReadResult | null>
@@ -184,18 +196,106 @@ export function useOpcUa(): UseOpcUaReturn {
   // ==========================================================================
 
   /**
-   * Browse child nodes.
+   * Browse child nodes with lazy loading support.
    */
   const browse = useCallback(
-    async (request: OpcUaBrowseRequest): Promise<OpcUaNode[] | null> => {
+    async (request: OpcUaBrowseRequest): Promise<OpcUaBrowseResult | null> => {
       setIsLoading(true)
       setError(null)
 
       try {
-        const nodes = await opcuaApi.browse(request)
-        return nodes
+        const result = await opcuaApi.browse(request)
+        return result
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to browse nodes'
+        setError(message)
+        return null
+      } finally {
+        setIsLoading(false)
+      }
+    },
+    []
+  )
+
+  /**
+   * Continue browsing with continuation point.
+   */
+  const browseNext = useCallback(
+    async (request: OpcUaBrowseNextRequest): Promise<OpcUaBrowseResult | null> => {
+      setIsLoading(true)
+      setError(null)
+
+      try {
+        const result = await opcuaApi.browseNext(request)
+        return result
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to continue browsing'
+        setError(message)
+        return null
+      } finally {
+        setIsLoading(false)
+      }
+    },
+    []
+  )
+
+  /**
+   * Translate browse path to node ID.
+   */
+  const browsePath = useCallback(
+    async (request: OpcUaBrowsePathRequest): Promise<OpcUaBrowsePathResult | null> => {
+      setIsLoading(true)
+      setError(null)
+
+      try {
+        const result = await opcuaApi.browsePath(request)
+        return result
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to translate browse path'
+        setError(message)
+        return null
+      } finally {
+        setIsLoading(false)
+      }
+    },
+    []
+  )
+
+  /**
+   * Search for nodes by DisplayName pattern.
+   */
+  const searchNodes = useCallback(
+    async (request: OpcUaSearchNodesRequest): Promise<OpcUaSearchResult | null> => {
+      setIsLoading(true)
+      setError(null)
+
+      try {
+        const result = await opcuaApi.searchNodes(request)
+        return result
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to search nodes'
+        setError(message)
+        return null
+      } finally {
+        setIsLoading(false)
+      }
+    },
+    []
+  )
+
+  /**
+   * Read comprehensive node attributes.
+   */
+  const readNodeAttributes = useCallback(
+    async (request: OpcUaNodeAttributesRequest): Promise<OpcUaNodeAttributes | null> => {
+      setIsLoading(true)
+      setError(null)
+
+      try {
+        const result = await opcuaApi.readNodeAttributes(request)
+        return result
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to read node attributes'
         setError(message)
         return null
       } finally {
@@ -359,6 +459,10 @@ export function useOpcUa(): UseOpcUaReturn {
 
     // Browse
     browse,
+    browseNext,
+    browsePath,
+    searchNodes,
+    readNodeAttributes,
 
     // Read/Write
     read,

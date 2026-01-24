@@ -51,6 +51,14 @@ import type {
   OpcUaEndpoint,
   OpcUaNode,
   OpcUaBrowseRequest,
+  OpcUaBrowseResult,
+  OpcUaBrowseNextRequest,
+  OpcUaBrowsePathRequest,
+  OpcUaBrowsePathResult,
+  OpcUaSearchNodesRequest,
+  OpcUaSearchResult,
+  OpcUaNodeAttributesRequest,
+  OpcUaNodeAttributes,
   OpcUaReadRequest,
   OpcUaReadResult,
   OpcUaWriteRequest,
@@ -314,7 +322,11 @@ export interface ElectronAPI {
     }>
 
     // Browse
-    browse: (request: OpcUaBrowseRequest) => Promise<OpcUaNode[]>
+    browse: (request: OpcUaBrowseRequest) => Promise<OpcUaBrowseResult>
+    browseNext: (request: OpcUaBrowseNextRequest) => Promise<OpcUaBrowseResult>
+    browsePath: (request: OpcUaBrowsePathRequest) => Promise<OpcUaBrowsePathResult>
+    searchNodes: (request: OpcUaSearchNodesRequest) => Promise<OpcUaSearchResult>
+    readNodeAttributes: (request: OpcUaNodeAttributesRequest) => Promise<OpcUaNodeAttributes>
 
     // Read/Write
     read: (request: OpcUaReadRequest) => Promise<OpcUaReadResult>
@@ -543,6 +555,10 @@ const electronAPI: ElectronAPI = {
 
     // Browse
     browse: (request) => ipcRenderer.invoke('opcua:browse', request),
+    browseNext: (request) => ipcRenderer.invoke('opcua:browse-next', request),
+    browsePath: (request) => ipcRenderer.invoke('opcua:browse-path', request),
+    searchNodes: (request) => ipcRenderer.invoke('opcua:search-nodes', request),
+    readNodeAttributes: (request) => ipcRenderer.invoke('opcua:read-node-attributes', request),
 
     // Read/Write
     read: (request) => ipcRenderer.invoke('opcua:read', request),

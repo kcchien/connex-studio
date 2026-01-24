@@ -191,15 +191,15 @@
 
 ### Implementation for US8
 
-- [ ] T086 [US8] Implement browse service with lazy loading in src/main/protocols/OpcUaAdapter.ts
-- [ ] T087 [US8] Implement continuation point handling for large results in src/main/protocols/OpcUaAdapter.ts
-- [ ] T088 [US8] Implement node attribute reading in src/main/protocols/OpcUaAdapter.ts
-- [ ] T089 [US8] Implement node search by DisplayName in src/main/protocols/OpcUaAdapter.ts
-- [ ] T090 [US8] Implement browse path translation in src/main/protocols/OpcUaAdapter.ts
-- [ ] T091 [US8] Create browse IPC handlers in src/main/ipc/opcua.ts
-- [ ] T092 [US8] Create OpcUaBrowser tree component in src/renderer/components/opcua/OpcUaBrowser.tsx
-- [ ] T093 [P] [US8] Create OpcUaNodeDetails viewer in src/renderer/components/opcua/OpcUaNodeDetails.tsx
-- [ ] T094 [US8] Implement drag-to-create-Tag from browser in src/renderer/components/opcua/OpcUaBrowser.tsx
+- [X] T086 [US8] Implement browse service with lazy loading in src/main/protocols/OpcUaAdapter.ts
+- [X] T087 [US8] Implement continuation point handling for large results in src/main/protocols/OpcUaAdapter.ts
+- [X] T088 [US8] Implement node attribute reading in src/main/protocols/OpcUaAdapter.ts
+- [X] T089 [US8] Implement node search by DisplayName in src/main/protocols/OpcUaAdapter.ts
+- [X] T090 [US8] Implement browse path translation in src/main/protocols/OpcUaAdapter.ts
+- [X] T091 [US8] Create browse IPC handlers in src/main/ipc/opcua.ts
+- [X] T092 [US8] Create OpcUaBrowser tree component in src/renderer/components/opcua/OpcUaBrowser.tsx
+- [X] T093 [P] [US8] Create OpcUaNodeDetails viewer in src/renderer/components/opcua/OpcUaNodeDetails.tsx
+- [X] T094 [US8] Implement drag-to-create-Tag from browser in src/renderer/components/opcua/OpcUaBrowser.tsx
 
 **Checkpoint**: US-008 Node browsing functional
 

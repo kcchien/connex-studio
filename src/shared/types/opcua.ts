@@ -109,10 +109,69 @@ export interface OpcUaBrowseRequest {
   maxReferences?: number
 }
 
+export interface OpcUaBrowseResult {
+  nodes: OpcUaNode[]
+  continuationPoint?: string
+  hasMore: boolean
+}
+
+export interface OpcUaBrowseNextRequest {
+  connectionId: string
+  continuationPoint: string
+  releaseContinuationPoints?: boolean
+}
+
 export interface OpcUaBrowsePathRequest {
   connectionId: string
   startingNode: string
   relativePath: string[]
+}
+
+export interface OpcUaBrowsePathResult {
+  nodeId: string | null
+  statusCode: number
+  remainingPathIndex?: number
+}
+
+export interface OpcUaSearchNodesRequest {
+  connectionId: string
+  startNodeId: string
+  searchPattern: string
+  maxDepth?: number
+  maxResults?: number
+  nodeClassFilter?: NodeClass[]
+}
+
+export interface OpcUaSearchResult {
+  nodes: OpcUaNode[]
+  truncated: boolean
+}
+
+export interface OpcUaNodeAttributesRequest {
+  connectionId: string
+  nodeId: string
+}
+
+export interface OpcUaNodeAttributes {
+  nodeId: string
+  nodeClass: NodeClass
+  browseName: string
+  displayName: string
+  description?: string
+  writeMask?: number
+  userWriteMask?: number
+  // Variable/VariableType specific
+  value?: unknown
+  dataType?: string
+  valueRank?: number
+  arrayDimensions?: number[]
+  accessLevel?: number
+  userAccessLevel?: number
+  minimumSamplingInterval?: number
+  historizing?: boolean
+  // Method specific
+  executable?: boolean
+  userExecutable?: boolean
 }
 
 // -----------------------------------------------------------------------------

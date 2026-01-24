@@ -155,8 +155,11 @@ export const OPCUA_SESSION_ERROR = 'opcua:session-error'
 
 // OPC UA Browse channels
 export const OPCUA_BROWSE = 'opcua:browse'
+export const OPCUA_BROWSE_NEXT = 'opcua:browse-next'
 export const OPCUA_BROWSE_PATH = 'opcua:browse-path'
 export const OPCUA_GET_NODE = 'opcua:get-node'
+export const OPCUA_SEARCH_NODES = 'opcua:search-nodes'
+export const OPCUA_READ_NODE_ATTRIBUTES = 'opcua:read-node-attributes'
 
 // OPC UA Read/Write channels
 export const OPCUA_READ = 'opcua:read'
@@ -351,8 +354,11 @@ export const IPC_CHANNELS = {
     sessionError: OPCUA_SESSION_ERROR,
     // Browse
     browse: OPCUA_BROWSE,
+    browseNext: OPCUA_BROWSE_NEXT,
     browsePath: OPCUA_BROWSE_PATH,
     getNode: OPCUA_GET_NODE,
+    searchNodes: OPCUA_SEARCH_NODES,
+    readNodeAttributes: OPCUA_READ_NODE_ATTRIBUTES,
     // Read/Write
     read: OPCUA_READ,
     write: OPCUA_WRITE,

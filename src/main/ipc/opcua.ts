@@ -14,6 +14,10 @@ import log from 'electron-log/main.js'
 import {
   OPCUA_GET_ENDPOINTS,
   OPCUA_BROWSE,
+  OPCUA_BROWSE_NEXT,
+  OPCUA_BROWSE_PATH,
+  OPCUA_SEARCH_NODES,
+  OPCUA_READ_NODE_ATTRIBUTES,
   OPCUA_READ,
   OPCUA_WRITE,
   OPCUA_CREATE_SUBSCRIPTION,
@@ -29,7 +33,14 @@ import { OpcUaAdapter, validateEndpointUrl } from '../protocols/OpcUaAdapter'
 import type {
   OpcUaEndpoint,
   OpcUaBrowseRequest,
-  OpcUaNode,
+  OpcUaBrowseResult,
+  OpcUaBrowseNextRequest,
+  OpcUaBrowsePathRequest,
+  OpcUaBrowsePathResult,
+  OpcUaSearchNodesRequest,
+  OpcUaSearchResult,
+  OpcUaNodeAttributesRequest,
+  OpcUaNodeAttributes,
   OpcUaReadRequest,
   OpcUaReadResult,
   OpcUaWriteRequest,
@@ -200,22 +211,77 @@ export function registerOpcUaHandlers(): void {
   )
 
   // ==========================================================================
-  // Browse Operations
+  // Browse Operations (T091)
   // ==========================================================================
 
   /**
-   * Browse child nodes.
+   * Browse child nodes with lazy loading support.
    */
   ipcMain.handle(
     OPCUA_BROWSE,
-    async (_, request: OpcUaBrowseRequest): Promise<OpcUaNode[]> => {
+    async (_, request: OpcUaBrowseRequest): Promise<OpcUaBrowseResult> => {
       log.debug(`[OpcUaIPC] Browsing node: ${request.nodeId}`)
 
       const adapter = getOpcUaAdapter(request.connectionId)
-      const nodes = await adapter.browse(request)
+      const result = await adapter.browse(request)
 
-      log.debug(`[OpcUaIPC] Found ${nodes.length} child nodes`)
-      return nodes
+      log.debug(`[OpcUaIPC] Found ${result.nodes.length} child nodes, hasMore: ${result.hasMore}`)
+      return result
+    }
+  )
+
+  /**
+   * Continue browsing with continuation point.
+   */
+  ipcMain.handle(
+    OPCUA_BROWSE_NEXT,
+    async (_, request: OpcUaBrowseNextRequest): Promise<OpcUaBrowseResult> => {
+      log.debug('[OpcUaIPC] Continuing browse with continuation point')
+
+      const adapter = getOpcUaAdapter(request.connectionId)
+      return adapter.browseNext(request)
+    }
+  )
+
+  /**
+   * Translate browse path to node ID.
+   */
+  ipcMain.handle(
+    OPCUA_BROWSE_PATH,
+    async (_, request: OpcUaBrowsePathRequest): Promise<OpcUaBrowsePathResult> => {
+      log.debug(`[OpcUaIPC] Translating browse path from: ${request.startingNode}`)
+
+      const adapter = getOpcUaAdapter(request.connectionId)
+      return adapter.translateBrowsePath(request)
+    }
+  )
+
+  /**
+   * Search for nodes by DisplayName pattern.
+   */
+  ipcMain.handle(
+    OPCUA_SEARCH_NODES,
+    async (_, request: OpcUaSearchNodesRequest): Promise<OpcUaSearchResult> => {
+      log.debug(`[OpcUaIPC] Searching nodes with pattern: ${request.searchPattern}`)
+
+      const adapter = getOpcUaAdapter(request.connectionId)
+      const result = await adapter.searchNodes(request)
+
+      log.debug(`[OpcUaIPC] Found ${result.nodes.length} matching nodes`)
+      return result
+    }
+  )
+
+  /**
+   * Read comprehensive node attributes.
+   */
+  ipcMain.handle(
+    OPCUA_READ_NODE_ATTRIBUTES,
+    async (_, request: OpcUaNodeAttributesRequest): Promise<OpcUaNodeAttributes> => {
+      log.debug(`[OpcUaIPC] Reading attributes for: ${request.nodeId}`)
+
+      const adapter = getOpcUaAdapter(request.connectionId)
+      return adapter.readNodeAttributes(request)
     }
   )
 

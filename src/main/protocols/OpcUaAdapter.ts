@@ -29,6 +29,14 @@ import type {
   OpcUaEndpoint,
   OpcUaNode,
   OpcUaBrowseRequest,
+  OpcUaBrowseResult,
+  OpcUaBrowseNextRequest,
+  OpcUaBrowsePathRequest,
+  OpcUaBrowsePathResult,
+  OpcUaSearchNodesRequest,
+  OpcUaSearchResult,
+  OpcUaNodeAttributesRequest,
+  OpcUaNodeAttributes,
   OpcUaReadRequest,
   OpcUaReadResult,
   OpcUaWriteRequest,
@@ -497,9 +505,10 @@ export class OpcUaAdapter extends ProtocolAdapter {
   }
 
   /**
-   * Browse node children.
+   * Browse node children with lazy loading support (T086).
+   * Supports maxReferences for pagination.
    */
-  async browse(request: OpcUaBrowseRequest): Promise<OpcUaNode[]> {
+  async browse(request: OpcUaBrowseRequest): Promise<OpcUaBrowseResult> {
     if (!this.session) {
       throw new Error('Not connected')
     }
@@ -511,17 +520,298 @@ export class OpcUaAdapter extends ProtocolAdapter {
       resultMask: 63 // All fields
     })
 
-    if (!browseResult.references) {
-      return []
-    }
-
-    return browseResult.references.map((ref: ReferenceDescription) => ({
+    const nodes: OpcUaNode[] = (browseResult.references ?? []).map((ref: ReferenceDescription) => ({
       nodeId: ref.nodeId.toString(),
       displayName: ref.displayName.text ?? '',
       browseName: ref.browseName.toString(),
       nodeClass: mapNodeClass(ref.nodeClass),
       hasChildren: ref.nodeClass === 1 || ref.nodeClass === 8 // Object or ObjectType
     }))
+
+    // Handle continuation point for large results (T087)
+    const continuationPoint = browseResult.continuationPoint
+      ? browseResult.continuationPoint.toString('base64')
+      : undefined
+
+    return {
+      nodes,
+      continuationPoint,
+      hasMore: !!continuationPoint
+    }
+  }
+
+  /**
+   * Continue browsing with continuation point (T087).
+   * Handles large result sets that exceed maxReferencesPerNode.
+   */
+  async browseNext(request: OpcUaBrowseNextRequest): Promise<OpcUaBrowseResult> {
+    if (!this.session) {
+      throw new Error('Not connected')
+    }
+
+    const continuationPoint = Buffer.from(request.continuationPoint, 'base64')
+
+    const browseNextResult = await this.session.browseNext(
+      continuationPoint,
+      request.releaseContinuationPoints ?? false
+    )
+
+    const nodes: OpcUaNode[] = (browseNextResult.references ?? []).map((ref: ReferenceDescription) => ({
+      nodeId: ref.nodeId.toString(),
+      displayName: ref.displayName.text ?? '',
+      browseName: ref.browseName.toString(),
+      nodeClass: mapNodeClass(ref.nodeClass),
+      hasChildren: ref.nodeClass === 1 || ref.nodeClass === 8
+    }))
+
+    const nextContinuationPoint = browseNextResult.continuationPoint
+      ? browseNextResult.continuationPoint.toString('base64')
+      : undefined
+
+    return {
+      nodes,
+      continuationPoint: nextContinuationPoint,
+      hasMore: !!nextContinuationPoint
+    }
+  }
+
+  /**
+   * Read node attributes (T088).
+   * Returns comprehensive node information including value, dataType, etc.
+   */
+  async readNodeAttributes(request: OpcUaNodeAttributesRequest): Promise<OpcUaNodeAttributes> {
+    if (!this.session) {
+      throw new Error('Not connected')
+    }
+
+    const nodeId = request.nodeId
+
+    // Read common attributes
+    const commonAttributes = [
+      AttributeIds.NodeClass,
+      AttributeIds.BrowseName,
+      AttributeIds.DisplayName,
+      AttributeIds.Description
+    ]
+
+    // Read all common attributes first
+    const commonResults = await this.session.read(
+      commonAttributes.map(attributeId => ({ nodeId, attributeId }))
+    )
+
+    const nodeClass = commonResults[0]?.value?.value ?? 0
+    const mappedNodeClass = mapNodeClass(nodeClass)
+
+    const attributes: OpcUaNodeAttributes = {
+      nodeId,
+      nodeClass: mappedNodeClass,
+      browseName: commonResults[1]?.value?.value?.toString() ?? '',
+      displayName: commonResults[2]?.value?.value?.text ?? '',
+      description: commonResults[3]?.value?.value?.text
+    }
+
+    // Read Variable/VariableType specific attributes
+    if (nodeClass === 2 || nodeClass === 16) {
+      // Variable or VariableType
+      const variableAttributes = [
+        AttributeIds.Value,
+        AttributeIds.DataType,
+        AttributeIds.ValueRank,
+        AttributeIds.ArrayDimensions,
+        AttributeIds.AccessLevel,
+        AttributeIds.UserAccessLevel,
+        AttributeIds.MinimumSamplingInterval,
+        AttributeIds.Historizing
+      ]
+
+      const variableResults = await this.session.read(
+        variableAttributes.map(attributeId => ({ nodeId, attributeId }))
+      )
+
+      if (variableResults[0]?.statusCode.isGood()) {
+        attributes.value = variableResults[0].value?.value
+      }
+      if (variableResults[1]?.statusCode.isGood()) {
+        const dataTypeNodeId = variableResults[1].value?.value?.toString()
+        attributes.dataType = dataTypeNodeId ? await this.resolveDataTypeName(dataTypeNodeId) : undefined
+      }
+      if (variableResults[2]?.statusCode.isGood()) {
+        attributes.valueRank = variableResults[2].value?.value
+      }
+      if (variableResults[3]?.statusCode.isGood()) {
+        attributes.arrayDimensions = variableResults[3].value?.value
+      }
+      if (variableResults[4]?.statusCode.isGood()) {
+        attributes.accessLevel = variableResults[4].value?.value
+      }
+      if (variableResults[5]?.statusCode.isGood()) {
+        attributes.userAccessLevel = variableResults[5].value?.value
+      }
+      if (variableResults[6]?.statusCode.isGood()) {
+        attributes.minimumSamplingInterval = variableResults[6].value?.value
+      }
+      if (variableResults[7]?.statusCode.isGood()) {
+        attributes.historizing = variableResults[7].value?.value
+      }
+    }
+
+    // Read Method specific attributes
+    if (nodeClass === 4) {
+      // Method
+      const methodAttributes = [
+        AttributeIds.Executable,
+        AttributeIds.UserExecutable
+      ]
+
+      const methodResults = await this.session.read(
+        methodAttributes.map(attributeId => ({ nodeId, attributeId }))
+      )
+
+      if (methodResults[0]?.statusCode.isGood()) {
+        attributes.executable = methodResults[0].value?.value
+      }
+      if (methodResults[1]?.statusCode.isGood()) {
+        attributes.userExecutable = methodResults[1].value?.value
+      }
+    }
+
+    return attributes
+  }
+
+  /**
+   * Resolve data type NodeId to human-readable name.
+   */
+  private async resolveDataTypeName(dataTypeNodeId: string): Promise<string> {
+    if (!this.session) return dataTypeNodeId
+
+    try {
+      const result = await this.session.read({
+        nodeId: dataTypeNodeId,
+        attributeId: AttributeIds.BrowseName
+      })
+      return result.value?.value?.name ?? dataTypeNodeId
+    } catch {
+      return dataTypeNodeId
+    }
+  }
+
+  /**
+   * Search for nodes by DisplayName pattern (T089).
+   * Performs breadth-first search with pattern matching.
+   */
+  async searchNodes(request: OpcUaSearchNodesRequest): Promise<OpcUaSearchResult> {
+    if (!this.session) {
+      throw new Error('Not connected')
+    }
+
+    const maxDepth = request.maxDepth ?? 5
+    const maxResults = request.maxResults ?? 100
+    const pattern = request.searchPattern.toLowerCase()
+    const nodeClassFilter = request.nodeClassFilter
+
+    const foundNodes: OpcUaNode[] = []
+    const visited = new Set<string>()
+    const queue: Array<{ nodeId: string; depth: number }> = [
+      { nodeId: request.startNodeId, depth: 0 }
+    ]
+
+    while (queue.length > 0 && foundNodes.length < maxResults) {
+      const current = queue.shift()!
+      if (!current || visited.has(current.nodeId) || current.depth > maxDepth) {
+        continue
+      }
+
+      visited.add(current.nodeId)
+
+      try {
+        const browseResult = await this.browse({
+          connectionId: '',
+          nodeId: current.nodeId,
+          maxReferences: 500
+        })
+
+        for (const node of browseResult.nodes) {
+          // Check if node matches search criteria
+          const matchesPattern = node.displayName.toLowerCase().includes(pattern) ||
+            node.browseName.toLowerCase().includes(pattern)
+          const matchesClass = !nodeClassFilter || nodeClassFilter.includes(node.nodeClass)
+
+          if (matchesPattern && matchesClass) {
+            foundNodes.push(node)
+            if (foundNodes.length >= maxResults) break
+          }
+
+          // Add to queue for further exploration if it has children
+          if (node.hasChildren && current.depth < maxDepth) {
+            queue.push({ nodeId: node.nodeId, depth: current.depth + 1 })
+          }
+        }
+      } catch (error) {
+        log.warn(`[OpcUaAdapter] Error browsing ${current.nodeId} during search:`, error)
+      }
+    }
+
+    return {
+      nodes: foundNodes,
+      truncated: foundNodes.length >= maxResults
+    }
+  }
+
+  /**
+   * Translate browse path to node ID (T090).
+   * Resolves a relative path from a starting node.
+   */
+  async translateBrowsePath(request: OpcUaBrowsePathRequest): Promise<OpcUaBrowsePathResult> {
+    if (!this.session) {
+      throw new Error('Not connected')
+    }
+
+    try {
+      // Build browse path using makeBrowsePath syntax
+      const browsePath = `/${request.relativePath.join('/')}`
+
+      const results = await this.session.translateBrowsePath([
+        {
+          startingNode: request.startingNode,
+          relativePath: {
+            elements: request.relativePath.map(name => ({
+              referenceTypeId: 'i=33', // HierarchicalReferences
+              isInverse: false,
+              includeSubtypes: true,
+              targetName: { name }
+            }))
+          }
+        }
+      ])
+
+      if (results && results.length > 0) {
+        const result = results[0]
+        if (result.targets && result.targets.length > 0) {
+          const target = result.targets[0]
+          return {
+            nodeId: target.targetId?.toString() ?? null,
+            statusCode: result.statusCode.value,
+            remainingPathIndex: target.remainingPathIndex
+          }
+        }
+
+        return {
+          nodeId: null,
+          statusCode: result.statusCode.value
+        }
+      }
+
+      return {
+        nodeId: null,
+        statusCode: StatusCodes.Bad.value
+      }
+    } catch (error) {
+      log.error('[OpcUaAdapter] TranslateBrowsePath error:', error)
+      return {
+        nodeId: null,
+        statusCode: StatusCodes.Bad.value
+      }
+    }
   }
 
   /**

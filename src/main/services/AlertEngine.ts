@@ -13,9 +13,13 @@ import type {
   AlertSeverity,
   AlertActionType,
   CreateAlertRuleRequest,
-  UpdateAlertRuleRequest
+  UpdateAlertRuleRequest,
+  AlertEventQuery,
+  AlertEventPage
 } from '@shared/types'
 import { DEFAULT_ALERT_COOLDOWN, DEFAULT_ALERT_ACTIONS } from '@shared/types'
+import { getAlertHistoryStore } from './AlertHistoryStore'
+import { getAlertSoundPlayer } from './AlertSoundPlayer'
 
 /**
  * Events emitted by AlertEngine.
@@ -24,6 +28,7 @@ export interface AlertEngineEvents {
   'alert-triggered': (event: AlertEvent) => void
   'alert-acknowledged': (eventId: number) => void
   'rule-changed': (rule: AlertRule) => void
+  'rule-deleted': (ruleId: string) => void
 }
 
 /**
@@ -41,7 +46,8 @@ interface ConditionState {
 export class AlertEngine extends EventEmitter {
   private rules: Map<string, AlertRule> = new Map()
   private conditionStates: Map<string, ConditionState> = new Map()
-  private nextEventId = 1
+  private mutedRules: Set<string> = new Set()
+  private initialized = false
 
   constructor() {
     super()
@@ -51,7 +57,20 @@ export class AlertEngine extends EventEmitter {
    * Initialize the engine, loading rules from storage.
    */
   async initialize(): Promise<void> {
-    // TODO: Load rules from profile storage
+    if (this.initialized) return
+
+    // Initialize history store
+    const historyStore = getAlertHistoryStore()
+    await historyStore.initialize()
+
+    this.initialized = true
+  }
+
+  /**
+   * Check if engine is initialized.
+   */
+  isInitialized(): boolean {
+    return this.initialized
   }
 
   /**
@@ -140,9 +159,44 @@ export class AlertEngine extends EventEmitter {
 
     this.rules.delete(id)
     this.conditionStates.delete(id)
+    this.mutedRules.delete(id)
+
+    this.emit('rule-deleted', id)
 
     // TODO: Persist to profile storage
     return true
+  }
+
+  /**
+   * Mute an alert rule (suppress notifications but continue logging).
+   */
+  muteRule(id: string): boolean {
+    if (!this.rules.has(id)) {
+      return false
+    }
+    this.mutedRules.add(id)
+    return true
+  }
+
+  /**
+   * Unmute an alert rule.
+   */
+  unmuteRule(id: string): boolean {
+    return this.mutedRules.delete(id)
+  }
+
+  /**
+   * Check if a rule is muted.
+   */
+  isRuleMuted(id: string): boolean {
+    return this.mutedRules.has(id)
+  }
+
+  /**
+   * Get all muted rule IDs.
+   */
+  getMutedRules(): string[] {
+    return Array.from(this.mutedRules)
   }
 
   /**
@@ -255,25 +309,37 @@ export class AlertEngine extends EventEmitter {
    * Trigger an alert and execute actions.
    */
   private triggerAlert(rule: AlertRule, value: number, timestamp: number): void {
-    const event: AlertEvent = {
-      id: this.nextEventId++,
+    const isMuted = this.mutedRules.has(rule.id)
+
+    // Build message with operator info
+    let conditionStr = `${rule.condition.operator} ${rule.condition.value}`
+    if (rule.condition.operator === 'range' && rule.condition.value2 !== undefined) {
+      conditionStr = `between ${rule.condition.value} and ${rule.condition.value2}`
+    }
+
+    const eventData: Omit<AlertEvent, 'id'> = {
       ruleId: rule.id,
       timestamp,
       tagRef: rule.tagRef,
       triggerValue: value,
       severity: rule.severity,
-      message: `${rule.name}: Value ${value} triggered ${rule.condition.operator} ${rule.condition.value}`,
+      message: `${rule.name}: Value ${value} triggered (${conditionStr})`,
       acknowledged: false
     }
 
-    // Execute actions
+    // Store in history and get assigned ID
+    const historyStore = getAlertHistoryStore()
+    const event = historyStore.insert(eventData)
+
+    // Execute actions (skip notification/sound if muted)
     for (const action of rule.actions) {
+      if (isMuted && (action === 'notification' || action === 'sound')) {
+        continue
+      }
       this.executeAction(action, event)
     }
 
     this.emit('alert-triggered', event)
-
-    // TODO: Store event in AlertHistoryStore
   }
 
   /**
@@ -285,12 +351,20 @@ export class AlertEngine extends EventEmitter {
         this.showNotification(event)
         break
       case 'sound':
-        // TODO: Play sound via AlertSoundPlayer
+        this.playSound(event.severity)
         break
       case 'log':
-        // Already handled by event emission
+        // Already handled by event emission and history store
         break
     }
+  }
+
+  /**
+   * Play alert sound based on severity.
+   */
+  private playSound(severity: AlertSeverity): void {
+    const soundPlayer = getAlertSoundPlayer()
+    soundPlayer.play(severity)
   }
 
   /**
@@ -304,13 +378,63 @@ export class AlertEngine extends EventEmitter {
     notification.show()
   }
 
+  // ---------------------------------------------------------------------------
+  // History and Acknowledgement
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Query alert events from history.
+   */
+  queryEvents(query: AlertEventQuery): AlertEventPage {
+    const historyStore = getAlertHistoryStore()
+    return historyStore.query(query)
+  }
+
+  /**
+   * Acknowledge an alert event.
+   */
+  acknowledgeEvent(eventId: number, acknowledgedBy?: string): boolean {
+    const historyStore = getAlertHistoryStore()
+    const success = historyStore.acknowledge(eventId, acknowledgedBy)
+    if (success) {
+      this.emit('alert-acknowledged', eventId)
+    }
+    return success
+  }
+
+  /**
+   * Acknowledge all unacknowledged alerts.
+   */
+  acknowledgeAll(severity?: AlertSeverity): number {
+    const historyStore = getAlertHistoryStore()
+    return historyStore.acknowledgeAll(severity)
+  }
+
+  /**
+   * Get count of unacknowledged alerts by severity.
+   */
+  getUnacknowledgedCounts(): Record<AlertSeverity, number> {
+    const historyStore = getAlertHistoryStore()
+    return historyStore.getUnacknowledgedCounts()
+  }
+
+  /**
+   * Clear alert history.
+   */
+  clearHistory(before?: number): number {
+    const historyStore = getAlertHistoryStore()
+    return historyStore.clearHistory(before)
+  }
+
   /**
    * Dispose and cleanup.
    */
   async dispose(): Promise<void> {
     this.rules.clear()
     this.conditionStates.clear()
+    this.mutedRules.clear()
     this.removeAllListeners()
+    this.initialized = false
   }
 }
 

@@ -38,6 +38,15 @@ import type {
   UpdateWidgetRequest,
   UpdateLayoutRequest
 } from '@shared/types/dashboard'
+import type {
+  AlertRule,
+  AlertEvent,
+  AlertEventPage,
+  AlertEventQuery,
+  AlertSeverity,
+  CreateAlertRuleRequest,
+  UpdateAlertRuleRequest
+} from '@shared/types/alert'
 
 // Type-safe API exposed to renderer
 export interface ElectronAPI {
@@ -239,6 +248,37 @@ export interface ElectronAPI {
     removeWidget: (dashboardId: string, widgetId: string) => Promise<boolean>
     updateLayout: (params: UpdateLayoutRequest) => Promise<boolean>
   }
+
+  // Alert operations
+  alert: {
+    // Rule CRUD
+    listRules: () => Promise<AlertRule[]>
+    getRule: (id: string) => Promise<AlertRule | null>
+    createRule: (params: CreateAlertRuleRequest) => Promise<AlertRule>
+    updateRule: (params: UpdateAlertRuleRequest) => Promise<AlertRule>
+    deleteRule: (id: string) => Promise<boolean>
+    enableRule: (id: string) => Promise<AlertRule>
+    disableRule: (id: string) => Promise<AlertRule>
+    muteRule: (id: string) => Promise<boolean>
+    unmuteRule: (id: string) => Promise<boolean>
+    getMutedRules: () => Promise<string[]>
+
+    // Events
+    queryEvents: (query: AlertEventQuery) => Promise<AlertEventPage>
+    acknowledge: (eventId: number, acknowledgedBy?: string) => Promise<boolean>
+    acknowledgeAll: (severity?: AlertSeverity) => Promise<number>
+    getUnacknowledgedCounts: () => Promise<Record<AlertSeverity, number>>
+    clearHistory: (before?: number) => Promise<number>
+
+    // Sound
+    testSound: (severity: AlertSeverity) => Promise<void>
+    setSoundEnabled: (enabled: boolean) => Promise<void>
+    getSoundEnabled: () => Promise<boolean>
+
+    // Real-time events
+    onEventTriggered: (callback: (event: AlertEvent) => void) => () => void
+    onEventAcknowledged: (callback: (eventId: number) => void) => () => void
+  }
 }
 
 // Implement the API
@@ -393,6 +433,47 @@ const electronAPI: ElectronAPI = {
     removeWidget: (dashboardId, widgetId) =>
       ipcRenderer.invoke('dashboard:remove-widget', { dashboardId, widgetId }),
     updateLayout: (params) => ipcRenderer.invoke('dashboard:update-layout', params)
+  },
+
+  alert: {
+    // Rule CRUD
+    listRules: () => ipcRenderer.invoke('alert:list-rules'),
+    getRule: (id) => ipcRenderer.invoke('alert:get-rule', id),
+    createRule: (params) => ipcRenderer.invoke('alert:create-rule', params),
+    updateRule: (params) => ipcRenderer.invoke('alert:update-rule', params),
+    deleteRule: (id) => ipcRenderer.invoke('alert:delete-rule', id),
+    enableRule: (id) => ipcRenderer.invoke('alert:enable-rule', id),
+    disableRule: (id) => ipcRenderer.invoke('alert:disable-rule', id),
+    muteRule: (id) => ipcRenderer.invoke('alert:mute-rule', id),
+    unmuteRule: (id) => ipcRenderer.invoke('alert:unmute-rule', id),
+    getMutedRules: () => ipcRenderer.invoke('alert:get-muted-rules'),
+
+    // Events
+    queryEvents: (query) => ipcRenderer.invoke('alert:query-events', query),
+    acknowledge: (eventId, acknowledgedBy) =>
+      ipcRenderer.invoke('alert:acknowledge', { eventId, acknowledgedBy }),
+    acknowledgeAll: (severity) => ipcRenderer.invoke('alert:acknowledge-all', severity),
+    getUnacknowledgedCounts: () => ipcRenderer.invoke('alert:get-unacknowledged-counts'),
+    clearHistory: (before) => ipcRenderer.invoke('alert:clear-history', before),
+
+    // Sound
+    testSound: (severity) => ipcRenderer.invoke('alert:test-sound', severity),
+    setSoundEnabled: (enabled) => ipcRenderer.invoke('alert:set-sound-enabled', enabled),
+    getSoundEnabled: () => ipcRenderer.invoke('alert:get-sound-enabled'),
+
+    // Real-time events
+    onEventTriggered: (callback) => {
+      const handler = (_event: Electron.IpcRendererEvent, alertEvent: AlertEvent) =>
+        callback(alertEvent)
+      ipcRenderer.on('alert:event-triggered', handler)
+      return () => ipcRenderer.removeListener('alert:event-triggered', handler)
+    },
+    onEventAcknowledged: (callback) => {
+      const handler = (_event: Electron.IpcRendererEvent, eventId: number) =>
+        callback(eventId)
+      ipcRenderer.on('alert:event-acknowledged', handler)
+      return () => ipcRenderer.removeListener('alert:event-acknowledged', handler)
+    }
   }
 }
 

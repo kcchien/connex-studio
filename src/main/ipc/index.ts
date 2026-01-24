@@ -18,6 +18,7 @@ import { registerEnvironmentHandlers } from './environment'
 import { registerCollectionHandlers } from './collection'
 import { registerBridgeHandlers } from './bridge'
 import { registerDashboardHandlers } from './dashboard'
+import { registerAlertHandlers } from './alert'
 
 /**
  * Register all IPC handlers.
@@ -37,6 +38,7 @@ export function registerAllHandlers(): void {
   registerCollectionHandlers()
   registerBridgeHandlers()
   registerDashboardHandlers()
+  registerAlertHandlers()
 }
 
 export { registerLogHandlers } from './log'
@@ -53,3 +55,4 @@ export { registerEnvironmentHandlers } from './environment'
 export { registerCollectionHandlers } from './collection'
 export { registerBridgeHandlers, setBridgeMainWindow } from './bridge'
 export { registerDashboardHandlers } from './dashboard'
+export { registerAlertHandlers, setAlertMainWindow } from './alert'

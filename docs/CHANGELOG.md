@@ -9,6 +9,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Phase 6: US4 Alert & Notification System** (T062-T074) - `003-pro-features-opcua`
+  - **Main Process - AlertEngine 整合**
+    - AlertEngine 與 AlertHistoryStore 整合 (`src/main/services/AlertEngine.ts`)
+      - SQLite 事件持久化儲存
+      - 閾值警報觸發：支援 >, <, =, !=, range 運算子
+      - Duration 條件 (debounce) - 條件持續時間檢查
+      - Cooldown 機制 - 防止重複警報
+      - Mute/Unmute 規則功能 - 靜音警報但繼續記錄
+      - Desktop notification (Electron Notification API)
+    - AlertSoundPlayer 服務 (`src/main/services/AlertSoundPlayer.ts`)
+      - 依嚴重程度播放不同音效模式
+      - 支援自訂音效檔案
+      - 音量控制與啟用/停用開關
+      - 跨平台支援 (macOS/Windows/Linux)
+    - 完整 Alert IPC 處理器 (`src/main/ipc/alert.ts`)
+      - 規則 CRUD：list-rules/get-rule/create-rule/update-rule/delete-rule
+      - 規則控制：enable-rule/disable-rule/mute-rule/unmute-rule
+      - 事件查詢：query-events/acknowledge/acknowledge-all/clear-history
+      - 音效控制：test-sound/set-sound-enabled/get-sound-enabled
+      - 即時推送：event-triggered/event-acknowledged
+
+  - **Renderer - Alert UI**
+    - useAlert Hook (`src/renderer/hooks/useAlert.ts`)
+      - 警報規則狀態管理 (rules, mutedRules)
+      - 事件歷史狀態 (events, totalEvents, hasMoreEvents)
+      - 未確認計數 (unacknowledgedCounts by severity)
+      - 音效設定 (soundEnabled)
+      - 即時事件訂閱 (recentEvent for toast)
+      - CRUD 操作與事件確認功能
+    - AlertRuleEditor 元件 (`src/renderer/components/alert/AlertRuleEditor.tsx`)
+      - 規則名稱與標籤選擇
+      - 條件設定：運算子、閾值、範圍、duration
+      - 嚴重程度選擇 (info/warning/critical)
+      - 動作配置：notification/sound/log
+      - Cooldown 設定
+      - 音效測試按鈕
+    - AlertHistory 元件 (`src/renderer/components/alert/AlertHistory.tsx`)
+      - 事件列表顯示 (嚴重程度圖示、訊息、時間)
+      - 嚴重程度快速篩選
+      - 確認狀態篩選
+      - 單一/批次確認功能
+      - 分頁載入 (Load More)
+      - 清除歷史功能
+    - AlertNotification 元件 (`src/renderer/components/alert/AlertNotification.tsx`)
+      - Toast 風格警報通知
+      - 依嚴重程度自動消失時間 (critical 不消失)
+      - 確認與關閉按鈕
+      - 音效開關快捷按鈕
+      - 進度條動畫
+      - AlertNotificationStack 多通知堆疊管理
+    - Preload API 擴展 - Alert 相關操作
+
 - **Phase 5: US3 Dashboard View with Gauges** (T050-T061) - `003-pro-features-opcua`
   - **Main Process - Dashboard IPC 處理器**
     - Dashboard IPC handlers 完整實作 (`src/main/ipc/dashboard.ts`)

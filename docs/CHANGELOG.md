@@ -9,7 +9,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Phase 16: Polish & Cross-Cutting Concerns** (T164-T168) - `003-pro-features-opcua`
+- **Phase 16: Polish & Cross-Cutting Concerns** (T164-T178) - `003-pro-features-opcua`
+  - **Unit Tests** (T169-T174)
+    - `tests/unit/main/AlertEngine.test.ts` - 警報引擎單元測試
+      - 規則 CRUD、啟用/停用、靜音/取消靜音
+      - 條件評估 (>, <, =, !=, range)
+      - ROC 警報測試 (絕對值、百分比模式)
+      - 連線狀態警報測試 (disconnect, timeout)
+    - `tests/unit/main/DashboardService.test.ts` - Dashboard 服務單元測試
+      - Dashboard CRUD 操作
+      - Widget 新增/更新/移除
+      - 孤兒 Widget 清理 (handleTagDeleted, handleConnectionDeleted)
+    - `tests/unit/main/EnvironmentManager.test.ts` - 環境管理器單元測試
+      - 環境 CRUD、預設環境、變數
+      - 切換處理 (事件、處理器註冊、並發防護)
+    - `tests/unit/main/BridgeManager.test.ts` - Bridge 管理器單元測試
+      - Bridge CRUD、Start/Stop/Pause/Resume、統計、事件
+    - `tests/unit/main/OpcUaAdapter.test.ts` - OPC UA Adapter 單元測試
+      - URL 驗證、解析、安全模式、資料類型
+    - `tests/unit/renderer/dashboard/WidgetBase.test.ts` - Widget 工具函數測試
+      - getColorForValue, formatValue, getPrimaryValue, toNumericValue
+    - `tests/unit/renderer/opcua/OpcUaHelpers.test.ts` - OPC UA 工具函數測試
+      - 存取等級格式化、值格式化、Node ID 解析、資料類型強制轉換
+
+  - **E2E Tests** (T175-T178)
+    - `tests/e2e/bridge.spec.ts` - Bridge 數據轉發 E2E 測試
+    - `tests/e2e/dashboard.spec.ts` - Dashboard Widget 管理 E2E 測試
+    - `tests/e2e/alert.spec.ts` - 警報系統 E2E 測試
+    - `tests/e2e/opcua.spec.ts` - OPC UA 功能 E2E 測試
+
+
   - **Main Process - AlertEngine 擴展** (`src/main/services/AlertEngine.ts`) (T164, T165)
     - **連線狀態警報** (T164)
       - 新增 'disconnect' 與 'timeout' 警報運算子

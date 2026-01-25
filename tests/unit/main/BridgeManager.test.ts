@@ -546,7 +546,7 @@ describe('BridgeManager', () => {
       // DEFAULT_BRIDGE_OPTIONS from types
       expect(bridge.options.interval).toBe(1000)
       expect(bridge.options.changeOnly).toBe(false)
-      expect(bridge.options.bufferSize).toBe(1000)
+      expect(bridge.options.bufferSize).toBe(100)
     })
 
     it('should override default options when specified', async () => {

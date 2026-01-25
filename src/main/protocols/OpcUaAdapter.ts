@@ -204,6 +204,25 @@ export class OpcUaAdapter extends ProtocolAdapter {
   private eventSubscriptions: Map<string, EventSubscriptionInfo> = new Map()
   private sessionRenewalTimer: NodeJS.Timeout | null = null
   private serverInfo: OpcUaServerInfo | null = null
+  /** T168: Track reconnection attempts for exponential backoff */
+  private reconnectAttempts = 0
+  private readonly maxReconnectAttempts = 5
+  private readonly baseReconnectDelay = 1000
+  /** T168: Track session state for recovery */
+  private isReconnecting = false
+  /** T168: Store subscription configs for recreation after session loss */
+  private subscriptionConfigs: Map<string, {
+    publishingInterval: number
+    maxNotificationsPerPublish: number
+    priority: number
+  }> = new Map()
+  /** T168: Store monitored item configs for recreation */
+  private monitoredItemConfigs: Map<string, {
+    subscriptionId: string
+    nodeId: string
+    samplingInterval: number
+    queueSize: number
+  }> = new Map()
 
   constructor(connection: Connection) {
     super(connection)
@@ -278,22 +297,37 @@ export class OpcUaAdapter extends ProtocolAdapter {
       this.session = await this.client.createSession(userIdentity)
       log.info(`[OpcUaAdapter] Session created, timeout: ${this.session.timeout}ms`)
 
-      // Set up session event handlers
-      this.session.on('session_closed', () => {
-        log.warn('[OpcUaAdapter] Session closed')
+      // Set up session event handlers (T168: Enhanced for edge cases)
+      this.session.on('session_closed', async () => {
+        log.warn('[OpcUaAdapter] Session closed unexpectedly')
         this.stopSessionRenewal()
-        this.setStatus('disconnected')
+
+        // T168: Attempt automatic recovery if not already reconnecting
+        if (!this.isReconnecting) {
+          log.info('[OpcUaAdapter] Attempting automatic session recovery...')
+          this.attemptSessionRecovery()
+        }
       })
 
       this.session.on('keepalive', (state) => {
         if (!state) {
           log.warn('[OpcUaAdapter] Keep-alive failed')
+          // T168: Schedule recovery attempt after keep-alive failure
+          this.scheduleRecoveryAttempt()
+        } else {
+          // T168: Reset reconnect attempts on successful keep-alive
+          this.reconnectAttempts = 0
         }
       })
 
-      this.session.on('keepalive_failure', () => {
+      this.session.on('keepalive_failure', async () => {
         log.error('[OpcUaAdapter] Keep-alive failure')
         this.setStatus('error', 'Session keep-alive failed')
+
+        // T168: Trigger recovery on keep-alive failure
+        if (!this.isReconnecting) {
+          this.attemptSessionRecovery()
+        }
       })
 
       // Extract server info
@@ -391,6 +425,214 @@ export class OpcUaAdapter extends ProtocolAdapter {
     } catch (error) {
       log.error('[OpcUaAdapter] Session renewal failed:', error)
       this.setStatus('error', 'Session renewal failed')
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // T168: Session Timeout and Recovery Edge Cases
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Schedule a delayed recovery attempt (T168).
+   */
+  private scheduleRecoveryAttempt(): void {
+    if (this.isReconnecting) return
+
+    // Calculate delay with exponential backoff
+    const delay = Math.min(
+      this.baseReconnectDelay * Math.pow(2, this.reconnectAttempts),
+      30000 // Max 30 second delay
+    )
+
+    log.info(`[OpcUaAdapter] Scheduling recovery attempt in ${delay}ms (attempt ${this.reconnectAttempts + 1})`)
+
+    setTimeout(() => {
+      if (!this.isReconnecting && !this.isConnected()) {
+        this.attemptSessionRecovery()
+      }
+    }, delay)
+  }
+
+  /**
+   * Attempt to recover session after timeout or failure (T168).
+   */
+  private async attemptSessionRecovery(): Promise<void> {
+    if (this.isReconnecting) {
+      log.debug('[OpcUaAdapter] Recovery already in progress, skipping')
+      return
+    }
+
+    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+      log.error(`[OpcUaAdapter] Max reconnection attempts (${this.maxReconnectAttempts}) reached`)
+      this.setStatus('error', 'Connection failed after maximum retries')
+      this.emit('error', new Error('Connection failed after maximum retries'))
+      return
+    }
+
+    this.isReconnecting = true
+    this.reconnectAttempts++
+
+    log.info(`[OpcUaAdapter] Starting session recovery (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`)
+
+    try {
+      // Store current subscription states before recovery
+      this.storeSubscriptionStates()
+
+      // Attempt reconnection
+      await this.reconnect()
+
+      // Restore subscriptions after successful reconnection
+      await this.restoreSubscriptions()
+
+      // Reset attempts on success
+      this.reconnectAttempts = 0
+      log.info('[OpcUaAdapter] Session recovery completed successfully')
+    } catch (error) {
+      log.error('[OpcUaAdapter] Session recovery failed:', error)
+
+      // Schedule another attempt with exponential backoff
+      this.scheduleRecoveryAttempt()
+    } finally {
+      this.isReconnecting = false
+    }
+  }
+
+  /**
+   * Store subscription states for recovery (T168).
+   */
+  private storeSubscriptionStates(): void {
+    // Store subscription configs
+    for (const [id, subscription] of this.subscriptions.entries()) {
+      this.subscriptionConfigs.set(id, {
+        publishingInterval: subscription.publishingInterval,
+        maxNotificationsPerPublish: subscription.maxNotificationsPerPublish,
+        priority: subscription.priority
+      })
+    }
+
+    log.debug(`[OpcUaAdapter] Stored ${this.subscriptionConfigs.size} subscription configs for recovery`)
+  }
+
+  /**
+   * Restore subscriptions after recovery (T168).
+   */
+  private async restoreSubscriptions(): Promise<void> {
+    if (!this.session || this.subscriptionConfigs.size === 0) {
+      return
+    }
+
+    log.info(`[OpcUaAdapter] Restoring ${this.subscriptionConfigs.size} subscriptions`)
+
+    for (const [id, config] of this.subscriptionConfigs.entries()) {
+      try {
+        // Create new subscription with stored config
+        const subscription = await ClientSubscription.create(this.session, {
+          requestedPublishingInterval: config.publishingInterval,
+          requestedMaxKeepAliveCount: 10,
+          maxNotificationsPerPublish: config.maxNotificationsPerPublish,
+          priority: config.priority,
+          publishingEnabled: true
+        })
+
+        // Update the subscriptions map with new subscription
+        this.subscriptions.set(id, subscription)
+
+        // Restore monitored items for this subscription
+        await this.restoreMonitoredItemsForSubscription(id, subscription)
+
+        log.debug(`[OpcUaAdapter] Restored subscription ${id}`)
+      } catch (error) {
+        log.error(`[OpcUaAdapter] Failed to restore subscription ${id}:`, error)
+      }
+    }
+
+    // Clear stored configs after restoration attempt
+    this.subscriptionConfigs.clear()
+    this.monitoredItemConfigs.clear()
+
+    log.info('[OpcUaAdapter] Subscription restoration complete')
+  }
+
+  /**
+   * Restore monitored items for a subscription (T168).
+   */
+  private async restoreMonitoredItemsForSubscription(
+    subscriptionId: string,
+    subscription: ClientSubscription
+  ): Promise<void> {
+    // Find monitored items that belonged to this subscription
+    const itemsToRestore = Array.from(this.monitoredItemConfigs.entries())
+      .filter(([, config]) => config.subscriptionId === subscriptionId)
+
+    for (const [itemId, config] of itemsToRestore) {
+      try {
+        const monitoredItem = await subscription.monitor(
+          { nodeId: config.nodeId, attributeId: AttributeIds.Value },
+          {
+            samplingInterval: config.samplingInterval,
+            queueSize: config.queueSize
+          },
+          TimestampsToReturn.Both
+        )
+
+        this.monitoredItems.set(itemId, monitoredItem)
+        log.debug(`[OpcUaAdapter] Restored monitored item ${itemId}`)
+      } catch (error) {
+        log.error(`[OpcUaAdapter] Failed to restore monitored item ${itemId}:`, error)
+      }
+    }
+  }
+
+  /**
+   * Check if session is valid and active (T168).
+   */
+  isSessionValid(): boolean {
+    if (!this.session) return false
+
+    try {
+      // Check session validity via timeout property (exists on valid sessions)
+      // A closed session will throw or have undefined timeout
+      return this.session.timeout !== undefined && this.session.timeout > 0
+    } catch {
+      return false
+    }
+  }
+
+  /**
+   * Get recovery state information (T168).
+   */
+  getRecoveryState(): {
+    isReconnecting: boolean
+    reconnectAttempts: number
+    maxAttempts: number
+    sessionValid: boolean
+  } {
+    return {
+      isReconnecting: this.isReconnecting,
+      reconnectAttempts: this.reconnectAttempts,
+      maxAttempts: this.maxReconnectAttempts,
+      sessionValid: this.isSessionValid()
+    }
+  }
+
+  /**
+   * Manually trigger session recovery (T168).
+   * Useful for UI-initiated recovery attempts.
+   */
+  async triggerManualRecovery(): Promise<boolean> {
+    if (this.isReconnecting) {
+      log.warn('[OpcUaAdapter] Recovery already in progress')
+      return false
+    }
+
+    // Reset attempts for manual recovery
+    this.reconnectAttempts = 0
+
+    try {
+      await this.attemptSessionRecovery()
+      return this.isConnected()
+    } catch {
+      return false
     }
   }
 

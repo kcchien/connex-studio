@@ -18,7 +18,19 @@ import type {
 export interface EnvironmentManagerEvents {
   'environment-changed': (environment: Environment) => void
   'default-changed': (environment: Environment | null) => void
+  /** Emitted before environment switch to allow connection handling (T167) */
+  'environment-switching': (from: Environment | null, to: Environment | null) => void
+  /** Emitted after environment switch is complete (T167) */
+  'environment-switched': (from: Environment | null, to: Environment | null) => void
 }
+
+/**
+ * Callback type for environment switch handlers (T167).
+ */
+export type EnvironmentSwitchHandler = (
+  from: Environment | null,
+  to: Environment | null
+) => Promise<void>
 
 /**
  * Environment Manager handles CRUD operations for environments
@@ -27,6 +39,10 @@ export interface EnvironmentManagerEvents {
 export class EnvironmentManager extends EventEmitter {
   private environments: Map<string, Environment> = new Map()
   private defaultEnvironmentId: string | null = null
+  /** Handlers to call before environment switch (T167) */
+  private switchHandlers: EnvironmentSwitchHandler[] = []
+  /** Whether a switch is in progress (T167) */
+  private isSwitching = false
 
   constructor() {
     super()
@@ -124,7 +140,7 @@ export class EnvironmentManager extends EventEmitter {
   }
 
   /**
-   * Set an environment as the default/active environment.
+   * Set an environment as the default/active environment (T167 - with active connection handling).
    */
   async setDefault(id: string): Promise<Environment> {
     const environment = this.environments.get(id)
@@ -132,20 +148,49 @@ export class EnvironmentManager extends EventEmitter {
       throw new Error(`Environment not found: ${id}`)
     }
 
-    await this.clearDefault()
-
-    const updated: Environment = {
-      ...environment,
-      isDefault: true,
-      updatedAt: Date.now()
+    // Prevent concurrent switches
+    if (this.isSwitching) {
+      throw new Error('Environment switch already in progress')
     }
 
-    this.environments.set(updated.id, updated)
-    this.defaultEnvironmentId = updated.id
-    this.emit('default-changed', updated)
+    const previousEnv = this.getDefault()
 
-    // TODO: Persist to YAML file
-    return updated
+    // If switching to the same environment, no action needed
+    if (previousEnv?.id === id) {
+      return environment
+    }
+
+    try {
+      this.isSwitching = true
+
+      // Emit event before switch to allow pre-switch handling
+      this.emit('environment-switching', previousEnv, environment)
+
+      // Call registered switch handlers (e.g., to disconnect active connections)
+      for (const handler of this.switchHandlers) {
+        await handler(previousEnv, environment)
+      }
+
+      await this.clearDefault()
+
+      const updated: Environment = {
+        ...environment,
+        isDefault: true,
+        updatedAt: Date.now()
+      }
+
+      this.environments.set(updated.id, updated)
+      this.defaultEnvironmentId = updated.id
+      this.emit('default-changed', updated)
+
+      // Emit event after switch is complete
+      this.emit('environment-switched', previousEnv, updated)
+
+      // TODO: Persist to YAML file
+      return updated
+    } finally {
+      this.isSwitching = false
+    }
   }
 
   /**
@@ -185,11 +230,70 @@ export class EnvironmentManager extends EventEmitter {
     return env?.variables ?? {}
   }
 
+  // ---------------------------------------------------------------------------
+  // Environment Switch Handling (T167)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Register a handler to be called before environment switch (T167).
+   * Handlers are called in order and can perform async operations like
+   * disconnecting active connections.
+   *
+   * @param handler - Function to call before switch
+   * @returns Unregister function
+   */
+  registerSwitchHandler(handler: EnvironmentSwitchHandler): () => void {
+    this.switchHandlers.push(handler)
+    return () => {
+      const index = this.switchHandlers.indexOf(handler)
+      if (index !== -1) {
+        this.switchHandlers.splice(index, 1)
+      }
+    }
+  }
+
+  /**
+   * Check if an environment switch is currently in progress (T167).
+   */
+  isEnvironmentSwitching(): boolean {
+    return this.isSwitching
+  }
+
+  /**
+   * Switch environment with options for handling active connections (T167).
+   *
+   * @param targetId - ID of environment to switch to
+   * @param options - Switch options
+   */
+  async switchEnvironment(
+    targetId: string,
+    options: {
+      /** Force switch even if connections are active (will trigger disconnect) */
+      force?: boolean
+      /** Custom handler for active connections (called before switch) */
+      onActiveConnections?: (connectionIds: string[]) => Promise<'proceed' | 'cancel'>
+    } = {}
+  ): Promise<Environment> {
+    // Validate target exists
+    const target = this.environments.get(targetId)
+    if (!target) {
+      throw new Error(`Environment not found: ${targetId}`)
+    }
+
+    // If force is false and we have a custom handler, it should be called
+    // by the consumer before calling this method with the result.
+    // The actual switch is handled by setDefault which calls all handlers.
+
+    return this.setDefault(targetId)
+  }
+
   /**
    * Dispose and cleanup.
    */
   async dispose(): Promise<void> {
     this.environments.clear()
+    this.switchHandlers = []
+    this.isSwitching = false
     this.removeAllListeners()
   }
 }

@@ -15,7 +15,9 @@ import type {
   CreateAlertRuleRequest,
   UpdateAlertRuleRequest,
   AlertEventQuery,
-  AlertEventPage
+  AlertEventPage,
+  ConnectionAlertSource,
+  ConnectionStatus
 } from '@shared/types'
 import { DEFAULT_ALERT_COOLDOWN, DEFAULT_ALERT_ACTIONS } from '@shared/types'
 import { getAlertHistoryStore } from './AlertHistoryStore'
@@ -31,6 +33,11 @@ export interface AlertEngineEvents {
   'rule-deleted': (ruleId: string) => void
 }
 
+/** Maximum history length for rate-of-change calculations */
+const ROC_HISTORY_MAX_LENGTH = 100
+/** Default rate-of-change window in seconds */
+const DEFAULT_ROC_WINDOW = 60
+
 /**
  * Runtime state for alert condition tracking.
  */
@@ -38,6 +45,10 @@ interface ConditionState {
   conditionMetAt: number | null
   lastTriggeredAt: number | null
   currentValue: number | null
+  /** Historical values for rate-of-change calculation */
+  valueHistory: Array<{ timestamp: number; value: number }>
+  /** Last known connection status for connection alerts */
+  lastConnectionStatus?: ConnectionStatus
 }
 
 /**
@@ -107,7 +118,8 @@ export class AlertEngine extends EventEmitter {
     this.conditionStates.set(rule.id, {
       conditionMetAt: null,
       lastTriggeredAt: null,
-      currentValue: null
+      currentValue: null,
+      valueHistory: []
     })
 
     this.emit('rule-changed', rule)
@@ -142,7 +154,8 @@ export class AlertEngine extends EventEmitter {
     this.conditionStates.set(updated.id, {
       conditionMetAt: null,
       lastTriggeredAt: null,
-      currentValue: null
+      currentValue: null,
+      valueHistory: []
     })
 
     // TODO: Persist to profile storage
@@ -228,7 +241,8 @@ export class AlertEngine extends EventEmitter {
     this.conditionStates.set(id, {
       conditionMetAt: null,
       lastTriggeredAt: null,
-      currentValue: null
+      currentValue: null,
+      valueHistory: []
     })
 
     this.emit('rule-changed', rule)
@@ -245,15 +259,23 @@ export class AlertEngine extends EventEmitter {
     const now = Date.now()
 
     for (const rule of this.rules.values()) {
-      if (!rule.enabled || rule.tagRef !== tagId) {
+      // Skip connection alerts and rules for other tags
+      if (!rule.enabled || rule.tagRef !== tagId || rule.source === 'connection') {
         continue
       }
 
       const state = this.conditionStates.get(rule.id)
       if (!state) continue
 
+      // Add to value history for rate-of-change calculation
+      state.valueHistory.push({ timestamp: now, value })
+      // Trim history to max length
+      if (state.valueHistory.length > ROC_HISTORY_MAX_LENGTH) {
+        state.valueHistory = state.valueHistory.slice(-ROC_HISTORY_MAX_LENGTH)
+      }
+
       state.currentValue = value
-      const conditionMet = this.evaluateCondition(rule.condition, value)
+      const conditionMet = this.evaluateCondition(rule.condition, value, state)
 
       if (conditionMet) {
         // Condition is met
@@ -283,9 +305,106 @@ export class AlertEngine extends EventEmitter {
   }
 
   /**
-   * Evaluate an alert condition against a value.
+   * Process a connection status change (T164).
+   * Called when connection status changes.
    */
-  private evaluateCondition(condition: AlertCondition, value: number): boolean {
+  processConnectionStatus(connectionId: string, status: ConnectionStatus): void {
+    const now = Date.now()
+
+    for (const rule of this.rules.values()) {
+      // Only process connection-type alerts for this connection
+      if (
+        !rule.enabled ||
+        rule.source !== 'connection' ||
+        rule.connectionId !== connectionId
+      ) {
+        continue
+      }
+
+      const state = this.conditionStates.get(rule.id)
+      if (!state) continue
+
+      const previousStatus = state.lastConnectionStatus
+      state.lastConnectionStatus = status
+
+      // Check for disconnect alert
+      if (rule.condition.operator === 'disconnect') {
+        // Trigger when status changes from connected to disconnected or error
+        if (
+          previousStatus === 'connected' &&
+          (status === 'disconnected' || status === 'error')
+        ) {
+          // Check cooldown
+          if (
+            state.lastTriggeredAt === null ||
+            now - state.lastTriggeredAt >= rule.cooldown * 1000
+          ) {
+            this.triggerConnectionAlert(rule, status, now)
+            state.lastTriggeredAt = now
+          }
+        }
+      }
+
+      // Check for timeout alert
+      if (rule.condition.operator === 'timeout') {
+        // Trigger when status becomes error (often indicates timeout)
+        if (status === 'error') {
+          // Check cooldown
+          if (
+            state.lastTriggeredAt === null ||
+            now - state.lastTriggeredAt >= rule.cooldown * 1000
+          ) {
+            this.triggerConnectionAlert(rule, status, now)
+            state.lastTriggeredAt = now
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Trigger a connection status alert.
+   */
+  private triggerConnectionAlert(
+    rule: AlertRule,
+    status: ConnectionStatus,
+    timestamp: number
+  ): void {
+    const isMuted = this.mutedRules.has(rule.id)
+
+    const eventData: Omit<AlertEvent, 'id'> = {
+      ruleId: rule.id,
+      timestamp,
+      tagRef: rule.connectionId ?? rule.tagRef,
+      triggerValue: 0, // No numeric value for connection status
+      severity: rule.severity,
+      message: `${rule.name}: Connection ${rule.condition.operator} (status: ${status})`,
+      acknowledged: false
+    }
+
+    // Store in history and get assigned ID
+    const historyStore = getAlertHistoryStore()
+    const event = historyStore.insert(eventData)
+
+    // Execute actions (skip notification/sound if muted)
+    for (const action of rule.actions) {
+      if (isMuted && (action === 'notification' || action === 'sound')) {
+        continue
+      }
+      this.executeAction(action, event)
+    }
+
+    this.emit('alert-triggered', event)
+  }
+
+  /**
+   * Evaluate an alert condition against a value (T165 - includes rate-of-change).
+   */
+  private evaluateCondition(
+    condition: AlertCondition,
+    value: number,
+    state?: ConditionState
+  ): boolean {
     switch (condition.operator) {
       case '>':
         return value > condition.value
@@ -298,11 +417,69 @@ export class AlertEngine extends EventEmitter {
       case 'range':
         return value >= condition.value && value <= (condition.value2 ?? condition.value)
       case 'roc':
-        // Rate of change - TODO: implement with historical values
+        return this.evaluateRateOfChange(condition, value, state)
+      case 'disconnect':
+      case 'timeout':
+        // Connection alerts are handled separately in processConnectionStatus
         return false
       default:
         return false
     }
+  }
+
+  /**
+   * Evaluate rate-of-change condition (T165).
+   * Calculates the change over the specified time window.
+   */
+  private evaluateRateOfChange(
+    condition: AlertCondition,
+    currentValue: number,
+    state?: ConditionState
+  ): boolean {
+    if (!state || state.valueHistory.length < 2) {
+      // Not enough data for rate-of-change calculation
+      return false
+    }
+
+    const now = Date.now()
+    const windowMs = (condition.rocWindow ?? DEFAULT_ROC_WINDOW) * 1000
+    const windowStart = now - windowMs
+
+    // Find the earliest value within the time window
+    let earliestInWindow: { timestamp: number; value: number } | null = null
+    for (const entry of state.valueHistory) {
+      if (entry.timestamp >= windowStart) {
+        if (!earliestInWindow || entry.timestamp < earliestInWindow.timestamp) {
+          earliestInWindow = entry
+        }
+      }
+    }
+
+    if (!earliestInWindow) {
+      // No values within the time window
+      return false
+    }
+
+    // Calculate rate of change
+    let rateOfChange: number
+    if (condition.rocType === 'percentage') {
+      // Calculate percentage change
+      if (earliestInWindow.value === 0) {
+        // Avoid division by zero
+        rateOfChange = currentValue === 0 ? 0 : 100
+      } else {
+        rateOfChange = Math.abs(
+          ((currentValue - earliestInWindow.value) / earliestInWindow.value) * 100
+        )
+      }
+    } else {
+      // Absolute change (default)
+      rateOfChange = Math.abs(currentValue - earliestInWindow.value)
+    }
+
+    // Compare against threshold
+    // condition.value is the rate-of-change threshold
+    return rateOfChange >= condition.value
   }
 
   /**

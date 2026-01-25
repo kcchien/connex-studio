@@ -331,14 +331,18 @@ export interface WorkspaceWidget {
 export interface WorkspaceAlertRule {
   /** Rule name */
   name: string
-  /** Tag name reference */
+  /** Tag name reference (or connection name for connection alerts) */
   tagName: string
   /** Condition configuration */
   condition: {
-    operator: '>' | '<' | '=' | '!=' | 'range' | 'roc'
+    operator: '>' | '<' | '=' | '!=' | 'range' | 'roc' | 'disconnect' | 'timeout'
     value: number
     value2?: number
     duration?: number
+    /** For roc: time window in seconds */
+    rocWindow?: number
+    /** For roc: threshold type */
+    rocType?: 'percentage' | 'absolute'
   }
   /** Severity level */
   severity: 'info' | 'warning' | 'critical'
@@ -348,6 +352,10 @@ export interface WorkspaceAlertRule {
   enabled?: boolean
   /** Cooldown in seconds */
   cooldown?: number
+  /** Source type for connection alerts */
+  source?: 'tag' | 'connection'
+  /** Connection name for connection alerts */
+  connectionName?: string
 }
 
 // -----------------------------------------------------------------------------

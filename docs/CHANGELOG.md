@@ -9,6 +9,70 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Phase 16: Polish & Cross-Cutting Concerns** (T164-T168) - `003-pro-features-opcua`
+  - **Main Process - AlertEngine 擴展** (`src/main/services/AlertEngine.ts`) (T164, T165)
+    - **連線狀態警報** (T164)
+      - 新增 'disconnect' 與 'timeout' 警報運算子
+      - 新增 ConnectionAlertSource 型別 ('connection' | 'tag')
+      - processConnectionStatus() 方法處理連線狀態變更
+      - triggerConnectionAlert() 觸發連線類型警報
+      - AlertRule 擴展 source 與 connectionId 欄位
+    - **變化率警報** (T165)
+      - 新增 'roc' (rate-of-change) 警報運算子
+      - AlertCondition 擴展 rocWindow 與 rocType 欄位
+      - ConditionState 新增 valueHistory 陣列追蹤歷史值
+      - evaluateRateOfChange() 計算時間窗口內的變化率
+      - 支援百分比與絕對值變化率計算
+      - ROC_HISTORY_MAX_LENGTH = 100, DEFAULT_ROC_WINDOW = 60s
+
+  - **Main Process - DashboardService 孤兒 Widget 清理** (`src/main/services/DashboardService.ts`) (T166)
+    - handleTagDeleted() - 處理 Tag 刪除時的 Widget 清理
+      - 單一 Tag 的 Widget 直接移除
+      - 多 Tag 的 Widget 移除該 Tag 參考
+    - handleConnectionDeleted() - 處理 Connection 刪除時的 Widget 清理
+    - getWidgetsByTagRef() - 查詢參考特定 Tag 的 Widget
+    - 新增 'orphaned-widgets-cleaned' 事件
+
+  - **Main Process - EnvironmentManager 切換處理** (`src/main/services/EnvironmentManager.ts`) (T167)
+    - 新增 'environment-switching' 與 'environment-switched' 事件
+    - EnvironmentSwitchHandler 型別定義
+    - registerSwitchHandler() - 註冊切換處理器
+    - isEnvironmentSwitching() - 檢查是否正在切換
+    - switchEnvironment() - 帶選項的環境切換
+      - force 選項強制切換
+      - onActiveConnections 回呼處理活躍連線
+    - 防止並發切換機制 (isSwitching 旗標)
+
+  - **Main Process - OPC UA Session 超時處理** (`src/main/protocols/OpcUaAdapter.ts`) (T168)
+    - 指數退避重連機制
+      - baseReconnectDelay = 1000ms, 最大 30000ms
+      - maxReconnectAttempts = 5
+    - 訂閱狀態保存與恢復
+      - subscriptionConfigs Map 儲存訂閱配置
+      - monitoredItemConfigs Map 儲存監控項目配置
+    - scheduleRecoveryAttempt() - 排程延遲恢復
+    - attemptSessionRecovery() - 嘗試 Session 恢復
+    - storeSubscriptionStates() - 儲存訂閱狀態
+    - restoreSubscriptions() - 恢復訂閱
+    - restoreMonitoredItemsForSubscription() - 恢復監控項目
+    - isSessionValid() - 檢查 Session 有效性
+    - getRecoveryState() - 取得恢復狀態資訊
+    - triggerManualRecovery() - 手動觸發恢復
+
+  - **共享型別更新** (`src/shared/types/alert.ts`)
+    - AlertOperator 擴展 'disconnect' | 'timeout' | 'roc'
+    - ConnectionAlertSource 新型別
+    - AlertCondition 新增 rocWindow, rocType 欄位
+    - AlertRule 新增 source, connectionId 欄位
+
+  - **共享型別更新** (`src/shared/types/workspace.ts`)
+    - WorkspaceAlertRule.condition.operator 擴展新運算子
+    - 新增 rocWindow, rocType, source, connectionName 欄位
+
+  - **Main Process - WorkspaceExporter 更新** (`src/main/services/WorkspaceExporter.ts`)
+    - convertAlertRule() 支援連線警報匯出
+    - 處理 ROC 相關欄位
+
 - **Phase 15: US16 OPC UA Discovery** (T159-T163) - `003-pro-features-opcua`
   - **共享型別定義** (`src/shared/types/opcua.ts`) (T159-T161)
     - OpcUaDiscoveredServer - 已發現伺服器資訊

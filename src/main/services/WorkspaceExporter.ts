@@ -554,22 +554,37 @@ export class WorkspaceExporter {
    * Convert alert rule to export format
    */
   private convertAlertRule(rule: AlertRule, mappings: ExportMappings): WorkspaceAlertRule {
-    const tagName = mappings.tags.get(rule.tagRef) || rule.tagRef
+    // For connection alerts, use connection name; for tag alerts, use tag name
+    const tagName = rule.source === 'connection'
+      ? (rule.connectionId ? (mappings.connections.get(rule.connectionId) || rule.connectionId) : rule.tagRef)
+      : (mappings.tags.get(rule.tagRef) || rule.tagRef)
 
-    return {
+    const result: WorkspaceAlertRule = {
       name: rule.name,
       tagName,
       condition: {
         operator: rule.condition.operator,
         value: rule.condition.value,
         value2: rule.condition.value2,
-        duration: rule.condition.duration
+        duration: rule.condition.duration,
+        rocWindow: rule.condition.rocWindow,
+        rocType: rule.condition.rocType
       },
       severity: rule.severity,
       actions: rule.actions,
       enabled: rule.enabled ? undefined : false, // Only include if false
       cooldown: rule.cooldown
     }
+
+    // Include connection alert fields if present
+    if (rule.source === 'connection') {
+      result.source = 'connection'
+      if (rule.connectionId) {
+        result.connectionName = mappings.connections.get(rule.connectionId) || rule.connectionId
+      }
+    }
+
+    return result
   }
 
   /**

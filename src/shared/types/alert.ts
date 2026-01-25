@@ -8,12 +8,16 @@
 // -----------------------------------------------------------------------------
 
 export type AlertSeverity = 'info' | 'warning' | 'critical'
-export type AlertOperator = '>' | '<' | '=' | '!=' | 'range' | 'roc'
+export type AlertOperator = '>' | '<' | '=' | '!=' | 'range' | 'roc' | 'disconnect' | 'timeout'
 export type AlertActionType = 'notification' | 'sound' | 'log'
+
+// Connection status alert source type
+export type ConnectionAlertSource = 'connection' | 'tag'
 
 export interface AlertRule {
   id: string
   name: string
+  /** Tag ID for tag-based alerts, or Connection ID for connection alerts */
   tagRef: string
   condition: AlertCondition
   severity: AlertSeverity
@@ -21,6 +25,10 @@ export interface AlertRule {
   enabled: boolean
   cooldown: number
   createdAt: number
+  /** Source type: 'tag' for tag value alerts, 'connection' for connection status */
+  source?: ConnectionAlertSource
+  /** For connection alerts: connection ID to monitor */
+  connectionId?: string
 }
 
 export interface AlertCondition {
@@ -28,6 +36,10 @@ export interface AlertCondition {
   value: number
   value2?: number
   duration?: number
+  /** For roc (rate of change) alerts: time window in seconds */
+  rocWindow?: number
+  /** For roc alerts: threshold as percentage (0-100) or absolute value */
+  rocType?: 'percentage' | 'absolute'
 }
 
 // -----------------------------------------------------------------------------

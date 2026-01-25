@@ -26,6 +26,8 @@ export interface DashboardServiceEvents {
   'widget-updated': (dashboardId: string, widget: DashboardWidget) => void
   'widget-removed': (dashboardId: string, widgetId: string) => void
   'layout-updated': (dashboardId: string, layout: WidgetLayout[]) => void
+  /** Emitted when orphaned widgets are cleaned up (T166) */
+  'orphaned-widgets-cleaned': (dashboardId: string, widgetIds: string[]) => void
 }
 
 /**
@@ -300,6 +302,149 @@ export class DashboardService extends EventEmitter {
       }
     }
     return maxY
+  }
+
+  // ---------------------------------------------------------------------------
+  // Orphaned Widget Cleanup (T166)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Handle tag deletion by removing or updating orphaned widgets (T166).
+   * Called when a tag is deleted to clean up widgets referencing it.
+   *
+   * @param tagId - The ID of the deleted tag
+   * @returns Summary of cleanup actions taken
+   */
+  async handleTagDeleted(tagId: string): Promise<{
+    dashboardsAffected: number
+    widgetsRemoved: number
+    widgetsUpdated: number
+  }> {
+    let dashboardsAffected = 0
+    let widgetsRemoved = 0
+    let widgetsUpdated = 0
+
+    for (const dashboard of this.dashboards.values()) {
+      const widgetsToRemove: string[] = []
+      const widgetsToUpdate: DashboardWidget[] = []
+
+      for (const widget of dashboard.widgets) {
+        if (widget.tagRefs.includes(tagId)) {
+          if (widget.tagRefs.length === 1) {
+            // Widget only has this tag - mark for removal
+            widgetsToRemove.push(widget.id)
+          } else {
+            // Widget has multiple tags - remove the deleted tag
+            widgetsToUpdate.push({
+              ...widget,
+              tagRefs: widget.tagRefs.filter(ref => ref !== tagId)
+            })
+          }
+        }
+      }
+
+      if (widgetsToRemove.length > 0 || widgetsToUpdate.length > 0) {
+        dashboardsAffected++
+
+        // Remove orphaned widgets
+        for (const widgetId of widgetsToRemove) {
+          const widgetIndex = dashboard.widgets.findIndex(w => w.id === widgetId)
+          if (widgetIndex !== -1) {
+            dashboard.widgets.splice(widgetIndex, 1)
+            dashboard.layout = dashboard.layout.filter(l => l.i !== widgetId)
+            widgetsRemoved++
+          }
+        }
+
+        // Update widgets with remaining tags
+        for (const updatedWidget of widgetsToUpdate) {
+          const widgetIndex = dashboard.widgets.findIndex(w => w.id === updatedWidget.id)
+          if (widgetIndex !== -1) {
+            dashboard.widgets[widgetIndex] = updatedWidget
+            widgetsUpdated++
+            this.emit('widget-updated', dashboard.id, updatedWidget)
+          }
+        }
+
+        dashboard.updatedAt = Date.now()
+
+        if (widgetsToRemove.length > 0) {
+          this.emit('orphaned-widgets-cleaned', dashboard.id, widgetsToRemove)
+        }
+
+        this.emit('dashboard-changed', dashboard)
+      }
+    }
+
+    return {
+      dashboardsAffected,
+      widgetsRemoved,
+      widgetsUpdated
+    }
+  }
+
+  /**
+   * Handle connection deletion by cleaning up widgets referencing tags from that connection (T166).
+   * @param connectionId - The ID of the deleted connection
+   * @param affectedTagIds - List of tag IDs that belonged to the connection
+   */
+  async handleConnectionDeleted(
+    connectionId: string,
+    affectedTagIds: string[]
+  ): Promise<{
+    dashboardsAffected: number
+    widgetsRemoved: number
+    widgetsUpdated: number
+  }> {
+    let totalDashboardsAffected = 0
+    let totalWidgetsRemoved = 0
+    let totalWidgetsUpdated = 0
+
+    // Clean up widgets for each affected tag
+    for (const tagId of affectedTagIds) {
+      const result = await this.handleTagDeleted(tagId)
+      if (result.dashboardsAffected > 0) {
+        totalDashboardsAffected++ // Count unique dashboards
+      }
+      totalWidgetsRemoved += result.widgetsRemoved
+      totalWidgetsUpdated += result.widgetsUpdated
+    }
+
+    return {
+      dashboardsAffected: totalDashboardsAffected,
+      widgetsRemoved: totalWidgetsRemoved,
+      widgetsUpdated: totalWidgetsUpdated
+    }
+  }
+
+  /**
+   * Get widgets that reference a specific tag.
+   * Useful for checking before tag deletion.
+   */
+  getWidgetsByTagRef(tagId: string): Array<{
+    dashboardId: string
+    dashboardName: string
+    widget: DashboardWidget
+  }> {
+    const results: Array<{
+      dashboardId: string
+      dashboardName: string
+      widget: DashboardWidget
+    }> = []
+
+    for (const dashboard of this.dashboards.values()) {
+      for (const widget of dashboard.widgets) {
+        if (widget.tagRefs.includes(tagId)) {
+          results.push({
+            dashboardId: dashboard.id,
+            dashboardName: dashboard.name,
+            widget
+          })
+        }
+      }
+    }
+
+    return results
   }
 
   /**

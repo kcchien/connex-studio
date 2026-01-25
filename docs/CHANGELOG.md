@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+
+- **Virtual Server Feature** - `004-remove-virtual-server`
+  - Removed Virtual Server functionality to focus Connex Studio as a Protocol Client only tool
+  - **UI Layer Removed:**
+    - `src/renderer/components/virtual-server/` (4 files, 742 lines)
+    - `src/renderer/stores/virtualServerStore.ts` (110 lines)
+    - VirtualServerPanel from `src/renderer/App.tsx`
+  - **Backend Layer Removed:**
+    - `src/main/ipc/virtual-server.ts` (124 lines)
+    - `src/main/services/VirtualServer.ts` (721 lines)
+    - `src/shared/types/virtual-server.ts` (62 lines)
+  - **Integration Points Cleaned:**
+    - Handler registration from `src/main/ipc/index.ts`
+    - Service exports from `src/main/services/index.ts`
+    - Type re-exports from `src/shared/types/index.ts`
+    - API exposure from `src/preload/index.ts`
+    - IPC channels from `src/shared/constants/ipc-channels.ts`
+    - API wrapper from `src/renderer/lib/ipc.ts`
+  - **Specification Documents Updated:**
+    - `specs/002-iiot-protocol-studio/spec.md` - Removed User Story 5 and related requirements
+    - `specs/002-iiot-protocol-studio/plan.md` - Removed Phase 13 and VirtualServer references
+    - `specs/002-iiot-protocol-studio/data-model.md` - Removed VirtualServer and Waveform entities
+    - `specs/002-iiot-protocol-studio/contracts/ipc-channels.md` - Removed virtual-server channels
+  - **Total Lines Removed:** ~1,800 lines
+  - **Rationale:** Simplifies the application, reduces maintenance burden, and focuses on core Protocol Client functionality
+
 ### Fixed
 
 - **Build 配置修復 - electron-vite/esbuild 編譯錯誤** (`electron.vite.config.ts`)

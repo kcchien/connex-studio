@@ -9,6 +9,82 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Phase 13: US6 Configuration Export/Import** (T143-T152) - `003-pro-features-opcua`
+  - **Main Process - WorkspaceExporter 服務** (`src/main/services/WorkspaceExporter.ts`)
+    - 選擇性匯出功能 (T144-T147)
+      - 支援選擇性匯出：環境、連線、標籤、橋接、儀表板、警報規則
+      - 憑證安全排除機制 (僅標記 hasCredentials 旗標)
+      - 名稱參考解析 (ID → 人類可讀名稱)
+      - 穩定 YAML 輸出 (排序鍵值)
+    - YAML 序列化
+      - 使用 js-yaml 套件
+      - Schema 版本控制 (WORKSPACE_SCHEMA_VERSION = 2)
+      - 元資料嵌入 (名稱、描述、作者、版本、匯出時間)
+
+  - **Main Process - WorkspaceImporter 服務** (`src/main/services/WorkspaceImporter.ts`)
+    - YAML 驗證與匯入 (T148-T149)
+      - 完整 YAML 結構驗證
+      - Schema 版本相容性檢查
+      - 參考完整性驗證
+    - 衝突偵測與解決
+      - 支援三種策略：skip (跳過)、overwrite (覆蓋)、rename (重命名)
+      - 衝突項目清單回報
+    - 名稱反向解析 (名稱 → ID)
+    - 乾跑模式 (dry-run) 預覽功能
+    - 依序匯入保證參考完整性
+      - 匯入順序：環境 → 連線 → 標籤 → 橋接/儀表板/警報
+
+  - **Main Process - Workspace IPC 處理器** (`src/main/ipc/workspace.ts`) (T150)
+    - `workspace:export` - 匯出組態為 YAML 字串
+    - `workspace:import` - 從 YAML 匯入組態
+    - `workspace:validate` - 驗證 YAML 內容 (不執行匯入)
+    - `workspace:save-file` - 儲存檔案對話框
+    - `workspace:load-file` - 載入檔案對話框
+
+  - **Renderer - ExportWorkspace UI** (`src/renderer/components/workspace/ExportWorkspace.tsx`) (T151)
+    - 匯出對話框
+      - 項目選擇 (環境、連線、標籤、橋接、儀表板、警報)
+      - 元資料輸入 (名稱、描述、作者、版本)
+      - 即時 YAML 預覽
+    - 匯出操作
+      - 產生 YAML 按鈕
+      - 儲存至檔案按鈕
+      - 複製到剪貼簿功能
+
+  - **Renderer - ImportPreview UI** (`src/renderer/components/workspace/ImportPreview.tsx`) (T152)
+    - 匯入預覽對話框
+      - 驗證結果顯示 (錯誤、警告)
+      - 匯入項目預覽 (計數與清單)
+      - 衝突項目顯示
+    - 衝突解決選項
+      - Skip - 跳過衝突項目
+      - Overwrite - 覆蓋現有項目
+      - Rename - 自動重命名
+    - 匯入結果摘要
+      - 已匯入/已跳過計數
+      - 警告訊息列表
+
+  - **Renderer - useWorkspace Hook** (`src/renderer/hooks/useWorkspace.ts`)
+    - 狀態管理 (isLoading, error)
+    - 匯出操作 (exportWorkspace, saveFile)
+    - 匯入操作 (loadFile, validateWorkspace, importWorkspace)
+    - 錯誤處理 (clearError)
+
+  - **共享型別更新** (`src/shared/types/workspace.ts`) (T143)
+    - WorkspaceDocument 主文件結構
+    - WorkspaceMeta 元資料介面
+    - WorkspaceEnvironment, WorkspaceConnection, WorkspaceTag
+    - WorkspaceBridge, WorkspaceDashboard, WorkspaceWidget, WorkspaceAlertRule
+    - ExportWorkspaceRequest, ImportWorkspaceRequest
+    - ImportWorkspaceResult, ValidationResult, ImportPreview
+    - ConflictItem, ImportedCounts, ExportMappings, ImportMappings
+    - WORKSPACE_SCHEMA_VERSION 常數
+
+  - **Preload 更新** (`src/preload/index.ts`)
+    - ElectronAPI.workspace 新增
+      - export, import, validate
+      - saveFile, loadFile
+
 - **Phase 12: US13 & US14 OPC UA Events & Methods** (T132-T142) - `003-pro-features-opcua`
   - **Main Process - OPC UA 事件訂閱 (US13)**
     - OpcUaAdapter 事件功能增強 (`src/main/protocols/OpcUaAdapter.ts`)

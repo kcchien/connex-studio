@@ -8,6 +8,112 @@ import type { DvrRange, DvrSnapshot, SparklineData } from '@shared/types/dvr'
 import type { ExportResult } from '@shared/types/export'
 import type { VirtualServer } from '@shared/types/virtual-server'
 import type { LogEntry, LogLevel } from '@shared/types/log'
+import type {
+  Environment,
+  CreateEnvironmentRequest,
+  UpdateEnvironmentRequest,
+  ResolutionResult
+} from '@shared/types/environment'
+import type {
+  Collection,
+  CreateCollectionRequest,
+  UpdateCollectionRequest,
+  CollectionRunResult,
+  CollectionProgress
+} from '@shared/types/collection'
+import type {
+  Bridge,
+  CreateBridgeRequest,
+  UpdateBridgeRequest,
+  BridgeStatus,
+  BridgeStats
+} from '@shared/types/bridge'
+import type {
+  Dashboard,
+  DashboardWidget,
+  WidgetLayout,
+  CreateDashboardRequest,
+  UpdateDashboardRequest,
+  AddWidgetRequest,
+  UpdateWidgetRequest,
+  UpdateLayoutRequest
+} from '@shared/types/dashboard'
+import type {
+  AlertRule,
+  AlertEvent,
+  AlertEventPage,
+  AlertEventQuery,
+  AlertSeverity,
+  CreateAlertRuleRequest,
+  UpdateAlertRuleRequest
+} from '@shared/types/alert'
+import type {
+  OpcUaEndpoint,
+  OpcUaNode,
+  OpcUaBrowseRequest,
+  OpcUaBrowseResult,
+  OpcUaBrowseNextRequest,
+  OpcUaBrowsePathRequest,
+  OpcUaBrowsePathResult,
+  OpcUaSearchNodesRequest,
+  OpcUaSearchResult,
+  OpcUaNodeAttributesRequest,
+  OpcUaNodeAttributes,
+  OpcUaReadRequest,
+  OpcUaReadResult,
+  OpcUaWriteRequest,
+  OpcUaWriteResult,
+  OpcUaSubscription,
+  CreateSubscriptionRequest,
+  AddMonitoredItemRequest,
+  MonitoredItem,
+  OpcUaDataChange,
+  OpcUaServerInfo,
+  OpcUaCertificate,
+  ImportCertificateRequest,
+  GenerateCertificateRequest,
+  CertificateValidationResult,
+  // Event types
+  OpcUaEvent,
+  SubscribeEventsRequest,
+  AcknowledgeConditionRequest,
+  ConfirmConditionRequest,
+  // Method types
+  OpcUaCallMethodRequest,
+  OpcUaCallMethodResult,
+  OpcUaMethodArguments,
+  // History types
+  HistorizingCheckRequest,
+  HistorizingCheckResult,
+  HistoryReadRawRequest,
+  HistoryReadRawResult,
+  HistoryReadProcessedRequest,
+  HistoryReadProcessedResult,
+  // Discovery types
+  DiscoverServersRequest,
+  DiscoverServersResult,
+  GetEndpointsRequest,
+  GetEndpointsResult,
+  OpcUaDiscoveredServer
+} from '@shared/types/opcua'
+import type {
+  CrcResult,
+  LrcResult,
+  FloatDecodeResult,
+  FloatEncodeResult,
+  ByteSwapResult,
+  ByteOrder,
+  ModbusAddressInfo,
+  PacketAnalysis
+} from '@shared/types/calculator'
+import type {
+  ExportWorkspaceRequest,
+  ImportWorkspaceRequest,
+  ImportWorkspaceResult,
+  ValidationResult,
+  SaveFileResult,
+  LoadFileResult
+} from '@shared/types/workspace'
 
 // Type-safe API exposed to renderer
 export interface ElectronAPI {
@@ -152,6 +258,206 @@ export interface ElectronAPI {
     }>
     forceQuit: () => void
   }
+
+  // Environment operations
+  environment: {
+    list: () => Promise<IpcResult<{ environments: Environment[] }>>
+    get: (id: string) => Promise<IpcResult<{ environment: Environment }>>
+    create: (params: CreateEnvironmentRequest) => Promise<IpcResult<{ environment: Environment }>>
+    update: (params: UpdateEnvironmentRequest) => Promise<IpcResult<{ environment: Environment }>>
+    delete: (id: string) => Promise<IpcResult<void>>
+    setDefault: (id: string) => Promise<IpcResult<{ environment: Environment }>>
+    getDefault: () => Promise<IpcResult<{ environment: Environment | null }>>
+    resolve: (template: string, customVariables?: Record<string, string>) => Promise<IpcResult<{ result: ResolutionResult }>>
+  }
+
+  // Collection operations
+  collection: {
+    list: () => Promise<IpcResult<{ collections: Collection[] }>>
+    get: (id: string) => Promise<IpcResult<{ collection: Collection }>>
+    create: (params: CreateCollectionRequest) => Promise<IpcResult<{ collection: Collection }>>
+    update: (params: UpdateCollectionRequest) => Promise<IpcResult<{ collection: Collection }>>
+    delete: (id: string) => Promise<IpcResult<void>>
+    run: (id: string) => Promise<IpcResult<{ result: CollectionRunResult }>>
+    stop: (runId: string) => Promise<IpcResult<void>>
+    onProgress: (callback: (progress: CollectionProgress) => void) => () => void
+    onResult: (callback: (result: CollectionRunResult) => void) => () => void
+  }
+
+  // Bridge operations
+  bridge: {
+    list: () => Promise<IpcResult<{ bridges: Bridge[] }>>
+    get: (id: string) => Promise<IpcResult<{ bridge: Bridge }>>
+    create: (params: CreateBridgeRequest) => Promise<IpcResult<{ bridge: Bridge }>>
+    update: (params: UpdateBridgeRequest) => Promise<IpcResult<{ bridge: Bridge }>>
+    delete: (id: string) => Promise<IpcResult<void>>
+    start: (id: string) => Promise<IpcResult<void>>
+    stop: (id: string) => Promise<IpcResult<void>>
+    pause: (id: string) => Promise<IpcResult<void>>
+    resume: (id: string) => Promise<IpcResult<void>>
+    getStats: (id: string) => Promise<IpcResult<{ stats: BridgeStats }>>
+    onStatusChanged: (callback: (payload: { bridgeId: string; status: BridgeStatus }) => void) => () => void
+    onError: (callback: (payload: { bridgeId: string; error: string }) => void) => () => void
+    onStats: (callback: (stats: BridgeStats) => void) => () => void
+  }
+
+  // Dashboard operations
+  dashboard: {
+    list: () => Promise<Dashboard[]>
+    get: (id: string) => Promise<Dashboard | null>
+    create: (params: CreateDashboardRequest) => Promise<Dashboard>
+    update: (params: UpdateDashboardRequest) => Promise<Dashboard>
+    delete: (id: string) => Promise<boolean>
+    setDefault: (id: string) => Promise<Dashboard>
+    getDefault: () => Promise<Dashboard | null>
+    addWidget: (params: AddWidgetRequest) => Promise<DashboardWidget>
+    updateWidget: (params: UpdateWidgetRequest) => Promise<DashboardWidget>
+    removeWidget: (dashboardId: string, widgetId: string) => Promise<boolean>
+    updateLayout: (params: UpdateLayoutRequest) => Promise<boolean>
+  }
+
+  // Alert operations
+  alert: {
+    // Rule CRUD
+    listRules: () => Promise<AlertRule[]>
+    getRule: (id: string) => Promise<AlertRule | null>
+    createRule: (params: CreateAlertRuleRequest) => Promise<AlertRule>
+    updateRule: (params: UpdateAlertRuleRequest) => Promise<AlertRule>
+    deleteRule: (id: string) => Promise<boolean>
+    enableRule: (id: string) => Promise<AlertRule>
+    disableRule: (id: string) => Promise<AlertRule>
+    muteRule: (id: string) => Promise<boolean>
+    unmuteRule: (id: string) => Promise<boolean>
+    getMutedRules: () => Promise<string[]>
+
+    // Events
+    queryEvents: (query: AlertEventQuery) => Promise<AlertEventPage>
+    acknowledge: (eventId: number, acknowledgedBy?: string) => Promise<boolean>
+    acknowledgeAll: (severity?: AlertSeverity) => Promise<number>
+    getUnacknowledgedCounts: () => Promise<Record<AlertSeverity, number>>
+    clearHistory: (before?: number) => Promise<number>
+
+    // Sound
+    testSound: (severity: AlertSeverity) => Promise<void>
+    setSoundEnabled: (enabled: boolean) => Promise<void>
+    getSoundEnabled: () => Promise<boolean>
+
+    // Real-time events
+    onEventTriggered: (callback: (event: AlertEvent) => void) => () => void
+    onEventAcknowledged: (callback: (eventId: number) => void) => () => void
+  }
+
+  // OPC UA operations
+  opcua: {
+    // Discovery
+    getEndpoints: (endpointUrl: string) => Promise<OpcUaEndpoint[]>
+    testConnection: (params: {
+      endpointUrl: string
+      securityMode: string
+      securityPolicy: string
+    }) => Promise<{ success: boolean; message: string; serverInfo?: OpcUaServerInfo }>
+
+    // Session
+    getSessionStatus: (connectionId: string) => Promise<{
+      connected: boolean
+      sessionId?: string
+      timeout?: number
+      serverInfo?: OpcUaServerInfo
+    }>
+
+    // Browse
+    browse: (request: OpcUaBrowseRequest) => Promise<OpcUaBrowseResult>
+    browseNext: (request: OpcUaBrowseNextRequest) => Promise<OpcUaBrowseResult>
+    browsePath: (request: OpcUaBrowsePathRequest) => Promise<OpcUaBrowsePathResult>
+    searchNodes: (request: OpcUaSearchNodesRequest) => Promise<OpcUaSearchResult>
+    readNodeAttributes: (request: OpcUaNodeAttributesRequest) => Promise<OpcUaNodeAttributes>
+
+    // Read/Write
+    read: (request: OpcUaReadRequest) => Promise<OpcUaReadResult>
+    write: (request: OpcUaWriteRequest) => Promise<OpcUaWriteResult>
+
+    // Subscriptions
+    createSubscription: (request: CreateSubscriptionRequest) => Promise<OpcUaSubscription>
+    deleteSubscription: (params: {
+      connectionId: string
+      subscriptionId: string
+    }) => Promise<boolean>
+    addMonitoredItem: (request: AddMonitoredItemRequest) => Promise<MonitoredItem>
+    removeMonitoredItem: (params: {
+      connectionId: string
+      subscriptionId: string
+      itemId: string
+    }) => Promise<boolean>
+
+    // Real-time events
+    onDataChange: (callback: (change: OpcUaDataChange) => void) => () => void
+
+    // Certificate Management
+    listCertificates: () => Promise<OpcUaCertificate[]>
+    importCertificate: (request: ImportCertificateRequest) => Promise<OpcUaCertificate>
+    exportCertificate: (params: { id: string; exportPath: string }) => Promise<boolean>
+    deleteCertificate: (id: string) => Promise<boolean>
+    generateCertificate: (request: GenerateCertificateRequest) => Promise<OpcUaCertificate>
+    trustCertificate: (id: string) => Promise<OpcUaCertificate>
+    rejectCertificate: (id: string) => Promise<boolean>
+    getServerCertificate: (endpointUrl: string) => Promise<OpcUaCertificate | null>
+
+    // Events (Alarms & Conditions)
+    subscribeEvents: (request: SubscribeEventsRequest) => Promise<{ subscriptionId: string }>
+    unsubscribeEvents: (params: {
+      connectionId: string
+      subscriptionId: string
+    }) => Promise<boolean>
+    acknowledgeCondition: (request: AcknowledgeConditionRequest) => Promise<boolean>
+    confirmCondition: (request: ConfirmConditionRequest) => Promise<boolean>
+    onEvent: (callback: (event: OpcUaEvent) => void) => () => void
+
+    // Methods
+    getMethodArgs: (params: {
+      connectionId: string
+      objectId: string
+      methodId: string
+    }) => Promise<OpcUaMethodArguments>
+    callMethod: (request: OpcUaCallMethodRequest) => Promise<OpcUaCallMethodResult>
+
+    // Historical Access
+    checkHistorizing: (request: HistorizingCheckRequest) => Promise<HistorizingCheckResult>
+    readHistoryRaw: (request: HistoryReadRawRequest) => Promise<HistoryReadRawResult>
+    readHistoryProcessed: (request: HistoryReadProcessedRequest) => Promise<HistoryReadProcessedResult>
+    releaseContinuationPoints: (params: {
+      connectionId: string
+      continuationPoints: string[]
+    }) => Promise<void>
+
+    // Discovery (T159-T162)
+    discoverServers: (request?: DiscoverServersRequest) => Promise<DiscoverServersResult>
+    getServerEndpoints: (request: GetEndpointsRequest) => Promise<GetEndpointsResult>
+  }
+
+  // Calculator operations
+  calculator: {
+    crc16Modbus: (data: number[] | string) => Promise<CrcResult>
+    lrc: (data: number[] | string) => Promise<LrcResult>
+    decodeFloat32: (params: { data: number[] | string; byteOrder?: ByteOrder }) => Promise<FloatDecodeResult>
+    encodeFloat32: (params: { value: number; byteOrder?: ByteOrder }) => Promise<FloatEncodeResult>
+    decodeFloat64: (params: { data: number[] | string; byteOrder?: ByteOrder }) => Promise<FloatDecodeResult>
+    swapBytes: (data: number[] | string) => Promise<ByteSwapResult>
+    swapWords: (data: number[] | string) => Promise<ByteSwapResult>
+    convertByteOrder: (params: { data: number[] | string; from: ByteOrder; to: ByteOrder }) => Promise<ByteSwapResult>
+    parseModbusAddress: (params: { address: string; registerType?: string }) => Promise<ModbusAddressInfo>
+    analyzePacket: (data: number[] | string) => Promise<PacketAnalysis>
+    hexToBytes: (hex: string) => Promise<number[]>
+    bytesToHex: (params: { bytes: number[]; separator?: string }) => Promise<string>
+  }
+
+  // Workspace operations
+  workspace: {
+    export: (params: ExportWorkspaceRequest) => Promise<{ success: true; yaml: string } | { success: false; error: string }>
+    import: (params: ImportWorkspaceRequest) => Promise<ImportWorkspaceResult>
+    validate: (yamlContent: string) => Promise<ValidationResult>
+    saveFile: (params: { yaml: string; defaultPath?: string }) => Promise<SaveFileResult>
+    loadFile: (path?: string) => Promise<LoadFileResult>
+  }
 }
 
 // Implement the API
@@ -223,6 +529,225 @@ const electronAPI: ElectronAPI = {
   app: {
     checkUnsaved: () => ipcRenderer.invoke('app:check-unsaved'),
     forceQuit: () => ipcRenderer.send('app:force-quit')
+  },
+
+  environment: {
+    list: () => ipcRenderer.invoke('environment:list'),
+    get: (id) => ipcRenderer.invoke('environment:get', { id }),
+    create: (params) => ipcRenderer.invoke('environment:create', params),
+    update: (params) => ipcRenderer.invoke('environment:update', params),
+    delete: (id) => ipcRenderer.invoke('environment:delete', { id }),
+    setDefault: (id) => ipcRenderer.invoke('environment:set-default', { id }),
+    getDefault: () => ipcRenderer.invoke('environment:get-default'),
+    resolve: (template, customVariables) =>
+      ipcRenderer.invoke('environment:resolve', { template, customVariables })
+  },
+
+  collection: {
+    list: () => ipcRenderer.invoke('collection:list'),
+    get: (id) => ipcRenderer.invoke('collection:get', { id }),
+    create: (params) => ipcRenderer.invoke('collection:create', params),
+    update: (params) => ipcRenderer.invoke('collection:update', params),
+    delete: (id) => ipcRenderer.invoke('collection:delete', { id }),
+    run: (id) => ipcRenderer.invoke('collection:run', { id }),
+    stop: (runId) => ipcRenderer.invoke('collection:stop', { runId }),
+    onProgress: (callback) => {
+      const handler = (_event: Electron.IpcRendererEvent, payload: CollectionProgress) =>
+        callback(payload)
+      ipcRenderer.on('collection:progress', handler)
+      return () => ipcRenderer.removeListener('collection:progress', handler)
+    },
+    onResult: (callback) => {
+      const handler = (_event: Electron.IpcRendererEvent, payload: CollectionRunResult) =>
+        callback(payload)
+      ipcRenderer.on('collection:result', handler)
+      return () => ipcRenderer.removeListener('collection:result', handler)
+    }
+  },
+
+  bridge: {
+    list: () => ipcRenderer.invoke('bridge:list'),
+    get: (id) => ipcRenderer.invoke('bridge:get', { id }),
+    create: (params) => ipcRenderer.invoke('bridge:create', params),
+    update: (params) => ipcRenderer.invoke('bridge:update', params),
+    delete: (id) => ipcRenderer.invoke('bridge:delete', { id }),
+    start: (id) => ipcRenderer.invoke('bridge:start', { id }),
+    stop: (id) => ipcRenderer.invoke('bridge:stop', { id }),
+    pause: (id) => ipcRenderer.invoke('bridge:pause', { id }),
+    resume: (id) => ipcRenderer.invoke('bridge:resume', { id }),
+    getStats: (id) => ipcRenderer.invoke('bridge:get-stats', { id }),
+    onStatusChanged: (callback) => {
+      const handler = (
+        _event: Electron.IpcRendererEvent,
+        payload: { bridgeId: string; status: BridgeStatus }
+      ) => callback(payload)
+      ipcRenderer.on('bridge:status-changed', handler)
+      return () => ipcRenderer.removeListener('bridge:status-changed', handler)
+    },
+    onError: (callback) => {
+      const handler = (
+        _event: Electron.IpcRendererEvent,
+        payload: { bridgeId: string; error: string }
+      ) => callback(payload)
+      ipcRenderer.on('bridge:error', handler)
+      return () => ipcRenderer.removeListener('bridge:error', handler)
+    },
+    onStats: (callback) => {
+      const handler = (_event: Electron.IpcRendererEvent, stats: BridgeStats) => callback(stats)
+      ipcRenderer.on('bridge:stats', handler)
+      return () => ipcRenderer.removeListener('bridge:stats', handler)
+    }
+  },
+
+  dashboard: {
+    list: () => ipcRenderer.invoke('dashboard:list'),
+    get: (id) => ipcRenderer.invoke('dashboard:get', id),
+    create: (params) => ipcRenderer.invoke('dashboard:create', params),
+    update: (params) => ipcRenderer.invoke('dashboard:update', params),
+    delete: (id) => ipcRenderer.invoke('dashboard:delete', id),
+    setDefault: (id) => ipcRenderer.invoke('dashboard:set-default', id),
+    getDefault: () => ipcRenderer.invoke('dashboard:get-default'),
+    addWidget: (params) => ipcRenderer.invoke('dashboard:add-widget', params),
+    updateWidget: (params) => ipcRenderer.invoke('dashboard:update-widget', params),
+    removeWidget: (dashboardId, widgetId) =>
+      ipcRenderer.invoke('dashboard:remove-widget', { dashboardId, widgetId }),
+    updateLayout: (params) => ipcRenderer.invoke('dashboard:update-layout', params)
+  },
+
+  alert: {
+    // Rule CRUD
+    listRules: () => ipcRenderer.invoke('alert:list-rules'),
+    getRule: (id) => ipcRenderer.invoke('alert:get-rule', id),
+    createRule: (params) => ipcRenderer.invoke('alert:create-rule', params),
+    updateRule: (params) => ipcRenderer.invoke('alert:update-rule', params),
+    deleteRule: (id) => ipcRenderer.invoke('alert:delete-rule', id),
+    enableRule: (id) => ipcRenderer.invoke('alert:enable-rule', id),
+    disableRule: (id) => ipcRenderer.invoke('alert:disable-rule', id),
+    muteRule: (id) => ipcRenderer.invoke('alert:mute-rule', id),
+    unmuteRule: (id) => ipcRenderer.invoke('alert:unmute-rule', id),
+    getMutedRules: () => ipcRenderer.invoke('alert:get-muted-rules'),
+
+    // Events
+    queryEvents: (query) => ipcRenderer.invoke('alert:query-events', query),
+    acknowledge: (eventId, acknowledgedBy) =>
+      ipcRenderer.invoke('alert:acknowledge', { eventId, acknowledgedBy }),
+    acknowledgeAll: (severity) => ipcRenderer.invoke('alert:acknowledge-all', severity),
+    getUnacknowledgedCounts: () => ipcRenderer.invoke('alert:get-unacknowledged-counts'),
+    clearHistory: (before) => ipcRenderer.invoke('alert:clear-history', before),
+
+    // Sound
+    testSound: (severity) => ipcRenderer.invoke('alert:test-sound', severity),
+    setSoundEnabled: (enabled) => ipcRenderer.invoke('alert:set-sound-enabled', enabled),
+    getSoundEnabled: () => ipcRenderer.invoke('alert:get-sound-enabled'),
+
+    // Real-time events
+    onEventTriggered: (callback) => {
+      const handler = (_event: Electron.IpcRendererEvent, alertEvent: AlertEvent) =>
+        callback(alertEvent)
+      ipcRenderer.on('alert:event-triggered', handler)
+      return () => ipcRenderer.removeListener('alert:event-triggered', handler)
+    },
+    onEventAcknowledged: (callback) => {
+      const handler = (_event: Electron.IpcRendererEvent, eventId: number) =>
+        callback(eventId)
+      ipcRenderer.on('alert:event-acknowledged', handler)
+      return () => ipcRenderer.removeListener('alert:event-acknowledged', handler)
+    }
+  },
+
+  opcua: {
+    // Discovery
+    getEndpoints: (endpointUrl) => ipcRenderer.invoke('opcua:get-endpoints', endpointUrl),
+    testConnection: (params) => ipcRenderer.invoke('opcua:test-connection', params),
+
+    // Session
+    getSessionStatus: (connectionId) => ipcRenderer.invoke('opcua:session-status', connectionId),
+
+    // Browse
+    browse: (request) => ipcRenderer.invoke('opcua:browse', request),
+    browseNext: (request) => ipcRenderer.invoke('opcua:browse-next', request),
+    browsePath: (request) => ipcRenderer.invoke('opcua:browse-path', request),
+    searchNodes: (request) => ipcRenderer.invoke('opcua:search-nodes', request),
+    readNodeAttributes: (request) => ipcRenderer.invoke('opcua:read-node-attributes', request),
+
+    // Read/Write
+    read: (request) => ipcRenderer.invoke('opcua:read', request),
+    write: (request) => ipcRenderer.invoke('opcua:write', request),
+
+    // Subscriptions
+    createSubscription: (request) => ipcRenderer.invoke('opcua:create-subscription', request),
+    deleteSubscription: (params) => ipcRenderer.invoke('opcua:delete-subscription', params),
+    addMonitoredItem: (request) => ipcRenderer.invoke('opcua:add-monitored-item', request),
+    removeMonitoredItem: (params) => ipcRenderer.invoke('opcua:remove-monitored-item', params),
+
+    // Real-time events
+    onDataChange: (callback) => {
+      const handler = (_event: Electron.IpcRendererEvent, change: OpcUaDataChange) =>
+        callback(change)
+      ipcRenderer.on('opcua:data-change', handler)
+      return () => ipcRenderer.removeListener('opcua:data-change', handler)
+    },
+
+    // Certificate Management
+    listCertificates: () => ipcRenderer.invoke('opcua:list-certificates'),
+    importCertificate: (request) => ipcRenderer.invoke('opcua:import-certificate', request),
+    exportCertificate: (params) => ipcRenderer.invoke('opcua:export-certificate', params),
+    deleteCertificate: (id) => ipcRenderer.invoke('opcua:delete-certificate', id),
+    generateCertificate: (request) => ipcRenderer.invoke('opcua:generate-certificate', request),
+    trustCertificate: (id) => ipcRenderer.invoke('opcua:trust-certificate', id),
+    rejectCertificate: (id) => ipcRenderer.invoke('opcua:reject-certificate', id),
+    getServerCertificate: (endpointUrl) =>
+      ipcRenderer.invoke('opcua:get-server-certificate', endpointUrl),
+
+    // Events (Alarms & Conditions)
+    subscribeEvents: (request) => ipcRenderer.invoke('opcua:subscribe-events', request),
+    unsubscribeEvents: (params) => ipcRenderer.invoke('opcua:unsubscribe-events', params),
+    acknowledgeCondition: (request) => ipcRenderer.invoke('opcua:acknowledge-condition', request),
+    confirmCondition: (request) => ipcRenderer.invoke('opcua:confirm-condition', request),
+    onEvent: (callback) => {
+      const handler = (_event: Electron.IpcRendererEvent, opcuaEvent: OpcUaEvent) =>
+        callback(opcuaEvent)
+      ipcRenderer.on('opcua:event', handler)
+      return () => ipcRenderer.removeListener('opcua:event', handler)
+    },
+
+    // Methods
+    getMethodArgs: (params) => ipcRenderer.invoke('opcua:get-method-args', params),
+    callMethod: (request) => ipcRenderer.invoke('opcua:call-method', request),
+
+    // Historical Access
+    checkHistorizing: (request) => ipcRenderer.invoke('opcua:check-historizing', request),
+    readHistoryRaw: (request) => ipcRenderer.invoke('opcua:read-history-raw', request),
+    readHistoryProcessed: (request) => ipcRenderer.invoke('opcua:read-history-processed', request),
+    releaseContinuationPoints: (params) =>
+      ipcRenderer.invoke('opcua:release-continuation-points', params),
+
+    // Discovery (T159-T162)
+    discoverServers: (request) => ipcRenderer.invoke('opcua:discover-servers', request ?? {}),
+    getServerEndpoints: (request) => ipcRenderer.invoke('opcua:find-servers', request)
+  },
+
+  calculator: {
+    crc16Modbus: (data) => ipcRenderer.invoke('calculator:crc16-modbus', data),
+    lrc: (data) => ipcRenderer.invoke('calculator:lrc', data),
+    decodeFloat32: (params) => ipcRenderer.invoke('calculator:decode-float32', params),
+    encodeFloat32: (params) => ipcRenderer.invoke('calculator:encode-float32', params),
+    decodeFloat64: (params) => ipcRenderer.invoke('calculator:decode-float64', params),
+    swapBytes: (data) => ipcRenderer.invoke('calculator:swap-bytes', data),
+    swapWords: (data) => ipcRenderer.invoke('calculator:swap-words', data),
+    convertByteOrder: (params) => ipcRenderer.invoke('calculator:convert-byte-order', params),
+    parseModbusAddress: (params) => ipcRenderer.invoke('calculator:parse-modbus-address', params),
+    analyzePacket: (data) => ipcRenderer.invoke('calculator:analyze-packet', data),
+    hexToBytes: (hex) => ipcRenderer.invoke('calculator:hex-to-bytes', hex),
+    bytesToHex: (params) => ipcRenderer.invoke('calculator:bytes-to-hex', params)
+  },
+
+  workspace: {
+    export: (params) => ipcRenderer.invoke('workspace:export', params),
+    import: (params) => ipcRenderer.invoke('workspace:import', params),
+    validate: (yamlContent) => ipcRenderer.invoke('workspace:validate', yamlContent),
+    saveFile: (params) => ipcRenderer.invoke('workspace:save-file', params),
+    loadFile: (path) => ipcRenderer.invoke('workspace:load-file', path ? { path } : undefined)
   }
 }
 

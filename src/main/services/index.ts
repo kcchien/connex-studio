@@ -62,3 +62,64 @@ export {
   MIN_VIRTUAL_SERVER_PORT,
   MAX_VIRTUAL_SERVER_PORT
 } from './VirtualServer'
+
+export {
+  EnvironmentManager,
+  getEnvironmentManager,
+  disposeEnvironmentManager
+} from './EnvironmentManager'
+
+export {
+  resolveVariables,
+  resolveObjectVariables,
+  extractVariables,
+  type ResolutionResult
+} from './VariableSubstitution'
+
+export {
+  BridgeManager,
+  getBridgeManager,
+  disposeBridgeManager
+} from './BridgeManager'
+
+export {
+  DashboardService,
+  getDashboardService,
+  disposeDashboardService
+} from './DashboardService'
+
+export {
+  AlertEngine,
+  getAlertEngine,
+  disposeAlertEngine
+} from './AlertEngine'
+
+export {
+  AlertHistoryStore,
+  getAlertHistoryStore,
+  closeAlertHistoryStore
+} from './AlertHistoryStore'
+
+export {
+  CollectionRunner,
+  getCollectionRunner,
+  disposeCollectionRunner
+} from './CollectionRunner'
+
+export {
+  OpcUaCertificateStore,
+  getOpcUaCertificateStore,
+  disposeOpcUaCertificateStore
+} from './OpcUaCertificateStore'
+
+export {
+  WorkspaceExporter,
+  getWorkspaceExporter,
+  disposeWorkspaceExporter
+} from './WorkspaceExporter'
+
+export {
+  WorkspaceImporter,
+  getWorkspaceImporter,
+  disposeWorkspaceImporter
+} from './WorkspaceImporter'

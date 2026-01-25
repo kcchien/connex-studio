@@ -14,6 +14,14 @@ import { registerProfileHandlers } from './profile'
 import { registerExportHandlers } from './export'
 import { registerVirtualServerHandlers } from './virtual-server'
 import { registerAppHandlers } from './app'
+import { registerEnvironmentHandlers } from './environment'
+import { registerCollectionHandlers } from './collection'
+import { registerBridgeHandlers } from './bridge'
+import { registerDashboardHandlers } from './dashboard'
+import { registerAlertHandlers } from './alert'
+import { registerOpcUaHandlers } from './opcua'
+import { registerCalculatorHandlers } from './calculator'
+import { registerWorkspaceHandlers } from './workspace'
 
 /**
  * Register all IPC handlers.
@@ -29,6 +37,14 @@ export function registerAllHandlers(): void {
   registerExportHandlers()
   registerVirtualServerHandlers()
   registerAppHandlers()
+  registerEnvironmentHandlers()
+  registerCollectionHandlers()
+  registerBridgeHandlers()
+  registerDashboardHandlers()
+  registerAlertHandlers()
+  registerOpcUaHandlers()
+  registerCalculatorHandlers()
+  registerWorkspaceHandlers()
 }
 
 export { registerLogHandlers } from './log'
@@ -41,3 +57,11 @@ export { registerExportHandlers } from './export'
 export { registerVirtualServerHandlers } from './virtual-server'
 export { registerAppHandlers } from './app'
 export { handleWindowClose, setForceQuit, resetForceQuitFlag, stopAllPollingGracefully } from './app'
+export { registerEnvironmentHandlers } from './environment'
+export { registerCollectionHandlers } from './collection'
+export { registerBridgeHandlers, setBridgeMainWindow } from './bridge'
+export { registerDashboardHandlers } from './dashboard'
+export { registerAlertHandlers, setAlertMainWindow } from './alert'
+export { registerOpcUaHandlers, setOpcUaMainWindow } from './opcua'
+export { registerCalculatorHandlers } from './calculator'
+export { registerWorkspaceHandlers } from './workspace'

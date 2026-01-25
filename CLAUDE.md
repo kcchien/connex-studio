@@ -111,6 +111,7 @@ const result = await window.api.invoke('modbus:read', params)
 ## Active Technologies
 - TypeScript 5.x, Node.js 22 LTS (002-iiot-protocol-studio)
 - better-sqlite3 (ring buffer for DVR), YAML (config files), JSON (profiles) (002-iiot-protocol-studio)
+- better-sqlite3 (ring buffer for DVR, alert history), YAML (config export), JSON (profiles, dashboards) (003-pro-features-opcua)
 
 ## Recent Changes
 - 002-iiot-protocol-studio: Added TypeScript 5.x, Node.js 22 LTS

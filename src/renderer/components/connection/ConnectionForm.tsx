@@ -1,10 +1,10 @@
 import React, { useState, useCallback, type FormEvent } from 'react'
-import { ChevronDown, ChevronRight, Plus, Loader2, Radio, Wifi } from 'lucide-react'
+import { ChevronDown, ChevronRight, Plus, Loader2, Radio, Wifi, Network } from 'lucide-react'
 import * as Label from '@radix-ui/react-label'
 import { cn } from '@renderer/lib/utils'
 import { useConnection } from '@renderer/hooks/useConnection'
-import { DEFAULT_MODBUS_CONFIG, DEFAULT_MQTT_CONFIG } from '@shared/types/connection'
-import type { ModbusTcpConfig, MqttConfig, Protocol } from '@shared/types/connection'
+import { DEFAULT_MODBUS_CONFIG, DEFAULT_MQTT_CONFIG, DEFAULT_OPCUA_CONFIG } from '@shared/types/connection'
+import type { ModbusTcpConfig, MqttConfig, OpcUaConfig, Protocol } from '@shared/types/connection'
 
 interface ConnectionFormProps {
   /** Optional callback when connection is created successfully */
@@ -16,7 +16,23 @@ interface ConnectionFormProps {
 // Protocol options with icons
 const PROTOCOL_OPTIONS: { value: Protocol; label: string; icon: typeof Radio }[] = [
   { value: 'modbus-tcp', label: 'Modbus TCP', icon: Radio },
-  { value: 'mqtt', label: 'MQTT', icon: Wifi }
+  { value: 'mqtt', label: 'MQTT', icon: Wifi },
+  { value: 'opcua', label: 'OPC UA', icon: Network }
+]
+
+// OPC UA security mode options
+const SECURITY_MODE_OPTIONS = [
+  { value: 'None', label: 'None' },
+  { value: 'Sign', label: 'Sign' },
+  { value: 'SignAndEncrypt', label: 'Sign & Encrypt' }
+]
+
+// OPC UA security policy options
+const SECURITY_POLICY_OPTIONS = [
+  { value: 'None', label: 'None' },
+  { value: 'Basic256Sha256', label: 'Basic256Sha256' },
+  { value: 'Aes128_Sha256_RsaOaep', label: 'Aes128_Sha256_RsaOaep' },
+  { value: 'Aes256_Sha256_RsaPss', label: 'Aes256_Sha256_RsaPss' }
 ]
 
 interface ModbusFormState {
@@ -34,11 +50,20 @@ interface MqttFormState {
   useTls: boolean
 }
 
+interface OpcUaFormState {
+  endpointUrl: string
+  securityMode: 'None' | 'Sign' | 'SignAndEncrypt'
+  securityPolicy: string
+  username: string
+  password: string
+}
+
 interface FormState {
   name: string
   protocol: Protocol
   modbus: ModbusFormState
   mqtt: MqttFormState
+  opcua: OpcUaFormState
 }
 
 interface ValidationErrors {
@@ -51,6 +76,8 @@ interface ValidationErrors {
   // MQTT
   brokerUrl?: string
   clientId?: string
+  // OPC UA
+  endpointUrl?: string
 }
 
 const initialFormState: FormState = {
@@ -68,6 +95,13 @@ const initialFormState: FormState = {
     username: '',
     password: '',
     useTls: DEFAULT_MQTT_CONFIG.useTls
+  },
+  opcua: {
+    endpointUrl: DEFAULT_OPCUA_CONFIG.endpointUrl,
+    securityMode: DEFAULT_OPCUA_CONFIG.securityMode,
+    securityPolicy: DEFAULT_OPCUA_CONFIG.securityPolicy,
+    username: '',
+    password: ''
   }
 }
 
@@ -127,6 +161,22 @@ export function ConnectionForm({
     [validationErrors, error, clearError]
   )
 
+  const updateOpcUaField = useCallback(
+    <K extends keyof OpcUaFormState>(field: K, value: OpcUaFormState[K]) => {
+      setFormState((prev) => ({
+        ...prev,
+        opcua: { ...prev.opcua, [field]: value }
+      }))
+      if (validationErrors[field as keyof ValidationErrors]) {
+        setValidationErrors((prev) => ({ ...prev, [field]: undefined }))
+      }
+      if (error) {
+        clearError()
+      }
+    },
+    [validationErrors, error, clearError]
+  )
+
   const validate = useCallback((): boolean => {
     const errors: ValidationErrors = {}
 
@@ -170,6 +220,13 @@ export function ConnectionForm({
       if (!formState.mqtt.clientId.trim()) {
         errors.clientId = 'Client ID is required'
       }
+    } else if (formState.protocol === 'opcua') {
+      // Endpoint URL validation
+      if (!formState.opcua.endpointUrl.trim()) {
+        errors.endpointUrl = 'Endpoint URL is required'
+      } else if (!/^opc\.tcp:\/\/.+/.test(formState.opcua.endpointUrl)) {
+        errors.endpointUrl = 'URL must start with opc.tcp://'
+      }
     }
 
     setValidationErrors(errors)
@@ -184,7 +241,7 @@ export function ConnectionForm({
         return
       }
 
-      let config: ModbusTcpConfig | MqttConfig
+      let config: ModbusTcpConfig | MqttConfig | OpcUaConfig
 
       if (formState.protocol === 'modbus-tcp') {
         config = {
@@ -193,13 +250,21 @@ export function ConnectionForm({
           unitId: parseInt(formState.modbus.unitId, 10),
           timeout: parseInt(formState.modbus.timeout, 10)
         }
-      } else {
+      } else if (formState.protocol === 'mqtt') {
         config = {
           brokerUrl: formState.mqtt.brokerUrl.trim(),
           clientId: formState.mqtt.clientId.trim(),
           useTls: formState.mqtt.useTls,
           ...(formState.mqtt.username.trim() && { username: formState.mqtt.username.trim() }),
           ...(formState.mqtt.password && { password: formState.mqtt.password })
+        }
+      } else {
+        config = {
+          endpointUrl: formState.opcua.endpointUrl.trim(),
+          securityMode: formState.opcua.securityMode,
+          securityPolicy: formState.opcua.securityPolicy,
+          ...(formState.opcua.username.trim() && { username: formState.opcua.username.trim() }),
+          ...(formState.opcua.password && { password: formState.opcua.password })
         }
       }
 
@@ -285,7 +350,7 @@ export function ConnectionForm({
             <Label.Root className="text-xs font-medium text-muted-foreground">
               Protocol
             </Label.Root>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               {PROTOCOL_OPTIONS.map((option) => {
                 const Icon = option.icon
                 return (
@@ -566,6 +631,152 @@ export function ConnectionForm({
                 <Label.Root htmlFor="connection-use-tls" className="text-sm text-foreground">
                   Use TLS (mqtts://)
                 </Label.Root>
+              </div>
+            </>
+          )}
+
+          {formState.protocol === 'opcua' && (
+            <>
+              {/* Endpoint URL */}
+              <div className="space-y-1.5">
+                <Label.Root
+                  htmlFor="connection-endpoint-url"
+                  className="text-xs font-medium text-muted-foreground"
+                >
+                  Endpoint URL
+                </Label.Root>
+                <input
+                  id="connection-endpoint-url"
+                  type="text"
+                  value={formState.opcua.endpointUrl}
+                  onChange={(e) => updateOpcUaField('endpointUrl', e.target.value)}
+                  placeholder="opc.tcp://localhost:4840"
+                  disabled={isLoading}
+                  className={cn(
+                    'w-full h-8 px-2.5 text-sm rounded-md',
+                    'bg-background border border-input',
+                    'placeholder:text-muted-foreground/60',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                    'disabled:opacity-50 disabled:cursor-not-allowed',
+                    validationErrors.endpointUrl && 'border-destructive'
+                  )}
+                />
+                {validationErrors.endpointUrl && (
+                  <p className="text-xs text-destructive">{validationErrors.endpointUrl}</p>
+                )}
+              </div>
+
+              {/* Security Mode and Policy - Two columns */}
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1.5">
+                  <Label.Root
+                    htmlFor="connection-security-mode"
+                    className="text-xs font-medium text-muted-foreground"
+                  >
+                    Security Mode
+                  </Label.Root>
+                  <select
+                    id="connection-security-mode"
+                    value={formState.opcua.securityMode}
+                    onChange={(e) =>
+                      updateOpcUaField(
+                        'securityMode',
+                        e.target.value as 'None' | 'Sign' | 'SignAndEncrypt'
+                      )
+                    }
+                    disabled={isLoading}
+                    className={cn(
+                      'w-full h-8 px-2.5 text-sm rounded-md',
+                      'bg-background border border-input',
+                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                      'disabled:opacity-50 disabled:cursor-not-allowed'
+                    )}
+                  >
+                    {SECURITY_MODE_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label.Root
+                    htmlFor="connection-security-policy"
+                    className="text-xs font-medium text-muted-foreground"
+                  >
+                    Security Policy
+                  </Label.Root>
+                  <select
+                    id="connection-security-policy"
+                    value={formState.opcua.securityPolicy}
+                    onChange={(e) => updateOpcUaField('securityPolicy', e.target.value)}
+                    disabled={isLoading}
+                    className={cn(
+                      'w-full h-8 px-2.5 text-sm rounded-md',
+                      'bg-background border border-input',
+                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                      'disabled:opacity-50 disabled:cursor-not-allowed'
+                    )}
+                  >
+                    {SECURITY_POLICY_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Username and Password - Two columns */}
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1.5">
+                  <Label.Root
+                    htmlFor="connection-opcua-username"
+                    className="text-xs font-medium text-muted-foreground"
+                  >
+                    Username (optional)
+                  </Label.Root>
+                  <input
+                    id="connection-opcua-username"
+                    type="text"
+                    value={formState.opcua.username}
+                    onChange={(e) => updateOpcUaField('username', e.target.value)}
+                    placeholder="username"
+                    disabled={isLoading}
+                    className={cn(
+                      'w-full h-8 px-2.5 text-sm rounded-md',
+                      'bg-background border border-input',
+                      'placeholder:text-muted-foreground/60',
+                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                      'disabled:opacity-50 disabled:cursor-not-allowed'
+                    )}
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label.Root
+                    htmlFor="connection-opcua-password"
+                    className="text-xs font-medium text-muted-foreground"
+                  >
+                    Password (optional)
+                  </Label.Root>
+                  <input
+                    id="connection-opcua-password"
+                    type="password"
+                    value={formState.opcua.password}
+                    onChange={(e) => updateOpcUaField('password', e.target.value)}
+                    placeholder="password"
+                    disabled={isLoading}
+                    className={cn(
+                      'w-full h-8 px-2.5 text-sm rounded-md',
+                      'bg-background border border-input',
+                      'placeholder:text-muted-foreground/60',
+                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                      'disabled:opacity-50 disabled:cursor-not-allowed'
+                    )}
+                  />
+                </div>
               </div>
             </>
           )}

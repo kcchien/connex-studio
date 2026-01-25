@@ -4,7 +4,7 @@ import { resolve } from 'path'
 export default defineConfig({
   test: {
     name: 'renderer',
-    environment: 'jsdom',
+    environment: 'node', // Use 'node' for pure function tests; add jsdom when needed for React component tests
     root: './tests/unit/renderer',
     include: ['**/*.test.{ts,tsx}'],
     globals: true,

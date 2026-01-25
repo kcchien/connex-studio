@@ -9,6 +9,104 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Phase 12: US13 & US14 OPC UA Events & Methods** (T132-T142) - `003-pro-features-opcua`
+  - **Main Process - OPC UA 事件訂閱 (US13)**
+    - OpcUaAdapter 事件功能增強 (`src/main/protocols/OpcUaAdapter.ts`)
+      - `subscribeToEvents()` 事件訂閱 (T132)
+        - 支援 EventNotifier 節點監控
+        - 可配置發布間隔與取樣間隔
+      - EventFilter 建構 (T133)
+        - Select Clause 定義擷取欄位
+        - 支援欄位：EventId, EventType, SourceName, Time, Message, Severity
+      - 事件通知處理 (T134)
+        - 'event' 事件發射至 Renderer
+        - 事件格式化為 OpcUaEvent 結構
+      - Alarms & Conditions 支援 (T135)
+        - `acknowledgeCondition()` - 確認警報
+        - `confirmCondition()` - 確認條件
+        - 支援 Comment 與 AcknowledgeableConditionType
+      - 事件 IPC 處理器 (`src/main/ipc/opcua.ts`) (T136)
+        - `opcua:subscribe-events` - 訂閱事件
+        - `opcua:unsubscribe-events` - 取消訂閱
+        - `opcua:acknowledge-condition` - 確認警報
+        - `opcua:confirm-condition` - 確認條件
+        - `opcua:event` - 事件推送
+
+  - **Main Process - OPC UA 方法呼叫 (US14)**
+    - OpcUaAdapter 方法功能增強 (`src/main/protocols/OpcUaAdapter.ts`)
+      - 方法瀏覽 (T138)
+        - 瀏覽 Method 節點類別
+        - 識別 HasComponent 與 HasOrderedComponent 參考
+      - 方法參數讀取 (T139)
+        - `getMethodArguments()` - 讀取 InputArguments 與 OutputArguments
+        - 支援 Argument 結構：Name, DataType, ValueRank, ArrayDimensions, Description
+      - 方法呼叫 (T140)
+        - `callMethod()` - 呼叫方法
+        - 支援多個輸入參數
+        - 返回輸出參數與 StatusCode
+      - 方法 IPC 處理器 (`src/main/ipc/opcua.ts`) (T141)
+        - `opcua:get-method-args` - 取得方法參數
+        - `opcua:call-method` - 呼叫方法
+
+  - **Renderer - OPC UA 事件檢視器 UI** (`src/renderer/components/opcua/OpcUaEventViewer.tsx`) (T137)
+    - 即時事件顯示列表
+      - 依嚴重程度色彩標示 (info/warning/critical)
+      - 時間戳顯示
+      - 事件來源與訊息
+    - 事件篩選功能
+      - 依事件類型篩選
+      - 依嚴重程度篩選
+    - 警報操作
+      - Acknowledge 按鈕
+      - Confirm 按鈕
+      - 操作註解輸入
+    - 事件詳情展開
+      - EventId、EventType、SourceNode
+      - 完整事件屬性顯示
+    - 訂閱控制
+      - Subscribe/Unsubscribe 切換
+      - 連線狀態顯示
+
+  - **Renderer - OPC UA 方法呼叫 UI** (`src/renderer/components/opcua/OpcUaMethodCall.tsx`) (T142)
+    - 方法選擇
+      - 從瀏覽器拖曳 Method 節點
+      - 顯示方法 DisplayName
+    - 輸入參數表單
+      - 依參數型別動態產生輸入欄位
+      - 支援 Boolean、數值、字串等型別
+      - 參數說明提示
+    - 輸出結果顯示
+      - 輸出參數列表
+      - 執行 StatusCode
+      - StatusCode 人類可讀說明
+    - 方法執行
+      - Call 按鈕執行方法
+      - 執行中狀態指示
+      - 錯誤訊息顯示
+
+  - **Preload 更新** (`src/preload/index.ts`)
+    - ElectronAPI.opcua 新增事件方法
+      - subscribeEvents, unsubscribeEvents
+      - acknowledgeCondition, confirmCondition
+      - onEvent 事件監聽
+    - ElectronAPI.opcua 新增方法呼叫
+      - getMethodArgs, callMethod
+
+  - **useOpcUa Hook 擴展** (`src/renderer/hooks/useOpcUa.ts`)
+    - 事件狀態管理 (events, clearEvents)
+    - 事件訂閱監聽 (自動訂閱/取消訂閱)
+    - 事件操作 (subscribeEvents, unsubscribeEvents, acknowledgeCondition, confirmCondition)
+    - 方法操作 (getMethodArgs, callMethod)
+
+  - **共享型別更新** (`src/shared/types/opcua.ts`)
+    - OpcUaEvent 介面
+      - eventId, eventType, sourceNode, sourceName
+      - time, message, severity
+      - receiveTime, conditionId, acknowledgeableState
+    - SubscribeEventsRequest, AcknowledgeConditionRequest, ConfirmConditionRequest
+    - OpcUaMethodArguments 介面 (inputArguments, outputArguments)
+    - OpcUaCallMethodRequest, OpcUaCallMethodResult
+
 - **Phase 11: US12 OPC UA Certificate Management** (T124-T131) - `003-pro-features-opcua`
   - **Main Process - OpcUaCertificateStore 服務**
     - OpcUaCertificateStore 完整實作 (`src/main/services/OpcUaCertificateStore.ts`)

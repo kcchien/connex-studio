@@ -72,7 +72,16 @@ import type {
   OpcUaCertificate,
   ImportCertificateRequest,
   GenerateCertificateRequest,
-  CertificateValidationResult
+  CertificateValidationResult,
+  // Event types
+  OpcUaEvent,
+  SubscribeEventsRequest,
+  AcknowledgeConditionRequest,
+  ConfirmConditionRequest,
+  // Method types
+  OpcUaCallMethodRequest,
+  OpcUaCallMethodResult,
+  OpcUaMethodArguments
 } from '@shared/types/opcua'
 import type {
   CrcResult,
@@ -371,6 +380,24 @@ export interface ElectronAPI {
     trustCertificate: (id: string) => Promise<OpcUaCertificate>
     rejectCertificate: (id: string) => Promise<boolean>
     getServerCertificate: (endpointUrl: string) => Promise<OpcUaCertificate | null>
+
+    // Events (Alarms & Conditions)
+    subscribeEvents: (request: SubscribeEventsRequest) => Promise<{ subscriptionId: string }>
+    unsubscribeEvents: (params: {
+      connectionId: string
+      subscriptionId: string
+    }) => Promise<boolean>
+    acknowledgeCondition: (request: AcknowledgeConditionRequest) => Promise<boolean>
+    confirmCondition: (request: ConfirmConditionRequest) => Promise<boolean>
+    onEvent: (callback: (event: OpcUaEvent) => void) => () => void
+
+    // Methods
+    getMethodArgs: (params: {
+      connectionId: string
+      objectId: string
+      methodId: string
+    }) => Promise<OpcUaMethodArguments>
+    callMethod: (request: OpcUaCallMethodRequest) => Promise<OpcUaCallMethodResult>
   }
 
   // Calculator operations
@@ -626,7 +653,24 @@ const electronAPI: ElectronAPI = {
     generateCertificate: (request) => ipcRenderer.invoke('opcua:generate-certificate', request),
     trustCertificate: (id) => ipcRenderer.invoke('opcua:trust-certificate', id),
     rejectCertificate: (id) => ipcRenderer.invoke('opcua:reject-certificate', id),
-    getServerCertificate: (endpointUrl) => ipcRenderer.invoke('opcua:get-server-certificate', endpointUrl)
+    getServerCertificate: (endpointUrl) =>
+      ipcRenderer.invoke('opcua:get-server-certificate', endpointUrl),
+
+    // Events (Alarms & Conditions)
+    subscribeEvents: (request) => ipcRenderer.invoke('opcua:subscribe-events', request),
+    unsubscribeEvents: (params) => ipcRenderer.invoke('opcua:unsubscribe-events', params),
+    acknowledgeCondition: (request) => ipcRenderer.invoke('opcua:acknowledge-condition', request),
+    confirmCondition: (request) => ipcRenderer.invoke('opcua:confirm-condition', request),
+    onEvent: (callback) => {
+      const handler = (_event: Electron.IpcRendererEvent, opcuaEvent: OpcUaEvent) =>
+        callback(opcuaEvent)
+      ipcRenderer.on('opcua:event', handler)
+      return () => ipcRenderer.removeListener('opcua:event', handler)
+    },
+
+    // Methods
+    getMethodArgs: (params) => ipcRenderer.invoke('opcua:get-method-args', params),
+    callMethod: (request) => ipcRenderer.invoke('opcua:call-method', request)
   },
 
   calculator: {

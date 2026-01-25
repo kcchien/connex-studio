@@ -39,7 +39,16 @@ import {
   OPCUA_GENERATE_CERTIFICATE,
   OPCUA_TRUST_CERTIFICATE,
   OPCUA_REJECT_CERTIFICATE,
-  OPCUA_GET_SERVER_CERTIFICATE
+  OPCUA_GET_SERVER_CERTIFICATE,
+  // Event channels (T136)
+  OPCUA_SUBSCRIBE_EVENTS,
+  OPCUA_UNSUBSCRIBE_EVENTS,
+  OPCUA_ACKNOWLEDGE_CONDITION,
+  OPCUA_CONFIRM_CONDITION,
+  OPCUA_EVENT,
+  // Method channels (T141)
+  OPCUA_CALL_METHOD,
+  OPCUA_GET_METHOD_ARGS
 } from '@shared/constants/ipc-channels'
 import { getConnectionManager } from '../services/ConnectionManager'
 import { getOpcUaCertificateStore } from '../services/OpcUaCertificateStore'
@@ -73,7 +82,17 @@ import type {
   RemoveMonitoredItemRequest,
   SubscriptionState,
   MonitoredItem,
-  OpcUaDataChange
+  OpcUaDataChange,
+  // Event types (T136)
+  SubscribeEventsRequest,
+  AcknowledgeConditionRequest,
+  ConfirmConditionRequest,
+  OpcUaEvent,
+  OpcUaNode,
+  // Method types (T141)
+  OpcUaCallMethodRequest,
+  OpcUaCallMethodResult,
+  OpcUaMethodArguments
 } from '@shared/types'
 
 let mainWindow: BrowserWindow | null = null
@@ -647,6 +666,124 @@ export function registerOpcUaHandlers(): void {
       const store = getOpcUaCertificateStore()
       await store.initialize()
       return store.getServerCertificate(endpointUrl)
+    }
+  )
+
+  // ==========================================================================
+  // Event Operations (T132-T136)
+  // ==========================================================================
+
+  /**
+   * Subscribe to events from a source node.
+   */
+  ipcMain.handle(
+    OPCUA_SUBSCRIBE_EVENTS,
+    async (_, request: SubscribeEventsRequest): Promise<string> => {
+      log.debug(`[OpcUaIPC] Subscribing to events from: ${request.sourceNodeId}`)
+
+      const adapter = getOpcUaAdapter(request.connectionId)
+
+      // Set up event forwarding to renderer
+      adapter.on('opcua-event', (eventData: { eventSubscriptionId: string; sourceNodeId: string; event: OpcUaEvent }) => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send(OPCUA_EVENT, eventData)
+        }
+      })
+
+      const subscriptionId = await adapter.subscribeEvents(request)
+
+      log.info(`[OpcUaIPC] Event subscription created: ${subscriptionId}`)
+      return subscriptionId
+    }
+  )
+
+  /**
+   * Unsubscribe from events.
+   */
+  ipcMain.handle(
+    OPCUA_UNSUBSCRIBE_EVENTS,
+    async (
+      _,
+      params: { connectionId: string; eventSubscriptionId: string }
+    ): Promise<boolean> => {
+      log.debug(`[OpcUaIPC] Unsubscribing from events: ${params.eventSubscriptionId}`)
+
+      const adapter = getOpcUaAdapter(params.connectionId)
+      await adapter.unsubscribeEvents(params.eventSubscriptionId)
+
+      log.info(`[OpcUaIPC] Event subscription removed: ${params.eventSubscriptionId}`)
+      return true
+    }
+  )
+
+  /**
+   * Acknowledge a condition/alarm.
+   */
+  ipcMain.handle(
+    OPCUA_ACKNOWLEDGE_CONDITION,
+    async (_, request: AcknowledgeConditionRequest): Promise<boolean> => {
+      log.debug(`[OpcUaIPC] Acknowledging condition: ${request.conditionId}`)
+
+      const adapter = getOpcUaAdapter(request.connectionId)
+      await adapter.acknowledgeCondition(request)
+
+      log.info(`[OpcUaIPC] Condition acknowledged: ${request.conditionId}`)
+      return true
+    }
+  )
+
+  /**
+   * Confirm a condition/alarm.
+   */
+  ipcMain.handle(
+    OPCUA_CONFIRM_CONDITION,
+    async (_, request: ConfirmConditionRequest): Promise<boolean> => {
+      log.debug(`[OpcUaIPC] Confirming condition: ${request.conditionId}`)
+
+      const adapter = getOpcUaAdapter(request.connectionId)
+      await adapter.confirmCondition(request)
+
+      log.info(`[OpcUaIPC] Condition confirmed: ${request.conditionId}`)
+      return true
+    }
+  )
+
+  // ==========================================================================
+  // Method Operations (T138-T141)
+  // ==========================================================================
+
+  /**
+   * Get method arguments definition.
+   */
+  ipcMain.handle(
+    OPCUA_GET_METHOD_ARGS,
+    async (
+      _,
+      params: { connectionId: string; objectId: string; methodId: string }
+    ): Promise<OpcUaMethodArguments> => {
+      log.debug(`[OpcUaIPC] Getting method arguments for: ${params.methodId}`)
+
+      const adapter = getOpcUaAdapter(params.connectionId)
+      const args = await adapter.getMethodArguments(params.objectId, params.methodId)
+
+      log.debug(`[OpcUaIPC] Method has ${args.inputArguments.length} inputs, ${args.outputArguments.length} outputs`)
+      return args
+    }
+  )
+
+  /**
+   * Call a method on an object.
+   */
+  ipcMain.handle(
+    OPCUA_CALL_METHOD,
+    async (_, request: OpcUaCallMethodRequest): Promise<OpcUaCallMethodResult> => {
+      log.debug(`[OpcUaIPC] Calling method: ${request.methodId} on ${request.objectId}`)
+
+      const adapter = getOpcUaAdapter(request.connectionId)
+      const result = await adapter.callMethod(request)
+
+      log.info(`[OpcUaIPC] Method call completed with status: ${result.statusCode}`)
+      return result
     }
   )
 

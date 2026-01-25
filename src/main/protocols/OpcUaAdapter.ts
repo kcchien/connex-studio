@@ -17,11 +17,15 @@ import {
   DataChangeFilter,
   DataChangeTrigger,
   DeadbandType as NodeOpcuaDeadbandType,
+  resolveNodeId,
+  coerceNodeId,
+  Variant,
   type ClientMonitoredItem,
   type EndpointDescription,
   type UserIdentityInfo,
   type ReferenceDescription,
-  type MonitoringParametersOptions
+  type MonitoringParametersOptions,
+  type CallMethodRequestLike
 } from 'node-opcua'
 import log from 'electron-log/main.js'
 import type {
@@ -61,7 +65,19 @@ import type {
   SecurityPolicy,
   MessageSecurityMode,
   NodeClass,
-  DeadbandType
+  DeadbandType,
+  // Event types (T132-T135)
+  OpcUaEvent,
+  SubscribeEventsRequest,
+  EventFilter,
+  EventFilterOperator,
+  AcknowledgeConditionRequest,
+  ConfirmConditionRequest,
+  // Method types (T138-T141)
+  OpcUaCallMethodRequest,
+  OpcUaCallMethodResult,
+  OpcUaMethodArguments,
+  MethodArgument
 } from '@shared/types'
 import {
   getStatusCodeInfo,
@@ -150,11 +166,25 @@ export function parseEndpointUrl(url: string): { host: string; port: number; pat
 /**
  * OPC UA Adapter for OPC UA server connections.
  */
+/**
+ * Event subscription info for tracking.
+ */
+interface EventSubscriptionInfo {
+  subscriptionId: string
+  monitoredItem: ClientMonitoredItem
+  sourceNodeId: string
+  eventTypes?: string[]
+}
+
+/**
+ * OPC UA Adapter for OPC UA server connections.
+ */
 export class OpcUaAdapter extends ProtocolAdapter {
   private client: OPCUAClient | null = null
   private session: ClientSession | null = null
   private subscriptions: Map<string, ClientSubscription> = new Map()
   private monitoredItems: Map<string, ClientMonitoredItem> = new Map()
+  private eventSubscriptions: Map<string, EventSubscriptionInfo> = new Map()
   private sessionRenewalTimer: NodeJS.Timeout | null = null
   private serverInfo: OpcUaServerInfo | null = null
 
@@ -438,6 +468,9 @@ export class OpcUaAdapter extends ProtocolAdapter {
     this.stopSessionRenewal()
 
     try {
+      // Close all event subscriptions first
+      this.eventSubscriptions.clear()
+
       // Close all subscriptions
       for (const subscription of this.subscriptions.values()) {
         try {
@@ -1579,6 +1612,545 @@ export class OpcUaAdapter extends ProtocolAdapter {
     }
 
     return result
+  }
+
+  // =========================================================================
+  // Event Subscription Methods (T132-T135)
+  // =========================================================================
+
+  /**
+   * Subscribe to events from a source node (T132, T133, T134).
+   * Creates an event subscription with optional event filter.
+   */
+  async subscribeEvents(request: SubscribeEventsRequest): Promise<string> {
+    if (!this.session) {
+      throw new Error('Not connected')
+    }
+
+    // Get or create a subscription for events
+    let subscription = this.subscriptions.get('__event_subscription__')
+    if (!subscription) {
+      subscription = await this.session.createSubscription2({
+        requestedPublishingInterval: 100,
+        requestedLifetimeCount: 1000,
+        requestedMaxKeepAliveCount: 10,
+        maxNotificationsPerPublish: 100,
+        priority: 10
+      })
+      this.subscriptions.set('__event_subscription__', subscription)
+    }
+
+    // Build select clauses for event fields (T133)
+    const selectClauses = request.selectClauses ?? [
+      'EventId',
+      'EventType',
+      'SourceNode',
+      'SourceName',
+      'Time',
+      'ReceiveTime',
+      'Message',
+      'Severity',
+      'ConditionId',
+      'AckedState/Id',
+      'ConfirmedState/Id'
+    ]
+
+    // Build the event filter
+    const eventFilter = this.buildEventFilter(selectClauses, request.whereClause, request.eventTypes)
+
+    // Create monitored item for events
+    const monitoredItemResult = subscription.monitor(
+      {
+        nodeId: resolveNodeId(request.sourceNodeId),
+        attributeId: AttributeIds.EventNotifier
+      },
+      {
+        samplingInterval: 0,
+        queueSize: 100,
+        discardOldest: true,
+        filter: eventFilter as MonitoringParametersOptions['filter']
+      },
+      TimestampsToReturn.Both
+    )
+
+    // Handle both Promise and direct return types
+    const monitoredItem = (monitoredItemResult instanceof Promise
+      ? await monitoredItemResult
+      : monitoredItemResult) as ClientMonitoredItem
+
+    const eventSubscriptionId = crypto.randomUUID()
+
+    // Store event subscription info
+    this.eventSubscriptions.set(eventSubscriptionId, {
+      subscriptionId: '__event_subscription__',
+      monitoredItem,
+      sourceNodeId: request.sourceNodeId,
+      eventTypes: request.eventTypes
+    })
+
+    // Set up event handler (T134)
+    monitoredItem.on('changed', (eventFields: Variant[]) => {
+      const event = this.parseEventFields(eventFields, selectClauses)
+      this.emit('opcua-event', {
+        eventSubscriptionId,
+        sourceNodeId: request.sourceNodeId,
+        event
+      })
+    })
+
+    monitoredItem.on('err', (message) => {
+      log.error(`[OpcUaAdapter] Event monitored item error for ${request.sourceNodeId}:`, message)
+    })
+
+    log.info(`[OpcUaAdapter] Subscribed to events from ${request.sourceNodeId}, id: ${eventSubscriptionId}`)
+    return eventSubscriptionId
+  }
+
+  /**
+   * Build event filter for subscription (T133).
+   * Constructs SelectClauses and WhereClause for event filtering.
+   */
+  private buildEventFilter(selectClauses: string[], whereClause?: EventFilter, eventTypes?: string[]): unknown {
+    // Build select clauses - simplified approach using basic structure
+    // In node-opcua, we need to create SimpleAttributeOperand for each field
+    const selectClauseElements = selectClauses.map(fieldPath => {
+      const browsePath = fieldPath.split('/')
+      return {
+        typeDefinitionId: 'i=2041', // BaseEventType
+        browsePath: browsePath.map(name => ({ name })),
+        attributeId: AttributeIds.Value
+      }
+    })
+
+    // Build where clause for event type filtering
+    const whereClauseElements: unknown[] = []
+
+    // Add event type filter if specified
+    if (eventTypes && eventTypes.length > 0) {
+      // Create OR condition for multiple event types
+      for (const eventType of eventTypes) {
+        whereClauseElements.push({
+          filterOperator: 13, // OfType
+          filterOperands: [
+            { typeId: resolveNodeId(eventType) }
+          ]
+        })
+      }
+    }
+
+    // Add custom where clause if provided
+    if (whereClause) {
+      const customElement = this.convertEventFilter(whereClause)
+      if (customElement) {
+        whereClauseElements.push(customElement)
+      }
+    }
+
+    // Return event filter structure
+    return {
+      selectClauses: selectClauseElements,
+      whereClause: whereClauseElements.length > 0 ? {
+        elements: whereClauseElements
+      } : undefined
+    }
+  }
+
+  /**
+   * Convert our EventFilter type to node-opcua format.
+   */
+  private convertEventFilter(filter: EventFilter): unknown {
+    const operatorMap: Record<EventFilterOperator, number> = {
+      And: 0,
+      Or: 1,
+      Not: 2,
+      Equals: 3,
+      GreaterThan: 5,
+      LessThan: 7
+    }
+
+    return {
+      filterOperator: operatorMap[filter.operator] ?? 0,
+      filterOperands: filter.operands.map(op => {
+        if ('operator' in op) {
+          // Nested filter
+          return this.convertEventFilter(op as EventFilter)
+        } else {
+          // Simple operand
+          const operand = op as { type: string; value: unknown }
+          if (operand.type === 'literal') {
+            return { value: operand.value }
+          } else if (operand.type === 'attribute' || operand.type === 'simpleAttribute') {
+            return { browsePath: [{ name: String(operand.value) }] }
+          }
+          return { value: operand.value }
+        }
+      })
+    }
+  }
+
+  /**
+   * Parse event fields from notification (T134).
+   */
+  private parseEventFields(eventFields: Variant[], selectClauses: string[]): OpcUaEvent {
+    const getValue = (index: number): unknown => {
+      if (index < eventFields.length && eventFields[index]) {
+        return eventFields[index].value
+      }
+      return undefined
+    }
+
+    // Map select clause names to indices
+    const fieldMap: Record<string, number> = {}
+    selectClauses.forEach((clause, index) => {
+      fieldMap[clause.toLowerCase()] = index
+    })
+
+    const getField = (name: string): unknown => {
+      const index = fieldMap[name.toLowerCase()]
+      return index !== undefined ? getValue(index) : undefined
+    }
+
+    // Extract event fields
+    const eventIdBuffer = getField('EventId') as Buffer | undefined
+    const eventId = eventIdBuffer ? eventIdBuffer.toString('hex') : crypto.randomUUID()
+
+    const eventTypeNode = getField('EventType')
+    const eventType = eventTypeNode ? String(eventTypeNode) : 'BaseEvent'
+
+    const sourceNode = getField('SourceNode')
+    const sourceNodeId = sourceNode ? String(sourceNode) : ''
+
+    const sourceName = getField('SourceName') as string | undefined ?? ''
+
+    const timeValue = getField('Time') as Date | undefined
+    const time = timeValue ? timeValue.getTime() : Date.now()
+
+    const receiveTimeValue = getField('ReceiveTime') as Date | undefined
+    const receiveTime = receiveTimeValue ? receiveTimeValue.getTime() : Date.now()
+
+    const messageValue = getField('Message')
+    const message = messageValue
+      ? (typeof messageValue === 'object' && 'text' in (messageValue as object)
+          ? (messageValue as { text: string }).text
+          : String(messageValue))
+      : ''
+
+    const severity = (getField('Severity') as number | undefined) ?? 0
+
+    const conditionIdValue = getField('ConditionId')
+    const conditionId = conditionIdValue ? String(conditionIdValue) : undefined
+
+    const ackedState = getField('AckedState/Id') as boolean | undefined
+    const confirmedState = getField('ConfirmedState/Id') as boolean | undefined
+
+    return {
+      eventId,
+      eventType,
+      sourceNodeId,
+      sourceName,
+      time,
+      receiveTime,
+      message,
+      severity,
+      conditionId,
+      acknowledged: ackedState,
+      confirmed: confirmedState
+    }
+  }
+
+  /**
+   * Unsubscribe from events.
+   */
+  async unsubscribeEvents(eventSubscriptionId: string): Promise<void> {
+    const eventSub = this.eventSubscriptions.get(eventSubscriptionId)
+    if (!eventSub) {
+      throw new Error(`Event subscription not found: ${eventSubscriptionId}`)
+    }
+
+    try {
+      await eventSub.monitoredItem.terminate()
+    } catch (err) {
+      log.warn(`[OpcUaAdapter] Error terminating event subscription:`, err)
+    }
+
+    this.eventSubscriptions.delete(eventSubscriptionId)
+    log.info(`[OpcUaAdapter] Unsubscribed from events: ${eventSubscriptionId}`)
+  }
+
+  /**
+   * Acknowledge a condition/alarm (T135).
+   * Calls the Acknowledge method on the condition node.
+   */
+  async acknowledgeCondition(request: AcknowledgeConditionRequest): Promise<void> {
+    if (!this.session) {
+      throw new Error('Not connected')
+    }
+
+    try {
+      // Convert eventId from hex string to Buffer
+      const eventIdBuffer = Buffer.from(request.eventId, 'hex')
+
+      // Call the Acknowledge method on the ConditionType
+      // Method: i=9111 (Acknowledge)
+      // Object: The condition node
+      const methodResult = await this.session.call({
+        objectId: resolveNodeId(request.conditionId),
+        methodId: 'i=9111', // ConditionType.Acknowledge
+        inputArguments: [
+          { dataType: DataType.ByteString, value: eventIdBuffer },
+          { dataType: DataType.LocalizedText, value: { text: request.comment ?? '' } }
+        ]
+      })
+
+      if (!methodResult.statusCode.isGood()) {
+        const statusInfo = getStatusCodeInfo(methodResult.statusCode.value)
+        throw new Error(`Acknowledge failed: ${statusInfo.name}`)
+      }
+
+      log.info(`[OpcUaAdapter] Acknowledged condition ${request.conditionId}, event ${request.eventId}`)
+    } catch (error) {
+      log.error(`[OpcUaAdapter] Failed to acknowledge condition:`, error)
+      throw error
+    }
+  }
+
+  /**
+   * Confirm a condition/alarm (T135).
+   * Calls the Confirm method on the condition node.
+   */
+  async confirmCondition(request: ConfirmConditionRequest): Promise<void> {
+    if (!this.session) {
+      throw new Error('Not connected')
+    }
+
+    try {
+      // Convert eventId from hex string to Buffer
+      const eventIdBuffer = Buffer.from(request.eventId, 'hex')
+
+      // Call the Confirm method on the ConditionType
+      // Method: i=9113 (Confirm)
+      const methodResult = await this.session.call({
+        objectId: resolveNodeId(request.conditionId),
+        methodId: 'i=9113', // ConditionType.Confirm
+        inputArguments: [
+          { dataType: DataType.ByteString, value: eventIdBuffer },
+          { dataType: DataType.LocalizedText, value: { text: request.comment ?? '' } }
+        ]
+      })
+
+      if (!methodResult.statusCode.isGood()) {
+        const statusInfo = getStatusCodeInfo(methodResult.statusCode.value)
+        throw new Error(`Confirm failed: ${statusInfo.name}`)
+      }
+
+      log.info(`[OpcUaAdapter] Confirmed condition ${request.conditionId}, event ${request.eventId}`)
+    } catch (error) {
+      log.error(`[OpcUaAdapter] Failed to confirm condition:`, error)
+      throw error
+    }
+  }
+
+  /**
+   * Get all event subscriptions.
+   */
+  getEventSubscriptions(): Array<{ id: string; sourceNodeId: string; eventTypes?: string[] }> {
+    const result: Array<{ id: string; sourceNodeId: string; eventTypes?: string[] }> = []
+    for (const [id, info] of this.eventSubscriptions.entries()) {
+      result.push({
+        id,
+        sourceNodeId: info.sourceNodeId,
+        eventTypes: info.eventTypes
+      })
+    }
+    return result
+  }
+
+  // =========================================================================
+  // Method Call Methods (T138-T141)
+  // =========================================================================
+
+  /**
+   * Get method arguments definition (T138, T139).
+   * Reads InputArguments and OutputArguments properties of a method node.
+   */
+  async getMethodArguments(objectId: string, methodId: string): Promise<OpcUaMethodArguments> {
+    if (!this.session) {
+      throw new Error('Not connected')
+    }
+
+    try {
+      // Browse the method node to find InputArguments and OutputArguments
+      const browseResult = await this.session.browse({
+        nodeId: methodId,
+        browseDirection: 0, // Forward
+        referenceTypeId: 'i=46', // HasProperty
+        resultMask: 63
+      })
+
+      let inputArgsNodeId: string | null = null
+      let outputArgsNodeId: string | null = null
+
+      for (const ref of browseResult.references ?? []) {
+        const browseName = ref.browseName.name
+        if (browseName === 'InputArguments') {
+          inputArgsNodeId = ref.nodeId.toString()
+        } else if (browseName === 'OutputArguments') {
+          outputArgsNodeId = ref.nodeId.toString()
+        }
+      }
+
+      const inputArguments: MethodArgument[] = []
+      const outputArguments: MethodArgument[] = []
+
+      // Read InputArguments
+      if (inputArgsNodeId) {
+        const result = await this.session.read({
+          nodeId: inputArgsNodeId,
+          attributeId: AttributeIds.Value
+        })
+
+        if (result.statusCode.isGood() && result.value?.value) {
+          const args = result.value.value as unknown[]
+          for (const arg of args) {
+            inputArguments.push(this.parseArgumentDefinition(arg))
+          }
+        }
+      }
+
+      // Read OutputArguments
+      if (outputArgsNodeId) {
+        const result = await this.session.read({
+          nodeId: outputArgsNodeId,
+          attributeId: AttributeIds.Value
+        })
+
+        if (result.statusCode.isGood() && result.value?.value) {
+          const args = result.value.value as unknown[]
+          for (const arg of args) {
+            outputArguments.push(this.parseArgumentDefinition(arg))
+          }
+        }
+      }
+
+      log.debug(`[OpcUaAdapter] Method ${methodId} has ${inputArguments.length} input args, ${outputArguments.length} output args`)
+
+      return { inputArguments, outputArguments }
+    } catch (error) {
+      log.error(`[OpcUaAdapter] Failed to get method arguments:`, error)
+      throw error
+    }
+  }
+
+  /**
+   * Parse an Argument ExtensionObject to MethodArgument.
+   */
+  private parseArgumentDefinition(arg: unknown): MethodArgument {
+    const argObj = arg as {
+      name?: string
+      dataType?: { value?: number; toString?: () => string }
+      valueRank?: number
+      arrayDimensions?: number[]
+      description?: { text?: string }
+    }
+
+    const dataTypeNodeId = argObj.dataType?.toString?.() ?? String(argObj.dataType ?? 'i=24')
+
+    return {
+      name: argObj.name ?? 'Unknown',
+      dataType: DataTypeNames[argObj.dataType?.value ?? 0] ?? dataTypeNodeId,
+      valueRank: argObj.valueRank ?? -1,
+      arrayDimensions: argObj.arrayDimensions,
+      description: argObj.description?.text
+    }
+  }
+
+  /**
+   * Call a method on an object (T140).
+   */
+  async callMethod(request: OpcUaCallMethodRequest): Promise<OpcUaCallMethodResult> {
+    if (!this.session) {
+      throw new Error('Not connected')
+    }
+
+    try {
+      // Prepare input arguments with proper Variant encoding
+      const inputArguments = (request.inputArguments ?? []).map(arg => {
+        if (arg === null || arg === undefined) {
+          return new Variant({ dataType: DataType.Null })
+        }
+        // Let node-opcua infer the type
+        return new Variant({ value: arg })
+      })
+
+      const callRequest: CallMethodRequestLike = {
+        objectId: coerceNodeId(request.objectId),
+        methodId: coerceNodeId(request.methodId),
+        inputArguments
+      }
+
+      const methodResult = await this.session.call(callRequest)
+
+      const statusInfo = getStatusCodeInfo(methodResult.statusCode.value)
+
+      // Extract output arguments
+      const outputArguments = (methodResult.outputArguments ?? []).map(arg => {
+        if (arg && typeof arg === 'object' && 'value' in arg) {
+          return arg.value
+        }
+        return arg
+      })
+
+      // Extract input argument results if available
+      const inputArgumentResults = methodResult.inputArgumentResults?.map(sc =>
+        typeof sc === 'object' && 'value' in sc ? sc.value : sc
+      )
+
+      log.info(`[OpcUaAdapter] Called method ${request.methodId} on ${request.objectId}: ${statusInfo.name}`)
+
+      return {
+        statusCode: methodResult.statusCode.value,
+        outputArguments,
+        inputArgumentResults
+      }
+    } catch (error) {
+      log.error(`[OpcUaAdapter] Method call failed:`, error)
+      throw error
+    }
+  }
+
+  /**
+   * Browse methods on an object (T138).
+   * Returns all methods available on the specified object.
+   */
+  async browseMethods(objectId: string): Promise<OpcUaNode[]> {
+    if (!this.session) {
+      throw new Error('Not connected')
+    }
+
+    const browseResult = await this.session.browse({
+      nodeId: objectId,
+      browseDirection: 0, // Forward
+      referenceTypeId: 'i=47', // HasComponent
+      resultMask: 63
+    })
+
+    const methods: OpcUaNode[] = []
+
+    for (const ref of browseResult.references ?? []) {
+      // NodeClass 4 = Method
+      if (ref.nodeClass === 4) {
+        methods.push({
+          nodeId: ref.nodeId.toString(),
+          displayName: ref.displayName.text ?? '',
+          browseName: ref.browseName.toString(),
+          nodeClass: 'Method',
+          hasChildren: false
+        })
+      }
+    }
+
+    log.debug(`[OpcUaAdapter] Found ${methods.length} methods on ${objectId}`)
+    return methods
   }
 
   // =========================================================================

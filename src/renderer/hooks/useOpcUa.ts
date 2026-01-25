@@ -26,7 +26,16 @@ import type {
   AddMonitoredItemRequest,
   MonitoredItem,
   OpcUaDataChange,
-  OpcUaServerInfo
+  OpcUaServerInfo,
+  // Event types
+  OpcUaEvent,
+  SubscribeEventsRequest,
+  AcknowledgeConditionRequest,
+  ConfirmConditionRequest,
+  // Method types
+  OpcUaCallMethodRequest,
+  OpcUaCallMethodResult,
+  OpcUaMethodArguments
 } from '@shared/types/opcua'
 
 export interface SessionStatus {
@@ -75,25 +84,53 @@ export interface UseOpcUaReturn {
     itemId: string
   ) => Promise<boolean>
 
+  // Events (Alarms & Conditions)
+  subscribeEvents: (request: SubscribeEventsRequest) => Promise<{ subscriptionId: string } | null>
+  unsubscribeEvents: (connectionId: string, subscriptionId: string) => Promise<boolean>
+  acknowledgeCondition: (request: AcknowledgeConditionRequest) => Promise<boolean>
+  confirmCondition: (request: ConfirmConditionRequest) => Promise<boolean>
+
+  // Methods
+  getMethodArgs: (
+    connectionId: string,
+    objectId: string,
+    methodId: string
+  ) => Promise<OpcUaMethodArguments | null>
+  callMethod: (request: OpcUaCallMethodRequest) => Promise<OpcUaCallMethodResult | null>
+
   // State
   isLoading: boolean
   error: string | null
   dataChanges: OpcUaDataChange[]
+  events: OpcUaEvent[]
 
   // Actions
   clearError: () => void
   clearDataChanges: () => void
+  clearEvents: () => void
 }
 
 export function useOpcUa(): UseOpcUaReturn {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [dataChanges, setDataChanges] = useState<OpcUaDataChange[]>([])
+  const [events, setEvents] = useState<OpcUaEvent[]>([])
 
   // Subscribe to data change events
   useEffect(() => {
     const unsubscribe = opcuaApi.onDataChange((change: OpcUaDataChange) => {
       setDataChanges((prev) => [...prev, change])
+    })
+
+    return () => {
+      unsubscribe()
+    }
+  }, [])
+
+  // Subscribe to OPC UA events (alarms & conditions)
+  useEffect(() => {
+    const unsubscribe = opcuaApi.onEvent((event: OpcUaEvent) => {
+      setEvents((prev) => [...prev, event])
     })
 
     return () => {
@@ -107,6 +144,10 @@ export function useOpcUa(): UseOpcUaReturn {
 
   const clearDataChanges = useCallback(() => {
     setDataChanges([])
+  }, [])
+
+  const clearEvents = useCallback(() => {
+    setEvents([])
   }, [])
 
   // ==========================================================================
@@ -449,6 +490,150 @@ export function useOpcUa(): UseOpcUaReturn {
     []
   )
 
+  // ==========================================================================
+  // Events (Alarms & Conditions)
+  // ==========================================================================
+
+  /**
+   * Subscribe to events from a source node.
+   */
+  const subscribeEvents = useCallback(
+    async (request: SubscribeEventsRequest): Promise<{ subscriptionId: string } | null> => {
+      setIsLoading(true)
+      setError(null)
+
+      try {
+        const result = await opcuaApi.subscribeEvents(request)
+        return result
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to subscribe to events'
+        setError(message)
+        return null
+      } finally {
+        setIsLoading(false)
+      }
+    },
+    []
+  )
+
+  /**
+   * Unsubscribe from events.
+   */
+  const unsubscribeEvents = useCallback(
+    async (connectionId: string, subscriptionId: string): Promise<boolean> => {
+      setIsLoading(true)
+      setError(null)
+
+      try {
+        const result = await opcuaApi.unsubscribeEvents({ connectionId, subscriptionId })
+        return result
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to unsubscribe from events'
+        setError(message)
+        return false
+      } finally {
+        setIsLoading(false)
+      }
+    },
+    []
+  )
+
+  /**
+   * Acknowledge a condition/alarm.
+   */
+  const acknowledgeCondition = useCallback(
+    async (request: AcknowledgeConditionRequest): Promise<boolean> => {
+      setIsLoading(true)
+      setError(null)
+
+      try {
+        const result = await opcuaApi.acknowledgeCondition(request)
+        return result
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to acknowledge condition'
+        setError(message)
+        return false
+      } finally {
+        setIsLoading(false)
+      }
+    },
+    []
+  )
+
+  /**
+   * Confirm a condition/alarm.
+   */
+  const confirmCondition = useCallback(
+    async (request: ConfirmConditionRequest): Promise<boolean> => {
+      setIsLoading(true)
+      setError(null)
+
+      try {
+        const result = await opcuaApi.confirmCondition(request)
+        return result
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to confirm condition'
+        setError(message)
+        return false
+      } finally {
+        setIsLoading(false)
+      }
+    },
+    []
+  )
+
+  // ==========================================================================
+  // Methods
+  // ==========================================================================
+
+  /**
+   * Get method arguments (input/output definitions).
+   */
+  const getMethodArgs = useCallback(
+    async (
+      connectionId: string,
+      objectId: string,
+      methodId: string
+    ): Promise<OpcUaMethodArguments | null> => {
+      setIsLoading(true)
+      setError(null)
+
+      try {
+        const result = await opcuaApi.getMethodArgs({ connectionId, objectId, methodId })
+        return result
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to get method arguments'
+        setError(message)
+        return null
+      } finally {
+        setIsLoading(false)
+      }
+    },
+    []
+  )
+
+  /**
+   * Call an OPC UA method.
+   */
+  const callMethod = useCallback(
+    async (request: OpcUaCallMethodRequest): Promise<OpcUaCallMethodResult | null> => {
+      setIsLoading(true)
+      setError(null)
+
+      try {
+        const result = await opcuaApi.callMethod(request)
+        return result
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to call method'
+        setError(message)
+        return null
+      } finally {
+        setIsLoading(false)
+      }
+    },
+    []
+  )
+
   return {
     // Discovery
     getEndpoints,
@@ -474,13 +659,25 @@ export function useOpcUa(): UseOpcUaReturn {
     addMonitoredItem,
     removeMonitoredItem,
 
+    // Events (Alarms & Conditions)
+    subscribeEvents,
+    unsubscribeEvents,
+    acknowledgeCondition,
+    confirmCondition,
+
+    // Methods
+    getMethodArgs,
+    callMethod,
+
     // State
     isLoading,
     error,
     dataChanges,
+    events,
 
     // Actions
     clearError,
-    clearDataChanges
+    clearDataChanges,
+    clearEvents
   }
 }

@@ -53,11 +53,21 @@ import {
   OPCUA_CHECK_HISTORIZING,
   OPCUA_READ_HISTORY_RAW,
   OPCUA_READ_HISTORY_PROCESSED,
-  OPCUA_RELEASE_CONTINUATION_POINTS
+  OPCUA_RELEASE_CONTINUATION_POINTS,
+  // Discovery channels (T162)
+  OPCUA_DISCOVER_SERVERS,
+  OPCUA_FIND_SERVERS
 } from '@shared/constants/ipc-channels'
 import { getConnectionManager } from '../services/ConnectionManager'
 import { getOpcUaCertificateStore } from '../services/OpcUaCertificateStore'
-import { OpcUaAdapter, validateEndpointUrl } from '../protocols/OpcUaAdapter'
+import {
+  OpcUaAdapter,
+  validateEndpointUrl,
+  findServers,
+  getServerEndpoints,
+  clearDiscoveryCache,
+  getDiscoveryCacheStats
+} from '../protocols/OpcUaAdapter'
 import type {
   OpcUaEndpoint,
   OpcUaBrowseRequest,
@@ -104,7 +114,12 @@ import type {
   HistoryReadRawRequest,
   HistoryReadRawResult,
   HistoryReadProcessedRequest,
-  HistoryReadProcessedResult
+  HistoryReadProcessedResult,
+  // Discovery types (T162)
+  DiscoverServersRequest,
+  DiscoverServersResult,
+  GetEndpointsRequest,
+  GetEndpointsResult
 } from '@shared/types'
 
 let mainWindow: BrowserWindow | null = null
@@ -870,6 +885,51 @@ export function registerOpcUaHandlers(): void {
       await adapter.releaseContinuationPoints(params.continuationPoints)
 
       log.info(`[OpcUaIPC] Released continuation points`)
+    }
+  )
+
+  // ==========================================================================
+  // Discovery Methods (T159-T162)
+  // ==========================================================================
+
+  /**
+   * Discover OPC UA servers via LDS or direct endpoint (T159).
+   */
+  ipcMain.handle(
+    OPCUA_DISCOVER_SERVERS,
+    async (_, request: DiscoverServersRequest): Promise<DiscoverServersResult> => {
+      const discoveryUrl = request.discoveryUrl ?? 'opc.tcp://localhost:4840'
+      log.info(`[OpcUaIPC] Discovering servers at ${discoveryUrl}`)
+
+      const result = await findServers(request)
+
+      if (result.error) {
+        log.warn(`[OpcUaIPC] Discovery error: ${result.error}`)
+      } else {
+        log.info(`[OpcUaIPC] Discovered ${result.servers.length} servers`)
+      }
+
+      return result
+    }
+  )
+
+  /**
+   * Get endpoints from a discovered server (T160).
+   */
+  ipcMain.handle(
+    OPCUA_FIND_SERVERS,
+    async (_, request: GetEndpointsRequest): Promise<GetEndpointsResult> => {
+      log.info(`[OpcUaIPC] Getting endpoints from ${request.endpointUrl}`)
+
+      const result = await getServerEndpoints(request)
+
+      if (result.error) {
+        log.warn(`[OpcUaIPC] GetEndpoints error: ${result.error}`)
+      } else {
+        log.info(`[OpcUaIPC] Found ${result.endpoints.length} endpoints`)
+      }
+
+      return result
     }
   )
 

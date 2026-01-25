@@ -2647,3 +2647,278 @@ export class OpcUaAdapter extends ProtocolAdapter {
     return DataType.Variant
   }
 }
+
+// =============================================================================
+// Discovery Cache & Static Discovery Methods (T159-T161)
+// =============================================================================
+
+/**
+ * Discovery cache entry with TTL.
+ */
+interface DiscoveryCacheEntry {
+  data: DiscoverServersResult | GetEndpointsResult
+  expiresAt: number
+}
+
+/**
+ * Discovery result cache (5 minute TTL).
+ */
+const discoveryCache = new Map<string, DiscoveryCacheEntry>()
+const DISCOVERY_CACHE_TTL = 5 * 60 * 1000 // 5 minutes
+
+/**
+ * Clear expired cache entries.
+ */
+function cleanupDiscoveryCache(): void {
+  const now = Date.now()
+  for (const [key, entry] of discoveryCache.entries()) {
+    if (entry.expiresAt < now) {
+      discoveryCache.delete(key)
+    }
+  }
+}
+
+/**
+ * Get cached result if still valid.
+ */
+function getCachedDiscovery<T>(key: string): T | null {
+  const entry = discoveryCache.get(key)
+  if (entry && entry.expiresAt > Date.now()) {
+    return entry.data as T
+  }
+  return null
+}
+
+/**
+ * Cache a discovery result.
+ */
+function cacheDiscoveryResult(key: string, data: DiscoverServersResult | GetEndpointsResult): void {
+  cleanupDiscoveryCache()
+  discoveryCache.set(key, {
+    data,
+    expiresAt: Date.now() + DISCOVERY_CACHE_TTL
+  })
+}
+
+// Import additional discovery types
+import type {
+  DiscoverServersResult,
+  GetEndpointsResult,
+  OpcUaDiscoveredServer,
+  DiscoverServersRequest as DiscoverRequest,
+  GetEndpointsRequest
+} from '@shared/types'
+
+/**
+ * Find OPC UA servers via LDS (Local Discovery Server) or direct endpoint (T159).
+ * This is a static method that can be called without an active connection.
+ */
+export async function findServers(request: DiscoverRequest = {}): Promise<DiscoverServersResult> {
+  const discoveryUrl = request.discoveryUrl ?? 'opc.tcp://localhost:4840'
+  const cacheKey = `servers:${discoveryUrl}`
+
+  // Check cache first (T161)
+  const cached = getCachedDiscovery<DiscoverServersResult>(cacheKey)
+  if (cached) {
+    log.info(`[OpcUaDiscovery] Returning cached servers for ${discoveryUrl}`)
+    return cached
+  }
+
+  log.info(`[OpcUaDiscovery] Finding servers at ${discoveryUrl}`)
+
+  try {
+    // Create temporary client for discovery
+    const client = OPCUAClient.create({
+      endpointMustExist: false,
+      connectionStrategy: {
+        maxRetry: 2,
+        initialDelay: 1000,
+        maxDelay: 5000
+      }
+    })
+
+    await client.connect(discoveryUrl)
+
+    // Call FindServers
+    const servers = await client.findServers({
+      localeIds: request.localeIds,
+      serverUris: request.serverUris
+    })
+
+    await client.disconnect()
+
+    // Map to our type
+    const discoveredServers: OpcUaDiscoveredServer[] = servers.map(server => ({
+      applicationUri: server.applicationUri ?? '',
+      productUri: server.productUri ?? '',
+      applicationName: server.applicationName?.text ?? 'Unknown Server',
+      applicationType: mapApplicationType(server.applicationType),
+      discoveryUrls: (server.discoveryUrls ?? []).filter((url): url is string => url !== null),
+      gatewayServerUri: server.gatewayServerUri ?? undefined,
+      discoveryProfileUri: server.discoveryProfileUri ?? undefined
+    }))
+
+    const result: DiscoverServersResult = {
+      servers: discoveredServers,
+      discoveryUrl,
+      timestamp: new Date().toISOString()
+    }
+
+    // Cache result (T161)
+    cacheDiscoveryResult(cacheKey, result)
+
+    log.info(`[OpcUaDiscovery] Found ${discoveredServers.length} servers`)
+    return result
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    log.error(`[OpcUaDiscovery] FindServers failed:`, error)
+    return {
+      servers: [],
+      discoveryUrl,
+      timestamp: new Date().toISOString(),
+      error: message
+    }
+  }
+}
+
+/**
+ * Get endpoints from a specific server (T160).
+ * Enhanced version with caching support.
+ */
+export async function getServerEndpoints(request: GetEndpointsRequest): Promise<GetEndpointsResult> {
+  const { endpointUrl } = request
+  const cacheKey = `endpoints:${endpointUrl}`
+
+  // Check cache first (T161)
+  const cached = getCachedDiscovery<GetEndpointsResult>(cacheKey)
+  if (cached) {
+    log.info(`[OpcUaDiscovery] Returning cached endpoints for ${endpointUrl}`)
+    return cached
+  }
+
+  log.info(`[OpcUaDiscovery] Getting endpoints from ${endpointUrl}`)
+
+  try {
+    // Create temporary client
+    const client = OPCUAClient.create({
+      endpointMustExist: false,
+      connectionStrategy: {
+        maxRetry: 2,
+        initialDelay: 1000,
+        maxDelay: 5000
+      }
+    })
+
+    await client.connect(endpointUrl)
+    const endpoints = await client.getEndpoints({
+      localeIds: request.localeIds
+    })
+    await client.disconnect()
+
+    // Map to our endpoint type
+    const mappedEndpoints: import('@shared/types').OpcUaEndpoint[] = endpoints.map(ep => ({
+      endpointUrl: ep.endpointUrl ?? endpointUrl,
+      securityMode: reverseMapSecurityModeStatic(ep.securityMode),
+      securityPolicy: (ep.securityPolicyUri?.split('#')[1] ?? 'None') as import('@shared/types').SecurityPolicy,
+      userTokenPolicies: (ep.userIdentityTokens ?? []).map(token => ({
+        policyId: token.policyId ?? '',
+        tokenType: mapTokenTypeStatic(token.tokenType),
+        securityPolicy: token.securityPolicyUri ?? undefined
+      })),
+      serverCertificate: ep.serverCertificate?.toString('base64'),
+      securityLevel: ep.securityLevel ?? 0
+    }))
+
+    const result: GetEndpointsResult = {
+      endpoints: mappedEndpoints,
+      endpointUrl,
+      timestamp: new Date().toISOString()
+    }
+
+    // Cache result (T161)
+    cacheDiscoveryResult(cacheKey, result)
+
+    log.info(`[OpcUaDiscovery] Found ${mappedEndpoints.length} endpoints`)
+    return result
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    log.error(`[OpcUaDiscovery] GetEndpoints failed:`, error)
+    return {
+      endpoints: [],
+      endpointUrl,
+      timestamp: new Date().toISOString(),
+      error: message
+    }
+  }
+}
+
+/**
+ * Clear the discovery cache.
+ */
+export function clearDiscoveryCache(): void {
+  discoveryCache.clear()
+  log.info('[OpcUaDiscovery] Cache cleared')
+}
+
+/**
+ * Get cache statistics.
+ */
+export function getDiscoveryCacheStats(): { entries: number; keys: string[] } {
+  cleanupDiscoveryCache()
+  return {
+    entries: discoveryCache.size,
+    keys: Array.from(discoveryCache.keys())
+  }
+}
+
+/**
+ * Map application type number to string.
+ */
+function mapApplicationType(type: number | undefined): import('@shared/types').OpcUaApplicationType {
+  switch (type) {
+    case 0:
+      return 'Server'
+    case 1:
+      return 'Client'
+    case 2:
+      return 'ClientAndServer'
+    case 3:
+      return 'DiscoveryServer'
+    default:
+      return 'Server'
+  }
+}
+
+/**
+ * Static version of reverseMapSecurityMode for discovery functions.
+ */
+function reverseMapSecurityModeStatic(mode: number): import('@shared/types').MessageSecurityMode {
+  switch (mode) {
+    case 1:
+      return 'None'
+    case 2:
+      return 'Sign'
+    case 3:
+      return 'SignAndEncrypt'
+    default:
+      return 'None'
+  }
+}
+
+/**
+ * Static version of mapTokenType for discovery functions.
+ */
+function mapTokenTypeStatic(tokenType: number | undefined): 'anonymous' | 'username' | 'certificate' | 'issuedToken' {
+  switch (tokenType) {
+    case 0:
+      return 'anonymous'
+    case 1:
+      return 'username'
+    case 2:
+      return 'certificate'
+    case 3:
+      return 'issuedToken'
+    default:
+      return 'anonymous'
+  }
+}

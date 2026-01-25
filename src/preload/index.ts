@@ -88,7 +88,13 @@ import type {
   HistoryReadRawRequest,
   HistoryReadRawResult,
   HistoryReadProcessedRequest,
-  HistoryReadProcessedResult
+  HistoryReadProcessedResult,
+  // Discovery types
+  DiscoverServersRequest,
+  DiscoverServersResult,
+  GetEndpointsRequest,
+  GetEndpointsResult,
+  OpcUaDiscoveredServer
 } from '@shared/types/opcua'
 import type {
   CrcResult,
@@ -422,6 +428,10 @@ export interface ElectronAPI {
       connectionId: string
       continuationPoints: string[]
     }) => Promise<void>
+
+    // Discovery (T159-T162)
+    discoverServers: (request?: DiscoverServersRequest) => Promise<DiscoverServersResult>
+    getServerEndpoints: (request: GetEndpointsRequest) => Promise<GetEndpointsResult>
   }
 
   // Calculator operations
@@ -710,7 +720,11 @@ const electronAPI: ElectronAPI = {
     readHistoryRaw: (request) => ipcRenderer.invoke('opcua:read-history-raw', request),
     readHistoryProcessed: (request) => ipcRenderer.invoke('opcua:read-history-processed', request),
     releaseContinuationPoints: (params) =>
-      ipcRenderer.invoke('opcua:release-continuation-points', params)
+      ipcRenderer.invoke('opcua:release-continuation-points', params),
+
+    // Discovery (T159-T162)
+    discoverServers: (request) => ipcRenderer.invoke('opcua:discover-servers', request ?? {}),
+    getServerEndpoints: (request) => ipcRenderer.invoke('opcua:find-servers', request)
   },
 
   calculator: {

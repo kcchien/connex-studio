@@ -364,11 +364,11 @@
 
 ### Implementation for US16
 
-- [ ] T159 [US16] Implement FindServers via LDS endpoint in src/main/protocols/OpcUaAdapter.ts
-- [ ] T160 [US16] Implement GetEndpoints from discovered servers in src/main/protocols/OpcUaAdapter.ts
-- [ ] T161 [US16] Implement discovery result caching in src/main/protocols/OpcUaAdapter.ts
-- [ ] T162 [US16] Create discovery IPC handlers in src/main/ipc/opcua.ts
-- [ ] T163 [US16] Create OpcUaDiscovery UI in src/renderer/components/opcua/OpcUaDiscovery.tsx
+- [x] T159 [US16] Implement FindServers via LDS endpoint in src/main/protocols/OpcUaAdapter.ts
+- [x] T160 [US16] Implement GetEndpoints from discovered servers in src/main/protocols/OpcUaAdapter.ts
+- [x] T161 [US16] Implement discovery result caching in src/main/protocols/OpcUaAdapter.ts
+- [x] T162 [US16] Create discovery IPC handlers in src/main/ipc/opcua.ts
+- [x] T163 [US16] Create OpcUaDiscovery UI in src/renderer/components/opcua/OpcUaDiscovery.tsx
 
 **Checkpoint**: US-016 Discovery functional
 

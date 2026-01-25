@@ -529,18 +529,94 @@ export interface CertificateValidationResult {
 
 export type OpcUaApplicationType = 'Server' | 'Client' | 'ClientAndServer' | 'DiscoveryServer'
 
-export interface OpcUaServer {
+/**
+ * Discovered OPC UA server information.
+ */
+export interface OpcUaDiscoveredServer {
+  /** Application URI uniquely identifies the server */
   applicationUri: string
+  /** Product URI identifies the product */
   productUri: string
+  /** Human-readable application name */
   applicationName: string
+  /** Type of application */
   applicationType: OpcUaApplicationType
+  /** Discovery URLs for this server */
   discoveryUrls: string[]
+  /** Server capabilities (optional) */
+  serverCapabilities?: string[]
+  /** Gateway server URI (for tunneled connections) */
+  gatewayServerUri?: string
+  /** Discovery profile URI */
+  discoveryProfileUri?: string
 }
 
+/**
+ * Request to discover OPC UA servers.
+ */
 export interface DiscoverServersRequest {
+  /** Discovery endpoint URL (defaults to opc.tcp://localhost:4840) */
   discoveryUrl?: string
+  /** Preferred locale IDs for server names */
   localeIds?: string[]
+  /** Filter by specific server URIs (empty = all servers) */
   serverUris?: string[]
+}
+
+/**
+ * Result of server discovery.
+ */
+export interface DiscoverServersResult {
+  /** Discovered servers */
+  servers: OpcUaDiscoveredServer[]
+  /** Discovery URL used */
+  discoveryUrl: string
+  /** Timestamp of discovery */
+  timestamp: string
+  /** Any errors encountered */
+  error?: string
+}
+
+/**
+ * Request to get endpoints from a specific server.
+ */
+export interface GetEndpointsRequest {
+  /** Server endpoint URL */
+  endpointUrl: string
+  /** Preferred locale IDs */
+  localeIds?: string[]
+  /** Profile URIs filter */
+  profileUris?: string[]
+}
+
+/**
+ * Result of endpoint discovery from a server.
+ */
+export interface GetEndpointsResult {
+  /** Available endpoints */
+  endpoints: OpcUaEndpoint[]
+  /** Server that was queried */
+  endpointUrl: string
+  /** Timestamp of discovery */
+  timestamp: string
+  /** Any errors encountered */
+  error?: string
+}
+
+/**
+ * Cached discovery result for a URL.
+ */
+export interface DiscoveryCacheEntry {
+  /** Discovery URL */
+  url: string
+  /** Type of cached data */
+  type: 'servers' | 'endpoints'
+  /** Cached data */
+  data: DiscoverServersResult | GetEndpointsResult
+  /** Cache timestamp */
+  cachedAt: string
+  /** Cache expiry (ISO 8601) */
+  expiresAt: string
 }
 
 // -----------------------------------------------------------------------------

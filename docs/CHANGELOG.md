@@ -9,6 +9,85 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Phase 15: US16 OPC UA Discovery** (T159-T163) - `003-pro-features-opcua`
+  - **共享型別定義** (`src/shared/types/opcua.ts`) (T159-T161)
+    - OpcUaDiscoveredServer - 已發現伺服器資訊
+      - applicationUri, productUri, applicationName
+      - applicationType (Server, Client, ClientAndServer, DiscoveryServer)
+      - discoveryUrls - 伺服器發現端點 URL 列表
+      - serverCapabilities, gatewayServerUri, discoveryProfileUri
+    - DiscoverServersRequest - FindServers 請求參數
+      - discoveryUrl - LDS 或伺服器端點 URL
+      - localeIds - 語系 ID 過濾
+      - serverUris - 伺服器 URI 過濾
+    - DiscoverServersResult - FindServers 結果
+      - servers - OpcUaDiscoveredServer 陣列
+      - discoveryUrl, timestamp, error
+    - GetEndpointsRequest - GetEndpoints 請求參數
+      - endpointUrl - 伺服器端點 URL
+      - localeIds, profileUris - 選項參數
+    - GetEndpointsResult - GetEndpoints 結果
+      - endpoints - OpcUaEndpoint 陣列
+      - endpointUrl, timestamp, error
+    - DiscoveryCacheEntry - 發現結果快取條目 (5 分鐘 TTL)
+
+  - **Main Process - OpcUaAdapter 發現功能** (`src/main/protocols/OpcUaAdapter.ts`) (T159-T161)
+    - findServers(request) - 透過 LDS 發現伺服器 (T159)
+      - 使用 OPCUAClient.findServers() API
+      - 支援 localeIds, serverUris 過濾
+      - 映射 ApplicationType 枚舉
+      - 過濾 null discoveryUrls
+    - getServerEndpoints(request) - 取得伺服器端點 (T160)
+      - 使用 OPCUAClient.getEndpoints() API
+      - 映射 SecurityPolicy, MessageSecurityMode
+      - 映射 UserTokenPolicy 陣列
+    - Discovery Cache 機制 (T161)
+      - discoveryCache Map 儲存
+      - DISCOVERY_CACHE_TTL = 5 分鐘
+      - getCachedDiscovery<T>() 快取讀取
+      - cacheDiscoveryResult() 快取寫入
+      - clearDiscoveryCache() 清除快取
+      - getDiscoveryCacheStats() 取得快取統計
+
+  - **IPC 通道定義** (`src/shared/constants/ipc-channels.ts`)
+    - OPCUA_DISCOVER_SERVERS - 發現伺服器
+    - OPCUA_FIND_SERVERS - 取得端點 (GetEndpoints)
+
+  - **Main Process - Discovery IPC 處理器** (`src/main/ipc/opcua.ts`) (T162)
+    - opcua:discover-servers - FindServers IPC 處理器
+    - opcua:find-servers - GetEndpoints IPC 處理器
+
+  - **Preload API 擴展** (`src/preload/index.ts`)
+    - discoverServers(request) - 發現伺服器
+    - getServerEndpoints(request) - 取得端點
+
+  - **Renderer - OpcUaDiscovery UI** (`src/renderer/components/opcua/OpcUaDiscovery.tsx`) (T163)
+    - Discovery URL 輸入
+      - 預設值 opc.tcp://localhost:4840
+      - Discover 按鈕觸發發現
+    - 已發現伺服器列表
+      - 可展開式 Accordion 介面
+      - ApplicationTypeBadge 顯示伺服器類型
+      - Server Details 顯示 Product URI
+      - Discovery URLs 列表
+      - Get Endpoints 按鈕
+    - 端點列表表格
+      - URL 欄位
+      - SecurityModeBadge (None, Sign, SignAndEncrypt)
+      - SecurityPolicyBadge (顏色標示安全等級)
+      - Auth 欄位 (UserTokenPolicy 類型)
+      - Select 按鈕選擇端點
+    - 已選擇設定摘要
+      - 顯示選擇的伺服器和端點資訊
+      - Security Mode 和 Policy 徽章
+    - Dialog 模式支援
+      - asDialog prop 切換對話框模式
+      - DiscoveryDialog 元件封裝
+    - 自訂 UI 元件
+      - Badge, Button, Input 簡化元件
+      - ServerAccordionItem 可展開項目
+      - DiscoveryStatus 狀態指示器
+
 - **Phase 14: US15 OPC UA Historical Access** (T153-T158) - `003-pro-features-opcua`
   - **共享型別定義** (`src/shared/types/opcua.ts`) (T153)
     - HistoryAggregateType - 19 種聚合函數類型

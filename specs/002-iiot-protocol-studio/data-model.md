@@ -6,15 +6,15 @@
 ## Entity Relationship Diagram
 
 ```
-┌─────────────────┐       ┌─────────────────┐
-│     Profile     │       │  VirtualServer  │
-│─────────────────│       │─────────────────│
-│ id              │       │ id              │
-│ name            │       │ protocol        │
-│ version         │       │ port            │
-│ settings        │       │ status          │
-│ exportedAt      │       │ registers[]     │
-└────────┬────────┘       └─────────────────┘
+┌─────────────────┐
+│     Profile     │
+│─────────────────│
+│ id              │
+│ name            │
+│ version         │
+│ settings        │
+│ exportedAt      │
+└────────┬────────┘
          │ 1:N
          ▼
 ┌─────────────────┐
@@ -22,24 +22,24 @@
 │─────────────────│
 │ id              │
 │ name            │
-│ protocol        │◄────────────────────────┐
-│ config          │                         │
-│ status          │                         │
-│ lastError       │                         │
-│ createdAt       │                         │
-└────────┬────────┘                         │
-         │ 1:N                              │
-         ▼                                  │
-┌─────────────────┐                         │
-│      Tag        │                         │
-│─────────────────│       ┌─────────────────┤
-│ id              │       │    Waveform     │
-│ connectionId    │───────│─────────────────│
-│ name            │       │ type            │
-│ address         │       │ amplitude       │
-│ dataType        │       │ offset          │
-│ displayFormat   │       │ period          │
-│ thresholds      │       └─────────────────┘
+│ protocol        │
+│ config          │
+│ status          │
+│ lastError       │
+│ createdAt       │
+└────────┬────────┘
+         │ 1:N
+         ▼
+┌─────────────────┐
+│      Tag        │
+│─────────────────│
+│ id              │
+│ connectionId    │
+│ name            │
+│ address         │
+│ dataType        │
+│ displayFormat   │
+│ thresholds      │
 │ enabled         │
 └────────┬────────┘
          │ 1:N
@@ -223,58 +223,6 @@ interface ProfileSettings {
 **File Format**: JSON, stored in `{userData}/profiles/{name}.json`
 
 **Schema Migration**: Profile loader checks `version` field and applies migrations if needed.
-
-### VirtualServer
-
-Simulated protocol server for testing without hardware.
-
-```typescript
-interface VirtualServer {
-  id: string;                    // UUID v4
-  protocol: 'modbus-tcp';        // Phase 1: Modbus only
-  port: number;                  // Listening port
-  status: 'stopped' | 'starting' | 'running' | 'error';
-  registers: VirtualRegister[];
-}
-
-interface VirtualRegister {
-  address: number;               // Starting address
-  length: number;                // Number of registers
-  waveform: Waveform;
-  currentValues: number[];       // Live generated values
-}
-```
-
-### Waveform
-
-Data generator configuration for Virtual Server.
-
-```typescript
-interface Waveform {
-  type: 'constant' | 'sine' | 'square' | 'triangle' | 'random';
-  amplitude: number;             // Peak deviation from offset
-  offset: number;                // Center value
-  period: number;                // Cycle period in ms (for sine/square/triangle)
-  min?: number;                  // For random: minimum value
-  max?: number;                  // For random: maximum value
-}
-```
-
-**Value Generation**:
-```typescript
-function generateValue(waveform: Waveform, t: number): number {
-  const { type, amplitude, offset, period } = waveform;
-  const phase = (t % period) / period;
-
-  switch (type) {
-    case 'constant': return offset;
-    case 'sine': return offset + amplitude * Math.sin(2 * Math.PI * phase);
-    case 'square': return offset + (phase < 0.5 ? amplitude : -amplitude);
-    case 'triangle': return offset + amplitude * (1 - 4 * Math.abs(phase - 0.5));
-    case 'random': return waveform.min! + Math.random() * (waveform.max! - waveform.min!);
-  }
-}
-```
 
 ## SQLite Schema
 

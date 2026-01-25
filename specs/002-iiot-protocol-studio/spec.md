@@ -71,23 +71,7 @@
 
 ---
 
-### User Story 5 - Virtual Server for Testing (Priority: P2)
-
-使用者沒有實體設備可測試，希望系統內建模擬伺服器。啟動 Virtual Server 後，可模擬 Modbus Slave 回應特定波形資料。
-
-**Why this priority**: 開發與測試階段不一定有實體設備，Virtual Server 讓使用者可以驗證應用程式功能而不依賴外部設備。
-
-**Independent Test**: 啟動 Virtual Server (Modbus TCP, Port 5020)，建立 Client 連線到 localhost:5020，設定 Tags 並輪詢，確認收到模擬資料。
-
-**Acceptance Scenarios**:
-
-1. **Given** 無實體設備可用，**When** 使用者點擊「啟動 Virtual Server」選擇 Modbus TCP 協定與 Port 5020，**Then** 系統啟動本地模擬伺服器，狀態顯示「Virtual Server Running on :5020」
-2. **Given** Virtual Server 執行中，**When** 使用者設定 Register 40001-40010 輸出 Sine Wave (Amplitude: 100, Period: 10s)，**Then** 連線到該 Server 的 Client 讀取到正弦波形資料
-3. **Given** Virtual Server 執行中且有 Client 連線，**When** 使用者點擊「停止 Virtual Server」，**Then** 系統關閉伺服器，Client 端顯示連線中斷
-
----
-
-### User Story 6 - Multi-Protocol Support (Priority: P2)
+### User Story 5 - Multi-Protocol Support (Priority: P2)
 
 使用者需要同時連接 Modbus TCP 與 MQTT Broker，在同一畫面監控來自不同協定的資料。
 
@@ -103,7 +87,7 @@
 
 ---
 
-### User Story 7 - Session Export & Report (Priority: P1)
+### User Story 6 - Session Export & Report (Priority: P1)
 
 使用者完成測試後，需要匯出資料紀錄作為報告依據。系統支援匯出 CSV 與簡易 HTML 報告。
 
@@ -126,7 +110,6 @@
 - What happens when **使用者輸入非法參數** (e.g., Port > 65535, negative address)? System MUST validate inputs before sending, show inline validation errors
 - How does system handle **MQTT Broker requires authentication**? System MUST support username/password and certificate-based auth in connection dialog
 - What happens when **匯入的 Profile 版本不相容**? System MUST validate schema version, show migration dialog or reject with clear error
-- How does system handle **Virtual Server port already in use**? System MUST detect EADDRINUSE error and suggest alternative port
 - What happens when **user closes app while polling or with unsaved changes**? System MUST prompt user with options to save Profile, discard changes, or cancel close; polling MUST stop gracefully before exit
 
 ## Requirements *(mandatory)*
@@ -157,11 +140,6 @@
 - **FR-015**: System MUST provide time-travel UI allowing users to scrub through historical data
 - **FR-016**: System MUST clearly indicate when viewing historical vs live data
 
-#### Virtual Server
-- **FR-017**: System MUST provide built-in Modbus TCP Slave simulator
-- **FR-018**: Virtual Server MUST support waveform generation: Constant, Sine, Square, Triangle, Random
-- **FR-019**: Virtual Server MUST allow configuring register values and waveform parameters
-
 #### Profile & Export
 - **FR-020**: System MUST save/load connection profiles as JSON files
 - **FR-021**: System MUST export collected data to CSV format
@@ -185,8 +163,6 @@
 - **Tag**: A monitored data point. Attributes: id, connectionId, name, address (protocol-specific reference), dataType, displayFormat, thresholds {warning, alarm}, enabled
 - **DataPoint**: A single sampled value. Attributes: tagId, timestamp, value (number|boolean|string), quality (good|bad|uncertain)
 - **Profile**: Saved configuration bundle. Attributes: id, name, version, connections[], tags[], settings, exportedAt
-- **VirtualServer**: Simulated protocol server. Attributes: id, protocol, port, status, registers[] (for Modbus)
-- **Waveform**: Data generator for Virtual Server. Attributes: type (constant|sine|square|triangle|random), amplitude, offset, period
 
 ## Success Criteria *(mandatory)*
 
@@ -196,10 +172,9 @@
 - **SC-002**: 系統可穩定輪詢 100 個 Tags，間隔 500ms，持續 1 小時無崩潰或記憶體洩漏 (Heap growth < 50MB/hr)
 - **SC-003**: Data DVR 時間軸操作回應時間 < 100ms，確保流暢的時間旅行體驗
 - **SC-004**: Profile 載入時間 < 2 秒 (包含 50 個 Tags 的設定檔)
-- **SC-005**: Virtual Server 啟動時間 < 1 秒，可同時服務 5 個 Client 連線
-- **SC-006**: CSV 匯出 10000 筆資料完成時間 < 5 秒
-- **SC-007**: 應用程式冷啟動時間 < 3 秒 (Windows/macOS)
-- **SC-008**: 90% 的目標使用者 (工業自動化工程師) 在首次使用無需說明文件即可完成基本連線測試
+- **SC-005**: CSV 匯出 10000 筆資料完成時間 < 5 秒
+- **SC-006**: 應用程式冷啟動時間 < 3 秒 (Windows/macOS)
+- **SC-007**: 90% 的目標使用者 (工業自動化工程師) 在首次使用無需說明文件即可完成基本連線測試
 
 ## Clarifications
 

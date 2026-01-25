@@ -9,7 +9,7 @@
 {domain}:{action}
 ```
 
-- **domain**: Feature area (connection, tag, polling, profile, export, dvr, virtual-server, log)
+- **domain**: Feature area (connection, tag, polling, profile, export, dvr, log)
 - **action**: Operation (create, read, update, delete, start, stop, etc.)
 
 ## Connection Channels
@@ -498,65 +498,6 @@ Generate HTML report.
 ```typescript
 { success: true; path: string }
 | { success: false; error: string; cancelled?: boolean }
-```
-
-## Virtual Server Channels
-
-### `virtual-server:start`
-
-Start virtual Modbus server.
-
-**Request**:
-```typescript
-{
-  protocol: 'modbus-tcp';
-  port: number;
-  registers: Array<{
-    address: number;
-    length: number;
-    waveform: Waveform;
-  }>;
-}
-```
-
-**Response**:
-```typescript
-{ success: true; serverId: string }
-| { success: false; error: string }
-```
-
-### `virtual-server:stop`
-
-Stop virtual server.
-
-**Request**:
-```typescript
-{ serverId: string }
-```
-
-**Response**:
-```typescript
-{ success: true }
-| { success: false; error: string }
-```
-
-### `virtual-server:status`
-
-Get virtual server status.
-
-**Request**: `{}`
-
-**Response**:
-```typescript
-{
-  servers: Array<{
-    id: string;
-    protocol: string;
-    port: number;
-    status: 'stopped' | 'running' | 'error';
-    clientCount: number;
-  }>;
-}
 ```
 
 ## Log Channels

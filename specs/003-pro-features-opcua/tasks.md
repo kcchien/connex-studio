@@ -322,16 +322,16 @@
 
 ### Implementation for US6
 
-- [ ] T143 [US6] Define Workspace YAML schema and types in src/shared/types/workspace.ts
-- [ ] T144 [US6] Implement YAML export with stable sorting using js-yaml in src/main/services/WorkspaceExporter.ts
-- [ ] T145 [US6] Implement selective export (choose items to include) in src/main/services/WorkspaceExporter.ts
-- [ ] T146 [US6] Implement credential exclusion from export in src/main/services/WorkspaceExporter.ts
-- [ ] T147 [US6] Implement schema version embedding in src/main/services/WorkspaceExporter.ts
-- [ ] T148 [US6] Implement YAML import with conflict resolution in src/main/services/WorkspaceImporter.ts
-- [ ] T149 [US6] Implement schema validation before import in src/main/services/WorkspaceImporter.ts
-- [ ] T150 [US6] Create workspace IPC handlers in src/main/ipc/workspace.ts
-- [ ] T151 [P] [US6] Create ExportWorkspace UI in src/renderer/components/workspace/ExportWorkspace.tsx
-- [ ] T152 [P] [US6] Create ImportPreview UI with conflict display in src/renderer/components/workspace/ImportPreview.tsx
+- [x] T143 [US6] Define Workspace YAML schema and types in src/shared/types/workspace.ts
+- [x] T144 [US6] Implement YAML export with stable sorting using js-yaml in src/main/services/WorkspaceExporter.ts
+- [x] T145 [US6] Implement selective export (choose items to include) in src/main/services/WorkspaceExporter.ts
+- [x] T146 [US6] Implement credential exclusion from export in src/main/services/WorkspaceExporter.ts
+- [x] T147 [US6] Implement schema version embedding in src/main/services/WorkspaceExporter.ts
+- [x] T148 [US6] Implement YAML import with conflict resolution in src/main/services/WorkspaceImporter.ts
+- [x] T149 [US6] Implement schema validation before import in src/main/services/WorkspaceImporter.ts
+- [x] T150 [US6] Create workspace IPC handlers in src/main/ipc/workspace.ts
+- [x] T151 [P] [US6] Create ExportWorkspace UI in src/renderer/components/workspace/ExportWorkspace.tsx
+- [x] T152 [P] [US6] Create ImportPreview UI with conflict display in src/renderer/components/workspace/ImportPreview.tsx
 
 **Checkpoint**: US-006 Configuration export/import functional
 
@@ -345,12 +345,12 @@
 
 ### Implementation for US15
 
-- [ ] T153 [US15] Implement Historizing attribute check in src/main/protocols/OpcUaAdapter.ts
-- [ ] T154 [US15] Implement raw history read with time range in src/main/protocols/OpcUaAdapter.ts
-- [ ] T155 [US15] Implement processed history read with aggregates in src/main/protocols/OpcUaAdapter.ts
-- [ ] T156 [US15] Implement continuation point handling for large results in src/main/protocols/OpcUaAdapter.ts
-- [ ] T157 [US15] Create history IPC handlers in src/main/ipc/opcua.ts
-- [ ] T158 [US15] Create OpcUaHistoryQuery UI with chart display in src/renderer/components/opcua/OpcUaHistoryQuery.tsx
+- [x] T153 [US15] Implement Historizing attribute check in src/main/protocols/OpcUaAdapter.ts
+- [x] T154 [US15] Implement raw history read with time range in src/main/protocols/OpcUaAdapter.ts
+- [x] T155 [US15] Implement processed history read with aggregates in src/main/protocols/OpcUaAdapter.ts
+- [x] T156 [US15] Implement continuation point handling for large results in src/main/protocols/OpcUaAdapter.ts
+- [x] T157 [US15] Create history IPC handlers in src/main/ipc/opcua.ts
+- [x] T158 [US15] Create OpcUaHistoryQuery UI with chart display in src/renderer/components/opcua/OpcUaHistoryQuery.tsx
 
 **Checkpoint**: US-015 Historical access functional
 

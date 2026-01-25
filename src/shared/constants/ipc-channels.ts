@@ -191,6 +191,10 @@ export const OPCUA_CALL_METHOD = 'opcua:call-method'
 export const OPCUA_GET_METHOD_ARGS = 'opcua:get-method-args'
 
 // OPC UA History channels
+export const OPCUA_CHECK_HISTORIZING = 'opcua:check-historizing'
+export const OPCUA_READ_HISTORY_RAW = 'opcua:read-history-raw'
+export const OPCUA_READ_HISTORY_PROCESSED = 'opcua:read-history-processed'
+export const OPCUA_RELEASE_CONTINUATION_POINTS = 'opcua:release-continuation-points'
 export const OPCUA_READ_HISTORY = 'opcua:read-history'
 export const OPCUA_READ_HISTORY_EVENTS = 'opcua:read-history-events'
 
@@ -389,6 +393,10 @@ export const IPC_CHANNELS = {
     callMethod: OPCUA_CALL_METHOD,
     getMethodArgs: OPCUA_GET_METHOD_ARGS,
     // History
+    checkHistorizing: OPCUA_CHECK_HISTORIZING,
+    readHistoryRaw: OPCUA_READ_HISTORY_RAW,
+    readHistoryProcessed: OPCUA_READ_HISTORY_PROCESSED,
+    releaseContinuationPoints: OPCUA_RELEASE_CONTINUATION_POINTS,
     readHistory: OPCUA_READ_HISTORY,
     readHistoryEvents: OPCUA_READ_HISTORY_EVENTS,
     // Certificates

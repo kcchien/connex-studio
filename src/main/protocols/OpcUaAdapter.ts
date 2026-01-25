@@ -20,6 +20,11 @@ import {
   resolveNodeId,
   coerceNodeId,
   Variant,
+  ReadRawModifiedDetails,
+  ReadProcessedDetails,
+  HistoryReadValueId,
+  AggregateConfiguration,
+  HistoryReadRequest,
   type ClientMonitoredItem,
   type EndpointDescription,
   type UserIdentityInfo,
@@ -77,8 +82,20 @@ import type {
   OpcUaCallMethodRequest,
   OpcUaCallMethodResult,
   OpcUaMethodArguments,
-  MethodArgument
+  MethodArgument,
+  // History types (T153-T156)
+  HistorizingCheckRequest,
+  HistorizingCheckResult,
+  HistoryReadRawRequest,
+  HistoryReadRawResult,
+  HistoryReadProcessedRequest,
+  HistoryReadProcessedResult,
+  HistoryNodeResult,
+  HistoryDataValue,
+  HistoryAggregateType,
+  TimestampsToReturn as OpcUaTimestampsToReturn
 } from '@shared/types'
+import { HistoryAggregateNodeIds } from '@shared/types'
 import {
   getStatusCodeInfo,
   DataTypeNames,
@@ -2151,6 +2168,358 @@ export class OpcUaAdapter extends ProtocolAdapter {
 
     log.debug(`[OpcUaAdapter] Found ${methods.length} methods on ${objectId}`)
     return methods
+  }
+
+  // =========================================================================
+  // Historical Access Methods (T153-T156)
+  // =========================================================================
+
+  /**
+   * Check if a node supports historizing (T153).
+   * Reads the Historizing attribute and access levels.
+   */
+  async checkHistorizing(request: HistorizingCheckRequest): Promise<HistorizingCheckResult> {
+    if (!this.session) {
+      throw new Error('Not connected')
+    }
+
+    log.debug(`[OpcUaAdapter] Checking historizing for node: ${request.nodeId}`)
+
+    const nodeId = coerceNodeId(request.nodeId)
+
+    // Read Historizing, AccessLevel, and UserAccessLevel attributes
+    const readResult = await this.session.read([
+      { nodeId, attributeId: AttributeIds.Historizing },
+      { nodeId, attributeId: AttributeIds.AccessLevel },
+      { nodeId, attributeId: AttributeIds.UserAccessLevel },
+      { nodeId, attributeId: AttributeIds.MinimumSamplingInterval }
+    ])
+
+    const historizing = readResult[0]?.value?.value === true
+    const accessLevel = readResult[1]?.value?.value as number | undefined
+    const userAccessLevel = readResult[2]?.value?.value as number | undefined
+    const minimumSamplingInterval = readResult[3]?.value?.value as number | undefined
+
+    log.info(`[OpcUaAdapter] Node ${request.nodeId} historizing: ${historizing}`)
+
+    return {
+      nodeId: request.nodeId,
+      historizing,
+      accessLevel,
+      userAccessLevel,
+      minimumSamplingInterval
+    }
+  }
+
+  /**
+   * Read raw historical data (T154).
+   * Returns raw historical values within the specified time range.
+   */
+  async readHistoryRaw(request: HistoryReadRawRequest): Promise<HistoryReadRawResult> {
+    if (!this.session) {
+      throw new Error('Not connected')
+    }
+
+    log.info(`[OpcUaAdapter] Reading raw history for ${request.nodeIds.length} nodes`)
+    log.debug(`[OpcUaAdapter] Time range: ${request.startTime} to ${request.endTime}`)
+
+    const startTime = new Date(request.startTime)
+    const endTime = new Date(request.endTime)
+
+    // Build history read details using proper class
+    const historyReadDetails = new ReadRawModifiedDetails({
+      isReadModified: false,
+      startTime,
+      endTime,
+      numValuesPerNode: request.numValuesPerNode ?? 1000,
+      returnBounds: request.returnBounds ?? false
+    })
+
+    // Map timestamps to return
+    const timestampsToReturn = this.mapTimestampsToReturn(request.timestampsToReturn)
+
+    // Handle continuation points
+    const releaseContinuationPoints = request.releaseContinuationPoints ?? false
+
+    const results: HistoryNodeResult[] = []
+
+    for (const nodeIdStr of request.nodeIds) {
+      try {
+        const nodeId = coerceNodeId(nodeIdStr)
+
+        // Build history read value ID using proper class
+        const historyReadValueId = new HistoryReadValueId({
+          nodeId,
+          // If we have a continuation point from previous request, use it
+          continuationPoint: request.continuationPoint
+            ? Buffer.from(request.continuationPoint, 'base64')
+            : undefined
+        })
+
+        // Perform history read using HistoryReadRequest class
+        const historyReadRequest = new HistoryReadRequest({
+          historyReadDetails,
+          timestampsToReturn,
+          releaseContinuationPoints,
+          nodesToRead: [historyReadValueId]
+        })
+        const historyReadResponse = await this.session.historyRead(historyReadRequest)
+
+        const nodeResult = historyReadResponse.results?.[0]
+        if (!nodeResult) {
+          results.push({
+            nodeId: nodeIdStr,
+            dataValues: [],
+            error: 'No result returned'
+          })
+          continue
+        }
+
+        // Check status
+        if (nodeResult.statusCode && nodeResult.statusCode.value !== StatusCodes.Good.value) {
+          const statusInfo = getStatusCodeInfo(nodeResult.statusCode.value)
+          results.push({
+            nodeId: nodeIdStr,
+            dataValues: [],
+            error: statusInfo.description
+          })
+          continue
+        }
+
+        // Extract data values from the history data
+        const historyData = nodeResult.historyData as {
+          dataValues?: Array<{
+            value?: { value: unknown }
+            sourceTimestamp?: Date
+            serverTimestamp?: Date
+            statusCode?: { value: number; name?: string }
+          }>
+        }
+
+        const dataValues: HistoryDataValue[] = (historyData?.dataValues ?? []).map(dv => ({
+          value: dv.value?.value,
+          sourceTimestamp: dv.sourceTimestamp?.toISOString(),
+          serverTimestamp: dv.serverTimestamp?.toISOString(),
+          statusCode: dv.statusCode?.value ?? StatusCodes.Good.value,
+          statusText: dv.statusCode?.name
+        }))
+
+        // Get continuation point if more data available
+        const continuationPoint = nodeResult.continuationPoint
+          ? Buffer.from(nodeResult.continuationPoint).toString('base64')
+          : undefined
+
+        results.push({
+          nodeId: nodeIdStr,
+          dataValues,
+          continuationPoint
+        })
+
+        log.debug(`[OpcUaAdapter] Read ${dataValues.length} raw history values for ${nodeIdStr}`)
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error'
+        log.error(`[OpcUaAdapter] Failed to read history for ${nodeIdStr}:`, error)
+        results.push({
+          nodeId: nodeIdStr,
+          dataValues: [],
+          error: message
+        })
+      }
+    }
+
+    return { results }
+  }
+
+  /**
+   * Read processed/aggregated historical data (T155).
+   * Returns aggregated values using the specified aggregate function.
+   */
+  async readHistoryProcessed(request: HistoryReadProcessedRequest): Promise<HistoryReadProcessedResult> {
+    if (!this.session) {
+      throw new Error('Not connected')
+    }
+
+    log.info(`[OpcUaAdapter] Reading processed history for ${request.nodeIds.length} nodes with ${request.aggregateType}`)
+    log.debug(`[OpcUaAdapter] Time range: ${request.startTime} to ${request.endTime}, interval: ${request.processingInterval}ms`)
+
+    const startTime = new Date(request.startTime)
+    const endTime = new Date(request.endTime)
+
+    // Get aggregate type NodeId from our mapping
+    const aggregateNodeId = HistoryAggregateNodeIds[request.aggregateType]
+    if (!aggregateNodeId) {
+      throw new Error(`Unknown aggregate type: ${request.aggregateType}`)
+    }
+
+    // Build aggregate configuration using proper class
+    const aggregateConfiguration = new AggregateConfiguration({
+      percentDataGood: request.percentDataGood ?? 100,
+      percentDataBad: request.percentDataBad ?? 0,
+      useSlopedExtrapolation: request.useSlopedExtrapolation ?? false,
+      treatUncertainAsBad: request.treatUncertainAsBad ?? false
+    })
+
+    // Build history read details for processed using proper class
+    const historyReadDetails = new ReadProcessedDetails({
+      aggregateType: [coerceNodeId(aggregateNodeId)],
+      processingInterval: request.processingInterval,
+      startTime,
+      endTime,
+      aggregateConfiguration
+    })
+
+    // Map timestamps to return
+    const timestampsToReturn = this.mapTimestampsToReturn(request.timestampsToReturn)
+
+    // Handle continuation points
+    const releaseContinuationPoints = request.releaseContinuationPoints ?? false
+
+    const results: HistoryNodeResult[] = []
+
+    for (const nodeIdStr of request.nodeIds) {
+      try {
+        const nodeId = coerceNodeId(nodeIdStr)
+
+        // Build history read value ID using proper class
+        const historyReadValueId = new HistoryReadValueId({
+          nodeId,
+          continuationPoint: request.continuationPoint
+            ? Buffer.from(request.continuationPoint, 'base64')
+            : undefined
+        })
+
+        // Perform processed history read using HistoryReadRequest class
+        const historyReadRequest = new HistoryReadRequest({
+          historyReadDetails,
+          timestampsToReturn,
+          releaseContinuationPoints,
+          nodesToRead: [historyReadValueId]
+        })
+        const historyReadResponse = await this.session.historyRead(historyReadRequest)
+
+        const nodeResult = historyReadResponse.results?.[0]
+        if (!nodeResult) {
+          results.push({
+            nodeId: nodeIdStr,
+            dataValues: [],
+            error: 'No result returned'
+          })
+          continue
+        }
+
+        // Check status
+        if (nodeResult.statusCode && nodeResult.statusCode.value !== StatusCodes.Good.value) {
+          const statusInfo = getStatusCodeInfo(nodeResult.statusCode.value)
+          results.push({
+            nodeId: nodeIdStr,
+            dataValues: [],
+            error: statusInfo.description
+          })
+          continue
+        }
+
+        // Extract data values from the history data
+        const historyData = nodeResult.historyData as {
+          dataValues?: Array<{
+            value?: { value: unknown }
+            sourceTimestamp?: Date
+            serverTimestamp?: Date
+            statusCode?: { value: number; name?: string }
+          }>
+        }
+
+        const dataValues: HistoryDataValue[] = (historyData?.dataValues ?? []).map(dv => ({
+          value: dv.value?.value,
+          sourceTimestamp: dv.sourceTimestamp?.toISOString(),
+          serverTimestamp: dv.serverTimestamp?.toISOString(),
+          statusCode: dv.statusCode?.value ?? StatusCodes.Good.value,
+          statusText: dv.statusCode?.name
+        }))
+
+        // Get continuation point if more data available
+        const continuationPoint = nodeResult.continuationPoint
+          ? Buffer.from(nodeResult.continuationPoint).toString('base64')
+          : undefined
+
+        results.push({
+          nodeId: nodeIdStr,
+          dataValues,
+          continuationPoint
+        })
+
+        log.debug(`[OpcUaAdapter] Read ${dataValues.length} processed history values for ${nodeIdStr}`)
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error'
+        log.error(`[OpcUaAdapter] Failed to read processed history for ${nodeIdStr}:`, error)
+        results.push({
+          nodeId: nodeIdStr,
+          dataValues: [],
+          error: message
+        })
+      }
+    }
+
+    return { results }
+  }
+
+  /**
+   * Release continuation points (T156).
+   * Releases server-side resources for pagination.
+   */
+  async releaseContinuationPoints(continuationPoints: string[]): Promise<void> {
+    if (!this.session) {
+      throw new Error('Not connected')
+    }
+
+    if (continuationPoints.length === 0) {
+      return
+    }
+
+    log.debug(`[OpcUaAdapter] Releasing ${continuationPoints.length} continuation points`)
+
+    // Build history read value IDs with continuation points using proper class
+    const historyReadValueIds = continuationPoints.map(cp => new HistoryReadValueId({
+      nodeId: coerceNodeId('i=0'), // Placeholder - not used for release
+      continuationPoint: Buffer.from(cp, 'base64')
+    }))
+
+    // Build minimal read details for release operation
+    const historyReadDetails = new ReadRawModifiedDetails({
+      isReadModified: false,
+      startTime: new Date(),
+      endTime: new Date(),
+      numValuesPerNode: 0,
+      returnBounds: false
+    })
+
+    // Call history read with releaseContinuationPoints = true using HistoryReadRequest class
+    const releaseRequest = new HistoryReadRequest({
+      historyReadDetails,
+      timestampsToReturn: TimestampsToReturn.Neither,
+      releaseContinuationPoints: true,
+      nodesToRead: historyReadValueIds
+    })
+    await this.session.historyRead(releaseRequest)
+
+    log.info(`[OpcUaAdapter] Released ${continuationPoints.length} continuation points`)
+  }
+
+  /**
+   * Map timestamps to return option to node-opcua enum.
+   */
+  private mapTimestampsToReturn(option?: OpcUaTimestampsToReturn): TimestampsToReturn {
+    switch (option) {
+      case 'Source':
+        return TimestampsToReturn.Source
+      case 'Server':
+        return TimestampsToReturn.Server
+      case 'Both':
+        return TimestampsToReturn.Both
+      case 'Neither':
+        return TimestampsToReturn.Neither
+      default:
+        return TimestampsToReturn.Both
+    }
   }
 
   // =========================================================================

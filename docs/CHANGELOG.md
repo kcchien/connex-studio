@@ -9,6 +9,78 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Phase 14: US15 OPC UA Historical Access** (T153-T158) - `003-pro-features-opcua`
+  - **共享型別定義** (`src/shared/types/opcua.ts`) (T153)
+    - HistoryAggregateType - 19 種聚合函數類型
+      - Average, TimeAverage, Count, Minimum, Maximum
+      - MinimumActualTime, MaximumActualTime, Range, Total
+      - Interpolative, Start, End, Delta
+      - PercentBad, PercentGood, DurationBad, DurationGood
+      - StandardDeviation, Variance
+    - TimestampsToReturn - 時間戳記選項 (Source, Server, Both, Neither)
+    - HistorizingCheckRequest/Result - 節點歷史化屬性檢查
+    - HistoryReadRawRequest/Result - 原始歷史資料讀取
+    - HistoryReadProcessedRequest/Result - 聚合歷史資料讀取
+    - HistoryDataValue - 歷史資料值結構
+    - HistoryNodeResult - 節點歷史查詢結果
+    - HistoryAggregateNodeIds - OPC UA 聚合函數 NodeId 對應表
+
+  - **Main Process - OpcUaAdapter 歷史方法** (`src/main/protocols/OpcUaAdapter.ts`) (T153-T156)
+    - checkHistorizing(request) - 檢查節點 Historizing 屬性
+      - 讀取 Historizing, AccessLevel, UserAccessLevel, MinimumSamplingInterval 屬性
+      - 回傳 HistorizingCheckResult
+    - readHistoryRaw(request) - 讀取原始歷史資料
+      - 使用 ReadRawModifiedDetails 指定時間範圍
+      - 支援 numValuesPerNode 限制
+      - 支援 returnBounds 選項
+      - 支援 continuation point 分頁
+    - readHistoryProcessed(request) - 讀取聚合歷史資料
+      - 使用 ReadProcessedDetails 指定聚合類型
+      - 支援 processingInterval 處理間隔
+      - 支援 AggregateConfiguration (percentDataGood/Bad, useSlopedExtrapolation)
+    - releaseContinuationPoints(points) - 釋放伺服器端分頁資源
+    - mapTimestampsToReturn(option) - 映射時間戳記選項
+
+  - **IPC 通道定義** (`src/shared/constants/ipc-channels.ts`)
+    - OPCUA_CHECK_HISTORIZING - 檢查歷史化屬性
+    - OPCUA_READ_HISTORY_RAW - 讀取原始歷史
+    - OPCUA_READ_HISTORY_PROCESSED - 讀取聚合歷史
+    - OPCUA_RELEASE_CONTINUATION_POINTS - 釋放分頁點
+
+  - **Main Process - History IPC 處理器** (`src/main/ipc/opcua.ts`) (T157)
+    - opcua:check-historizing - 檢查節點歷史化支援
+    - opcua:read-history-raw - 原始歷史讀取
+    - opcua:read-history-processed - 聚合歷史讀取
+    - opcua:release-continuation-points - 釋放分頁資源
+
+  - **Preload API 擴展** (`src/preload/index.ts`)
+    - checkHistorizing(request) - 檢查歷史化屬性
+    - readHistoryRaw(request) - 原始歷史讀取
+    - readHistoryProcessed(request) - 聚合歷史讀取
+    - releaseContinuationPoints(params) - 釋放分頁點
+
+  - **Renderer - OpcUaHistoryQuery UI** (`src/renderer/components/opcua/OpcUaHistoryQuery.tsx`) (T158)
+    - 查詢模式選擇
+      - Raw Data - 原始歷史資料查詢
+      - Processed - 聚合資料查詢
+    - 時間範圍設定
+      - Start Time / End Time datetime-local 輸入
+    - 原始查詢選項
+      - Max Values 限制
+      - Return Bounds 選項
+    - 聚合查詢選項
+      - Aggregate Type 下拉選單 (19 種聚合函數)
+      - Processing Interval 設定 (毫秒)
+    - Timestamps to Return 選項
+    - 結果顯示
+      - Table 視圖 - 時間戳記、值、狀態碼表格
+      - Chart 視圖 - SVG 折線圖顯示
+    - 分頁支援
+      - Load More 按鈕 (continuation point)
+      - Release 按鈕釋放伺服器資源
+    - CSV 匯出功能
+    - HistoryAvailabilityBadge 顯示節點歷史化支援狀態
+
 - **Phase 13: US6 Configuration Export/Import** (T143-T152) - `003-pro-features-opcua`
   - **Main Process - WorkspaceExporter 服務** (`src/main/services/WorkspaceExporter.ts`)
     - 選擇性匯出功能 (T144-T147)

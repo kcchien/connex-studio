@@ -860,3 +860,218 @@ export const OBJECTS_FOLDER_NODE_ID = 'i=85'
 export const TYPES_FOLDER_NODE_ID = 'i=86'
 export const VIEWS_FOLDER_NODE_ID = 'i=87'
 export const SERVER_NODE_ID = 'i=2253'
+
+// -----------------------------------------------------------------------------
+// Historical Access Types
+// -----------------------------------------------------------------------------
+
+/**
+ * Aggregate function types for processed history reads.
+ * Based on OPC UA Part 13 - Aggregates.
+ */
+export type HistoryAggregateType =
+  | 'Average'
+  | 'TimeAverage'
+  | 'Count'
+  | 'Minimum'
+  | 'Maximum'
+  | 'MinimumActualTime'
+  | 'MaximumActualTime'
+  | 'Range'
+  | 'Total'
+  | 'Interpolative'
+  | 'Start'
+  | 'End'
+  | 'Delta'
+  | 'PercentBad'
+  | 'PercentGood'
+  | 'DurationBad'
+  | 'DurationGood'
+  | 'StandardDeviation'
+  | 'Variance'
+
+/**
+ * Timestamp return option for history reads.
+ */
+export type TimestampsToReturn = 'Source' | 'Server' | 'Both' | 'Neither'
+
+/**
+ * Request for checking if a node supports historizing.
+ */
+export interface HistorizingCheckRequest {
+  /** Connection ID */
+  connectionId: string
+  /** Node ID to check */
+  nodeId: string
+}
+
+/**
+ * Result of historizing check.
+ */
+export interface HistorizingCheckResult {
+  /** Node ID */
+  nodeId: string
+  /** Whether the node supports historizing */
+  historizing: boolean
+  /** Access level for the node */
+  accessLevel?: number
+  /** User access level */
+  userAccessLevel?: number
+  /** Minimum sampling interval if available */
+  minimumSamplingInterval?: number
+}
+
+/**
+ * Request for reading raw historical data.
+ */
+export interface HistoryReadRawRequest {
+  /** Connection ID */
+  connectionId: string
+  /** Node ID(s) to read history from */
+  nodeIds: string[]
+  /** Start time (ISO 8601 string or Date) */
+  startTime: string
+  /** End time (ISO 8601 string or Date) */
+  endTime: string
+  /** Maximum number of values per node to return */
+  numValuesPerNode?: number
+  /** Return bounds (first and last values in range) */
+  returnBounds?: boolean
+  /** Which timestamps to return */
+  timestampsToReturn?: TimestampsToReturn
+  /** Continuation point from previous request (base64 string) */
+  continuationPoint?: string
+  /** Release continuation points without returning data */
+  releaseContinuationPoints?: boolean
+}
+
+/**
+ * A single historical data value.
+ */
+export interface HistoryDataValue {
+  /** The value */
+  value: unknown
+  /** Source timestamp (ISO 8601 string) */
+  sourceTimestamp?: string
+  /** Server timestamp (ISO 8601 string) */
+  serverTimestamp?: string
+  /** Status code */
+  statusCode: number
+  /** Status code text */
+  statusText?: string
+}
+
+/**
+ * Result for a single node's raw history read.
+ */
+export interface HistoryNodeResult {
+  /** Node ID */
+  nodeId: string
+  /** Historical data values */
+  dataValues: HistoryDataValue[]
+  /** Continuation point for pagination (base64 string) */
+  continuationPoint?: string
+  /** Error message if failed */
+  error?: string
+}
+
+/**
+ * Result of raw history read request.
+ */
+export interface HistoryReadRawResult {
+  /** Results per node */
+  results: HistoryNodeResult[]
+}
+
+/**
+ * Request for reading processed/aggregated historical data.
+ */
+export interface HistoryReadProcessedRequest {
+  /** Connection ID */
+  connectionId: string
+  /** Node ID(s) to read history from */
+  nodeIds: string[]
+  /** Start time (ISO 8601 string or Date) */
+  startTime: string
+  /** End time (ISO 8601 string or Date) */
+  endTime: string
+  /** Processing interval in milliseconds */
+  processingInterval: number
+  /** Aggregate function to apply */
+  aggregateType: HistoryAggregateType
+  /** Percent of good data required for aggregate to be valid (0-100) */
+  percentDataGood?: number
+  /** Percent of good data for sloped extrapolation (0-100) */
+  percentDataBad?: number
+  /** Use sloped extrapolation */
+  useSlopedExtrapolation?: boolean
+  /** Treat uncertain as bad */
+  treatUncertainAsBad?: boolean
+  /** Which timestamps to return */
+  timestampsToReturn?: TimestampsToReturn
+  /** Continuation point from previous request */
+  continuationPoint?: string
+  /** Release continuation points without returning data */
+  releaseContinuationPoints?: boolean
+}
+
+/**
+ * Result of processed history read request.
+ */
+export interface HistoryReadProcessedResult {
+  /** Results per node */
+  results: HistoryNodeResult[]
+}
+
+/**
+ * Request to release continuation points.
+ */
+export interface HistoryReleaseContinuationPointsRequest {
+  /** Connection ID */
+  connectionId: string
+  /** Continuation points to release */
+  continuationPoints: string[]
+}
+
+/**
+ * Summary of available history for a node.
+ */
+export interface HistoryAvailability {
+  /** Node ID */
+  nodeId: string
+  /** Whether node supports historizing */
+  historizing: boolean
+  /** Whether history is currently being collected */
+  historyEnabled?: boolean
+  /** Earliest available timestamp */
+  startOfArchive?: string
+  /** Latest available timestamp */
+  endOfArchive?: string
+  /** Supported aggregate types */
+  supportedAggregates?: HistoryAggregateType[]
+}
+
+/**
+ * Aggregate NodeId constants from OPC UA specification.
+ */
+export const HistoryAggregateNodeIds: Record<HistoryAggregateType, string> = {
+  Average: 'i=2341',
+  TimeAverage: 'i=2342',
+  Count: 'i=2352',
+  Minimum: 'i=2346',
+  Maximum: 'i=2347',
+  MinimumActualTime: 'i=2348',
+  MaximumActualTime: 'i=2349',
+  Range: 'i=2350',
+  Total: 'i=2344',
+  Interpolative: 'i=2340',
+  Start: 'i=11505',
+  End: 'i=11506',
+  Delta: 'i=11507',
+  PercentBad: 'i=2355',
+  PercentGood: 'i=2354',
+  DurationBad: 'i=2357',
+  DurationGood: 'i=2356',
+  StandardDeviation: 'i=2361',
+  Variance: 'i=2362'
+}

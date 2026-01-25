@@ -81,7 +81,14 @@ import type {
   // Method types
   OpcUaCallMethodRequest,
   OpcUaCallMethodResult,
-  OpcUaMethodArguments
+  OpcUaMethodArguments,
+  // History types
+  HistorizingCheckRequest,
+  HistorizingCheckResult,
+  HistoryReadRawRequest,
+  HistoryReadRawResult,
+  HistoryReadProcessedRequest,
+  HistoryReadProcessedResult
 } from '@shared/types/opcua'
 import type {
   CrcResult,
@@ -406,6 +413,15 @@ export interface ElectronAPI {
       methodId: string
     }) => Promise<OpcUaMethodArguments>
     callMethod: (request: OpcUaCallMethodRequest) => Promise<OpcUaCallMethodResult>
+
+    // Historical Access
+    checkHistorizing: (request: HistorizingCheckRequest) => Promise<HistorizingCheckResult>
+    readHistoryRaw: (request: HistoryReadRawRequest) => Promise<HistoryReadRawResult>
+    readHistoryProcessed: (request: HistoryReadProcessedRequest) => Promise<HistoryReadProcessedResult>
+    releaseContinuationPoints: (params: {
+      connectionId: string
+      continuationPoints: string[]
+    }) => Promise<void>
   }
 
   // Calculator operations
@@ -687,7 +703,14 @@ const electronAPI: ElectronAPI = {
 
     // Methods
     getMethodArgs: (params) => ipcRenderer.invoke('opcua:get-method-args', params),
-    callMethod: (request) => ipcRenderer.invoke('opcua:call-method', request)
+    callMethod: (request) => ipcRenderer.invoke('opcua:call-method', request),
+
+    // Historical Access
+    checkHistorizing: (request) => ipcRenderer.invoke('opcua:check-historizing', request),
+    readHistoryRaw: (request) => ipcRenderer.invoke('opcua:read-history-raw', request),
+    readHistoryProcessed: (request) => ipcRenderer.invoke('opcua:read-history-processed', request),
+    releaseContinuationPoints: (params) =>
+      ipcRenderer.invoke('opcua:release-continuation-points', params)
   },
 
   calculator: {

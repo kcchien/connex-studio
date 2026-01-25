@@ -48,7 +48,12 @@ import {
   OPCUA_EVENT,
   // Method channels (T141)
   OPCUA_CALL_METHOD,
-  OPCUA_GET_METHOD_ARGS
+  OPCUA_GET_METHOD_ARGS,
+  // History channels (T157)
+  OPCUA_CHECK_HISTORIZING,
+  OPCUA_READ_HISTORY_RAW,
+  OPCUA_READ_HISTORY_PROCESSED,
+  OPCUA_RELEASE_CONTINUATION_POINTS
 } from '@shared/constants/ipc-channels'
 import { getConnectionManager } from '../services/ConnectionManager'
 import { getOpcUaCertificateStore } from '../services/OpcUaCertificateStore'
@@ -92,7 +97,14 @@ import type {
   // Method types (T141)
   OpcUaCallMethodRequest,
   OpcUaCallMethodResult,
-  OpcUaMethodArguments
+  OpcUaMethodArguments,
+  // History types (T157)
+  HistorizingCheckRequest,
+  HistorizingCheckResult,
+  HistoryReadRawRequest,
+  HistoryReadRawResult,
+  HistoryReadProcessedRequest,
+  HistoryReadProcessedResult
 } from '@shared/types'
 
 let mainWindow: BrowserWindow | null = null
@@ -784,6 +796,80 @@ export function registerOpcUaHandlers(): void {
 
       log.info(`[OpcUaIPC] Method call completed with status: ${result.statusCode}`)
       return result
+    }
+  )
+
+  // ==========================================================================
+  // Historical Access Operations (T157)
+  // ==========================================================================
+
+  /**
+   * Check if a node supports historizing.
+   */
+  ipcMain.handle(
+    OPCUA_CHECK_HISTORIZING,
+    async (_, request: HistorizingCheckRequest): Promise<HistorizingCheckResult> => {
+      log.debug(`[OpcUaIPC] Checking historizing for node: ${request.nodeId}`)
+
+      const adapter = getOpcUaAdapter(request.connectionId)
+      const result = await adapter.checkHistorizing(request)
+
+      log.info(`[OpcUaIPC] Node ${request.nodeId} historizing: ${result.historizing}`)
+      return result
+    }
+  )
+
+  /**
+   * Read raw historical data.
+   */
+  ipcMain.handle(
+    OPCUA_READ_HISTORY_RAW,
+    async (_, request: HistoryReadRawRequest): Promise<HistoryReadRawResult> => {
+      log.debug(`[OpcUaIPC] Reading raw history for ${request.nodeIds.length} nodes`)
+      log.debug(`[OpcUaIPC] Time range: ${request.startTime} to ${request.endTime}`)
+
+      const adapter = getOpcUaAdapter(request.connectionId)
+      const result = await adapter.readHistoryRaw(request)
+
+      const totalValues = result.results.reduce((sum, r) => sum + r.dataValues.length, 0)
+      log.info(`[OpcUaIPC] Read ${totalValues} raw history values`)
+      return result
+    }
+  )
+
+  /**
+   * Read processed/aggregated historical data.
+   */
+  ipcMain.handle(
+    OPCUA_READ_HISTORY_PROCESSED,
+    async (_, request: HistoryReadProcessedRequest): Promise<HistoryReadProcessedResult> => {
+      log.debug(`[OpcUaIPC] Reading processed history for ${request.nodeIds.length} nodes`)
+      log.debug(`[OpcUaIPC] Aggregate: ${request.aggregateType}, interval: ${request.processingInterval}ms`)
+
+      const adapter = getOpcUaAdapter(request.connectionId)
+      const result = await adapter.readHistoryProcessed(request)
+
+      const totalValues = result.results.reduce((sum, r) => sum + r.dataValues.length, 0)
+      log.info(`[OpcUaIPC] Read ${totalValues} processed history values`)
+      return result
+    }
+  )
+
+  /**
+   * Release continuation points.
+   */
+  ipcMain.handle(
+    OPCUA_RELEASE_CONTINUATION_POINTS,
+    async (
+      _,
+      params: { connectionId: string; continuationPoints: string[] }
+    ): Promise<void> => {
+      log.debug(`[OpcUaIPC] Releasing ${params.continuationPoints.length} continuation points`)
+
+      const adapter = getOpcUaAdapter(params.connectionId)
+      await adapter.releaseContinuationPoints(params.continuationPoints)
+
+      log.info(`[OpcUaIPC] Released continuation points`)
     }
   )
 

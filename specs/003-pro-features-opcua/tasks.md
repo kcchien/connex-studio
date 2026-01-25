@@ -274,14 +274,14 @@
 
 ### Implementation for US12
 
-- [ ] T124 [US12] Implement OpcUaCertificateStore CRUD in src/main/services/OpcUaCertificateStore.ts
-- [ ] T125 [US12] Implement self-signed certificate generation in src/main/services/OpcUaCertificateStore.ts
-- [ ] T126 [US12] Implement certificate import (PEM/DER/PFX) in src/main/services/OpcUaCertificateStore.ts
-- [ ] T127 [US12] Implement trusted certificate store management in src/main/services/OpcUaCertificateStore.ts
-- [ ] T128 [US12] Implement certificate validation in src/main/services/OpcUaCertificateStore.ts
-- [ ] T129 [US12] Implement certificate trust prompts in src/main/services/OpcUaCertificateStore.ts
-- [ ] T130 [US12] Create certificate IPC handlers in src/main/ipc/opcua.ts
-- [ ] T131 [US12] Create CertificateManager UI in src/renderer/components/opcua/CertificateManager.tsx
+- [x] T124 [US12] Implement OpcUaCertificateStore CRUD in src/main/services/OpcUaCertificateStore.ts
+- [x] T125 [US12] Implement self-signed certificate generation in src/main/services/OpcUaCertificateStore.ts
+- [x] T126 [US12] Implement certificate import (PEM/DER/PFX) in src/main/services/OpcUaCertificateStore.ts
+- [x] T127 [US12] Implement trusted certificate store management in src/main/services/OpcUaCertificateStore.ts
+- [x] T128 [US12] Implement certificate validation in src/main/services/OpcUaCertificateStore.ts
+- [x] T129 [US12] Implement certificate trust prompts in src/main/services/OpcUaCertificateStore.ts
+- [x] T130 [US12] Create certificate IPC handlers in src/main/ipc/opcua.ts
+- [x] T131 [US12] Create CertificateManager UI in src/renderer/components/opcua/CertificateManager.tsx
 
 **Checkpoint**: US-012 Certificate management functional
 
@@ -295,20 +295,20 @@
 
 ### Implementation for US13 (Events)
 
-- [ ] T132 [US13] Implement event subscription in src/main/protocols/OpcUaAdapter.ts
-- [ ] T133 [US13] Implement event filter with select/where clauses in src/main/protocols/OpcUaAdapter.ts
-- [ ] T134 [US13] Implement event notification handling in src/main/protocols/OpcUaAdapter.ts
-- [ ] T135 [US13] Implement Acknowledge/Confirm for alarm conditions in src/main/protocols/OpcUaAdapter.ts
-- [ ] T136 [US13] Create event IPC handlers in src/main/ipc/opcua.ts
-- [ ] T137 [US13] Create OpcUaEventViewer UI in src/renderer/components/opcua/OpcUaEventViewer.tsx
+- [x] T132 [US13] Implement event subscription in src/main/protocols/OpcUaAdapter.ts
+- [x] T133 [US13] Implement event filter with select/where clauses in src/main/protocols/OpcUaAdapter.ts
+- [x] T134 [US13] Implement event notification handling in src/main/protocols/OpcUaAdapter.ts
+- [x] T135 [US13] Implement Acknowledge/Confirm for alarm conditions in src/main/protocols/OpcUaAdapter.ts
+- [x] T136 [US13] Create event IPC handlers in src/main/ipc/opcua.ts
+- [x] T137 [US13] Create OpcUaEventViewer UI in src/renderer/components/opcua/OpcUaEventViewer.tsx
 
 ### Implementation for US14 (Methods)
 
-- [ ] T138 [US14] Implement method browsing on objects in src/main/protocols/OpcUaAdapter.ts
-- [ ] T139 [US14] Implement method argument definition reading in src/main/protocols/OpcUaAdapter.ts
-- [ ] T140 [US14] Implement method invocation with input/output arguments in src/main/protocols/OpcUaAdapter.ts
-- [ ] T141 [US14] Create method IPC handlers in src/main/ipc/opcua.ts
-- [ ] T142 [US14] Create OpcUaMethodCall UI in src/renderer/components/opcua/OpcUaMethodCall.tsx
+- [x] T138 [US14] Implement method browsing on objects in src/main/protocols/OpcUaAdapter.ts
+- [x] T139 [US14] Implement method argument definition reading in src/main/protocols/OpcUaAdapter.ts
+- [x] T140 [US14] Implement method invocation with input/output arguments in src/main/protocols/OpcUaAdapter.ts
+- [x] T141 [US14] Create method IPC handlers in src/main/ipc/opcua.ts
+- [x] T142 [US14] Create OpcUaMethodCall UI in src/renderer/components/opcua/OpcUaMethodCall.tsx
 
 **Checkpoint**: US-013, US-014 functional
 
@@ -378,23 +378,23 @@
 
 **Purpose**: Production readiness, edge cases, testing
 
-- [ ] T164 Implement connection status alerts (disconnect, timeout) in src/main/services/AlertEngine.ts
-- [ ] T165 Implement rate-of-change alerts in src/main/services/AlertEngine.ts
-- [ ] T166 Handle orphaned widget cleanup when Tag deleted in src/main/services/DashboardService.ts
-- [ ] T167 Handle environment switch during active connections in src/main/services/EnvironmentManager.ts
-- [ ] T168 Handle OPC UA session timeout and renewal edge cases in src/main/protocols/OpcUaAdapter.ts
-- [ ] T169 [P] Create BridgeManager unit tests in tests/unit/main/BridgeManager.test.ts
-- [ ] T170 [P] Create EnvironmentManager unit tests in tests/unit/main/EnvironmentManager.test.ts
-- [ ] T171 [P] Create AlertEngine unit tests in tests/unit/main/AlertEngine.test.ts
-- [ ] T172 [P] Create OpcUaAdapter unit tests in tests/unit/main/OpcUaAdapter.test.ts
-- [ ] T173 [P] Create Dashboard widget unit tests in tests/unit/renderer/dashboard/
-- [ ] T174 [P] Create OPC UA browser unit tests in tests/unit/renderer/opcua/
-- [ ] T175 Create Bridge E2E test in tests/e2e/bridge.spec.ts
-- [ ] T176 [P] Create Dashboard E2E test in tests/e2e/dashboard.spec.ts
-- [ ] T177 [P] Create Alert E2E test in tests/e2e/alert.spec.ts
-- [ ] T178 [P] Create OPC UA E2E test in tests/e2e/opcua.spec.ts
-- [ ] T179 Run quickstart.md validation scenarios
-- [ ] T180 Update CHANGELOG.md with Phase 2 features
+- [x] T164 Implement connection status alerts (disconnect, timeout) in src/main/services/AlertEngine.ts
+- [x] T165 Implement rate-of-change alerts in src/main/services/AlertEngine.ts
+- [x] T166 Handle orphaned widget cleanup when Tag deleted in src/main/services/DashboardService.ts
+- [x] T167 Handle environment switch during active connections in src/main/services/EnvironmentManager.ts
+- [x] T168 Handle OPC UA session timeout and renewal edge cases in src/main/protocols/OpcUaAdapter.ts
+- [x] T169 [P] Create BridgeManager unit tests in tests/unit/main/BridgeManager.test.ts
+- [x] T170 [P] Create EnvironmentManager unit tests in tests/unit/main/EnvironmentManager.test.ts
+- [x] T171 [P] Create AlertEngine unit tests in tests/unit/main/AlertEngine.test.ts
+- [x] T172 [P] Create OpcUaAdapter unit tests in tests/unit/main/OpcUaAdapter.test.ts
+- [x] T173 [P] Create Dashboard widget unit tests in tests/unit/renderer/dashboard/
+- [x] T174 [P] Create OPC UA browser unit tests in tests/unit/renderer/opcua/
+- [x] T175 Create Bridge E2E test in tests/e2e/bridge.spec.ts
+- [x] T176 [P] Create Dashboard E2E test in tests/e2e/dashboard.spec.ts
+- [x] T177 [P] Create Alert E2E test in tests/e2e/alert.spec.ts
+- [x] T178 [P] Create OPC UA E2E test in tests/e2e/opcua.spec.ts
+- [x] T179 Run quickstart.md validation scenarios
+- [x] T180 Update CHANGELOG.md with Phase 2 features
 
 ---
 

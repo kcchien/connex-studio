@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Build 配置修復 - electron-vite/esbuild 編譯錯誤** (`electron.vite.config.ts`)
+  - 問題：Build 時出現 `Unterminated string literal` 錯誤
+    - esbuild 將 CommonJS shims 注入到錯誤位置（字串字面值中間）
+    - 當所有模組打包成單一檔案時發生衝突
+  - 解決方案：
+    - 新增 `preserveModules: true` - 保持模組分離，避免打包衝突
+    - 新增 `preserveModulesRoot: 'src/main'` - 修正輸出檔案路徑結構
+    - 新增 `entryFileNames: '[name].js'` - 確保正確的入口檔案命名
+  - 結果：Main process 編譯正常，E2E 測試框架可執行
+
 ### Added
 
 - **Phase 16: Polish & Cross-Cutting Concerns** (T164-T178) - `003-pro-features-opcua`

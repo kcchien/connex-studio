@@ -12,8 +12,15 @@ export default defineConfig({
       }
     },
     build: {
+      minify: false,
+      sourcemap: true,
       rollupOptions: {
-        external: ['better-sqlite3', 'keytar']
+        external: ['better-sqlite3', 'keytar', 'node-opcua', 'node-opcua-client'],
+        output: {
+          preserveModules: true,
+          preserveModulesRoot: 'src/main',
+          entryFileNames: '[name].js'
+        }
       }
     }
   },

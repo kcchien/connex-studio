@@ -21,6 +21,7 @@ import { registerDashboardHandlers } from './dashboard'
 import { registerAlertHandlers } from './alert'
 import { registerOpcUaHandlers } from './opcua'
 import { registerCalculatorHandlers } from './calculator'
+import { registerWorkspaceHandlers } from './workspace'
 
 /**
  * Register all IPC handlers.
@@ -43,6 +44,7 @@ export function registerAllHandlers(): void {
   registerAlertHandlers()
   registerOpcUaHandlers()
   registerCalculatorHandlers()
+  registerWorkspaceHandlers()
 }
 
 export { registerLogHandlers } from './log'
@@ -62,3 +64,4 @@ export { registerDashboardHandlers } from './dashboard'
 export { registerAlertHandlers, setAlertMainWindow } from './alert'
 export { registerOpcUaHandlers, setOpcUaMainWindow } from './opcua'
 export { registerCalculatorHandlers } from './calculator'
+export { registerWorkspaceHandlers } from './workspace'

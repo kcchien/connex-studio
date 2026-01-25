@@ -111,3 +111,15 @@ export {
   getOpcUaCertificateStore,
   disposeOpcUaCertificateStore
 } from './OpcUaCertificateStore'
+
+export {
+  WorkspaceExporter,
+  getWorkspaceExporter,
+  disposeWorkspaceExporter
+} from './WorkspaceExporter'
+
+export {
+  WorkspaceImporter,
+  getWorkspaceImporter,
+  disposeWorkspaceImporter
+} from './WorkspaceImporter'

@@ -26,6 +26,7 @@ export const dashboardApi = api.dashboard
 export const alertApi = api.alert
 export const opcuaApi = api.opcua
 export const calculatorApi = api.calculator
+export const workspaceApi = api.workspace
 
 // Utility function to handle IPC results
 export function handleIpcResult<T>(

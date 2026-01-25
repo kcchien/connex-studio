@@ -93,6 +93,14 @@ import type {
   ModbusAddressInfo,
   PacketAnalysis
 } from '@shared/types/calculator'
+import type {
+  ExportWorkspaceRequest,
+  ImportWorkspaceRequest,
+  ImportWorkspaceResult,
+  ValidationResult,
+  SaveFileResult,
+  LoadFileResult
+} from '@shared/types/workspace'
 
 // Type-safe API exposed to renderer
 export interface ElectronAPI {
@@ -415,6 +423,15 @@ export interface ElectronAPI {
     hexToBytes: (hex: string) => Promise<number[]>
     bytesToHex: (params: { bytes: number[]; separator?: string }) => Promise<string>
   }
+
+  // Workspace operations
+  workspace: {
+    export: (params: ExportWorkspaceRequest) => Promise<{ success: true; yaml: string } | { success: false; error: string }>
+    import: (params: ImportWorkspaceRequest) => Promise<ImportWorkspaceResult>
+    validate: (yamlContent: string) => Promise<ValidationResult>
+    saveFile: (params: { yaml: string; defaultPath?: string }) => Promise<SaveFileResult>
+    loadFile: (path?: string) => Promise<LoadFileResult>
+  }
 }
 
 // Implement the API
@@ -686,6 +703,14 @@ const electronAPI: ElectronAPI = {
     analyzePacket: (data) => ipcRenderer.invoke('calculator:analyze-packet', data),
     hexToBytes: (hex) => ipcRenderer.invoke('calculator:hex-to-bytes', hex),
     bytesToHex: (params) => ipcRenderer.invoke('calculator:bytes-to-hex', params)
+  },
+
+  workspace: {
+    export: (params) => ipcRenderer.invoke('workspace:export', params),
+    import: (params) => ipcRenderer.invoke('workspace:import', params),
+    validate: (yamlContent) => ipcRenderer.invoke('workspace:validate', yamlContent),
+    saveFile: (params) => ipcRenderer.invoke('workspace:save-file', params),
+    loadFile: (path) => ipcRenderer.invoke('workspace:load-file', path ? { path } : undefined)
   }
 }
 

@@ -12,7 +12,6 @@ export * from './polling'
 export * from './profile'
 export * from './dvr'
 export * from './export'
-export * from './virtual-server'
 export * from './log'
 
 // Phase 2: Professional Features

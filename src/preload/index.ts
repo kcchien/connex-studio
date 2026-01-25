@@ -6,7 +6,6 @@ import type { PollingStatus, PollingDataPayload } from '@shared/types/polling'
 import type { Profile, ProfileSummary } from '@shared/types/profile'
 import type { DvrRange, DvrSnapshot, SparklineData } from '@shared/types/dvr'
 import type { ExportResult } from '@shared/types/export'
-import type { VirtualServer } from '@shared/types/virtual-server'
 import type { LogEntry, LogLevel } from '@shared/types/log'
 import type {
   Environment,
@@ -217,28 +216,6 @@ export interface ElectronAPI {
       endTimestamp: number
       includeCharts: boolean
     }) => Promise<ExportResult>
-  }
-
-  // Virtual Server operations
-  virtualServer: {
-    start: (params: {
-      protocol: 'modbus-tcp'
-      port: number
-      registers: Array<{
-        address: number
-        length: number
-        waveform: {
-          type: 'constant' | 'sine' | 'square' | 'triangle' | 'random'
-          amplitude: number
-          offset: number
-          period: number
-          min?: number
-          max?: number
-        }
-      }>
-    }) => Promise<IpcResult<{ serverId: string }>>
-    stop: (serverId: string) => Promise<IpcResult<void>>
-    status: () => Promise<{ servers: VirtualServer[] }>
   }
 
   // Log operations
@@ -513,12 +490,6 @@ const electronAPI: ElectronAPI = {
   export: {
     csv: (params) => ipcRenderer.invoke('export:csv', params),
     htmlReport: (params) => ipcRenderer.invoke('export:html-report', params)
-  },
-
-  virtualServer: {
-    start: (params) => ipcRenderer.invoke('virtual-server:start', params),
-    stop: (serverId) => ipcRenderer.invoke('virtual-server:stop', { serverId }),
-    status: () => ipcRenderer.invoke('virtual-server:status')
   },
 
   log: {

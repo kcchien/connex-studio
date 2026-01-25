@@ -16,7 +16,6 @@ export const pollingApi = api.polling
 export const dvrApi = api.dvr
 export const profileApi = api.profile
 export const exportApi = api.export
-export const virtualServerApi = api.virtualServer
 export const logApi = api.log
 export const appApi = api.app
 export const environmentApi = api.environment

@@ -42,11 +42,6 @@ export const PROFILE_EXPORT = 'profile:export'
 export const EXPORT_CSV = 'export:csv'
 export const EXPORT_HTML_REPORT = 'export:html-report'
 
-// Virtual Server channels
-export const VIRTUAL_SERVER_START = 'virtual-server:start'
-export const VIRTUAL_SERVER_STOP = 'virtual-server:stop'
-export const VIRTUAL_SERVER_STATUS = 'virtual-server:status'
-
 // Log channels
 export const LOG_GET_LOGS = 'log:get-logs'
 export const LOG_ADD = 'log:add'
@@ -252,11 +247,6 @@ export const IPC_CHANNELS = {
   export: {
     csv: EXPORT_CSV,
     htmlReport: EXPORT_HTML_REPORT
-  },
-  virtualServer: {
-    start: VIRTUAL_SERVER_START,
-    stop: VIRTUAL_SERVER_STOP,
-    status: VIRTUAL_SERVER_STATUS
   },
   log: {
     getLogs: LOG_GET_LOGS,

@@ -9,6 +9,83 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Phase 11: US12 OPC UA Certificate Management** (T124-T131) - `003-pro-features-opcua`
+  - **Main Process - OpcUaCertificateStore 服務**
+    - OpcUaCertificateStore 完整實作 (`src/main/services/OpcUaCertificateStore.ts`)
+      - 使用 node-opcua OPCUACertificateManager 管理 PKI 資料夾
+      - PKI 結構：own/cert、own/private、trusted/certs、rejected/certs、issuers/certs
+      - CRUD 操作 (T124)
+        - `list()` - 列出所有憑證 (應用程式/受信任/已拒絕)
+        - `get(id)` - 取得單一憑證
+        - `getByThumbprint()` - 依指紋取得憑證
+        - `getApplicationCertificate()` - 取得應用程式憑證
+        - `delete(id)` - 刪除憑證
+      - 自簽憑證產生 (T125)
+        - 支援 2048/3072/4096 key size
+        - 可配置 subject、applicationUri、validity
+        - 自動加入 DNS 與 IP SAN
+      - 憑證匯入 (T126)
+        - 支援 PEM (.pem, .crt, .cer) 格式
+        - 支援 DER (.der) 格式
+        - 支援 PFX/PKCS#12 (.pfx, .p12) 格式 (含密碼)
+      - 信任管理 (T127)
+        - `trust(id)` - 信任憑證 (移至 trusted/certs)
+        - `reject(id)` - 拒絕憑證 (移至 rejected/certs)
+        - `listTrusted()` - 列出受信任憑證
+        - `listRejected()` - 列出已拒絕憑證
+      - 憑證驗證 (T128)
+        - `validate(id)` - 驗證憑證有效性
+        - `validateFile(path)` - 驗證外部憑證檔案
+        - 檢查：有效期、自簽狀態、信任狀態
+        - 回傳 CertificateValidationResult 結構
+      - 憑證匯出
+        - `export(id, path)` - 匯出憑證至指定路徑
+
+  - **Main Process - Certificate IPC 處理器** (`src/main/ipc/opcua.ts`) (T130)
+    - `opcua:certificate:list` - 列出所有憑證
+    - `opcua:certificate:import` - 匯入憑證
+    - `opcua:certificate:export` - 匯出憑證
+    - `opcua:certificate:delete` - 刪除憑證
+    - `opcua:certificate:generate` - 產生自簽憑證
+    - `opcua:certificate:trust` - 信任憑證
+    - `opcua:certificate:reject` - 拒絕憑證
+    - `opcua:certificate:getServerCertificate` - 取得伺服器憑證
+
+  - **Renderer - CertificateManager UI** (`src/renderer/components/opcua/CertificateManager.tsx`) (T131)
+    - 分頁顯示：應用程式憑證、受信任憑證、已拒絕憑證
+    - 憑證卡片顯示：
+      - Subject (Common Name)
+      - 發行者
+      - 有效期限與到期狀態
+      - 指紋 (SHA-1 thumbprint)
+    - 憑證詳細資訊對話框
+      - 完整 Subject 與 Issuer 資訊
+      - Serial Number
+      - 有效期間
+      - 憑證用途
+    - 產生自簽憑證對話框 (T129)
+      - 組織名稱輸入
+      - Key Size 選擇 (2048/3072/4096)
+      - 有效天數設定
+    - 操作按鈕：
+      - Trust - 信任憑證
+      - Reject - 拒絕憑證
+      - Delete - 刪除憑證
+      - Export - 匯出憑證
+    - 憑證匯入功能
+
+  - **共享型別更新** (`src/shared/types/opcua.ts`)
+    - CertificateValidationResult 介面
+      - valid: boolean
+      - expired: boolean
+      - notYetValid: boolean
+      - selfSigned: boolean
+      - trusted: boolean
+      - errors: string[]
+
+  - **Preload 更新** (`src/preload/index.ts`)
+    - ElectronAPI.opcua 新增 certificate 相關方法
+
 - **Phase 10: US5 Protocol Calculator & Tools** (T113-T123) - `003-pro-features-opcua`
   - **Main Process - Protocol Calculator Service**
     - ProtocolCalculator 服務 (`src/main/services/ProtocolCalculator.ts`)

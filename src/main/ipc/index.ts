@@ -12,7 +12,6 @@ import { registerPollingHandlers } from './polling'
 import { registerDvrHandlers } from './dvr'
 import { registerProfileHandlers } from './profile'
 import { registerExportHandlers } from './export'
-import { registerVirtualServerHandlers } from './virtual-server'
 import { registerAppHandlers } from './app'
 import { registerEnvironmentHandlers } from './environment'
 import { registerCollectionHandlers } from './collection'
@@ -35,7 +34,6 @@ export function registerAllHandlers(): void {
   registerDvrHandlers()
   registerProfileHandlers()
   registerExportHandlers()
-  registerVirtualServerHandlers()
   registerAppHandlers()
   registerEnvironmentHandlers()
   registerCollectionHandlers()
@@ -54,7 +52,6 @@ export { registerPollingHandlers } from './polling'
 export { registerDvrHandlers } from './dvr'
 export { registerProfileHandlers } from './profile'
 export { registerExportHandlers } from './export'
-export { registerVirtualServerHandlers } from './virtual-server'
 export { registerAppHandlers } from './app'
 export { handleWindowClose, setForceQuit, resetForceQuitFlag, stopAllPollingGracefully } from './app'
 export { registerEnvironmentHandlers } from './environment'

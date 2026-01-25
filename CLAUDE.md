@@ -112,6 +112,8 @@ const result = await window.api.invoke('modbus:read', params)
 - TypeScript 5.x, Node.js 22 LTS (002-iiot-protocol-studio)
 - better-sqlite3 (ring buffer for DVR), YAML (config files), JSON (profiles) (002-iiot-protocol-studio)
 - better-sqlite3 (ring buffer for DVR, alert history), YAML (config export), JSON (profiles, dashboards) (003-pro-features-opcua)
+- TypeScript 5.x, Node.js 22 LTS + No new dependencies; removing modbus-serial TCP server usage (004-remove-virtual-server)
+- N/A for this removal task (004-remove-virtual-server)
 
 ## Recent Changes
 - 002-iiot-protocol-studio: Added TypeScript 5.x, Node.js 22 LTS

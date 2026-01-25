@@ -41,7 +41,7 @@ Build a cross-platform Electron desktop application for IIoT protocol testing an
 
 | Principle | Status | Notes |
 |-----------|--------|-------|
-| I.1 Spec-Driven Development | ✅ PASS | spec.md complete with 7 user stories, 30 FRs |
+| I.1 Spec-Driven Development | ✅ PASS | spec.md complete with 6 user stories, 27 FRs |
 | I.2 Single Source of Truth | ✅ PASS | Zustand store as SSOT, ConnectionManager pattern |
 | I.3 Abstract Interfaces | ✅ PASS | ProtocolAdapter interface for Modbus/MQTT/OPC UA |
 | I.4 Minimum Viable Complexity | ✅ PASS | Standard Electron architecture, no microservices |
@@ -87,8 +87,7 @@ src/
 │   │   ├── DataBuffer.ts    # SQLite ring buffer
 │   │   ├── ProfileService.ts
 │   │   ├── ExportService.ts
-│   │   ├── LogService.ts
-│   │   └── VirtualServer.ts
+│   │   └── LogService.ts
 │   ├── protocols/           # Protocol adapters
 │   │   ├── ProtocolAdapter.ts   # Abstract interface
 │   │   ├── ModbusTcpAdapter.ts
@@ -108,7 +107,6 @@ src/
 │   │   ├── dvr/             # TimelineSlider, PlaybackControls
 │   │   ├── profile/         # ProfileList, ProfileDialog
 │   │   ├── export/          # ExportDialog, ReportPreview
-│   │   ├── virtual-server/  # VirtualServerPanel
 │   │   └── common/          # Shared UI components
 │   ├── stores/              # Zustand stores
 │   │   ├── connectionStore.ts
@@ -349,22 +347,7 @@ tests/
 
 ---
 
-### Phase 13: Virtual Server (P2)
-
-**Goal**: Built-in Modbus simulator.
-
-| Step | Action | Reference |
-|------|--------|-----------|
-| 13.1 | Implement `VirtualServer` service | [data-model.md § VirtualServer](./data-model.md#virtualserver) |
-| 13.2 | Implement waveform generators | [data-model.md § Waveform Value Generation](./data-model.md#waveform) |
-| 13.3 | Implement IPC handlers: `virtual-server:start`, `virtual-server:stop`, `virtual-server:status` | [contracts/ipc-channels.md § Virtual Server Channels](./contracts/ipc-channels.md#virtual-server-channels) |
-| 13.4 | Build `VirtualServerPanel` component | [plan.md § renderer/components/virtual-server](#source-code-repository-root) |
-
-**Checkpoint**: US5 (Virtual Server) fully functional.
-
----
-
-### Phase 14: Multi-Protocol (P2)
+### Phase 13: Multi-Protocol (P2)
 
 **Goal**: Add MQTT adapter.
 
@@ -379,7 +362,7 @@ tests/
 
 ---
 
-### Phase 15: Polish & Edge Cases
+### Phase 14: Polish & Edge Cases
 
 **Goal**: Production readiness.
 
@@ -405,7 +388,6 @@ tests/
 | `DataBuffer` | DataPoint (SQLite) | `dvr:*` |
 | `ProfileService` | Profile, ProfileSettings | `profile:*` |
 | `ExportService` | DataPoint (read), Tag | `export:*` |
-| `VirtualServer` | VirtualServer, VirtualRegister, Waveform | `virtual-server:*` |
 | `LogService` | LogEntry | `log:*` |
 
 ## User Story → Phase Mapping
@@ -416,9 +398,8 @@ tests/
 | US2 Tag Monitoring | Phase 6, 7, 9 | US1 |
 | US3 Data DVR | Phase 10 | US2 |
 | US4 Profile Management | Phase 11 | US1 |
-| US5 Virtual Server | Phase 13 | Phase 4 |
-| US6 Multi-Protocol | Phase 14 | US2 |
-| US7 Export & Report | Phase 12 | US2 |
+| US5 Multi-Protocol | Phase 13 | US2 |
+| US6 Export & Report | Phase 12 | US2 |
 
 ## Next Steps
 

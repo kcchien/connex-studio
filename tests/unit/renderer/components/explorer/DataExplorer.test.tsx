@@ -71,7 +71,7 @@ describe('DataExplorer', () => {
   it('shows tag details when tag selected', () => {
     render(<DataExplorer {...defaultProps} />)
     fireEvent.click(screen.getByText('Temperature_01'))
-    expect(screen.getByTestId('tag-details')).toBeInTheDocument()
+    expect(screen.getByTestId('tag-detail-panel')).toBeInTheDocument()
   })
 
   it('shows alarm state styling', () => {

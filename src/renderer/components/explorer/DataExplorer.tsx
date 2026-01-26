@@ -12,15 +12,33 @@ import {
 import type { Tag } from '@shared/types/tag'
 import type { ConnectionMetrics } from '@shared/types'
 import { TagRow } from './TagRow'
-import { TagDetails } from './TagDetails'
+import { TagDetailPanel } from '@renderer/components/tags'
 import { ConnectionStatusBar } from './ConnectionStatusBar'
+import type { TagDisplayState as StoreTagDisplayState } from '@renderer/stores/tagStore'
 
 export type ConnectionStatus = 'connected' | 'connecting' | 'disconnected' | 'error'
 
+// Local display state for DataExplorer (backward compatible)
 export interface TagDisplayState {
   value: number | string | boolean
   alarmState: 'normal' | 'warning' | 'alarm'
   history?: number[]
+}
+
+// Convert local display state to store format for TagDetailPanel
+function toStoreDisplayState(tagId: string, local: TagDisplayState): StoreTagDisplayState {
+  return {
+    tagId,
+    currentValue: local.value,
+    quality: 'good',
+    timestamp: Date.now(),
+    sparklineData: local.history || [],
+    alarmState: local.alarmState,
+    trend: 'stable',
+    status: local.alarmState === 'alarm' ? 'error' : local.alarmState === 'warning' ? 'timeout' : 'normal',
+    consecutiveFailures: 0,
+    isThrottled: false,
+  }
 }
 
 export interface DataExplorerProps {
@@ -161,12 +179,12 @@ export function DataExplorer({
         </div>
 
         {/* Tag Details Panel */}
-        {selectedTag && selectedDisplayState && (
-          <TagDetails
+        {selectedTag && (
+          <TagDetailPanel
             tag={selectedTag}
-            displayState={selectedDisplayState}
+            displayState={selectedDisplayState ? toStoreDisplayState(selectedTag.id, selectedDisplayState) : undefined}
             onClose={handleCloseDetails}
-            onRemove={() => onRemoveTag?.(selectedTag.id)}
+            onDelete={(tagId) => onRemoveTag?.(tagId)}
           />
         )}
       </div>

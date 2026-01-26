@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { cn } from '@renderer/lib/utils'
 import {
   Server,
@@ -7,17 +7,33 @@ import {
   ChevronDown,
   ChevronRight,
   Loader2,
-  X
+  X,
+  CheckCircle2,
+  XCircle
 } from 'lucide-react'
 import * as Dialog from '@radix-ui/react-dialog'
 import type { Protocol, ModbusTcpConfig, MqttConfig, OpcUaConfig } from '@shared/types/connection'
 import type { ByteOrder } from '@shared/types'
 import { ByteOrderSelector } from './ByteOrderSelector'
+import { validateHost, validatePort, filterNumericInput } from '@shared/utils/validation'
 
 export interface ConnectionFormData {
   name: string
   protocol: Protocol
   config: ModbusTcpConfig | MqttConfig | OpcUaConfig
+}
+
+/** Default ports for each protocol */
+const DEFAULT_PORTS: Record<Protocol, number> = {
+  'modbus-tcp': 502,
+  mqtt: 1883,
+  opcua: 4840,
+}
+
+/** Test connection result state */
+interface TestResult {
+  success: boolean
+  message: string
 }
 
 export interface NewConnectionDialogProps {
@@ -33,7 +49,9 @@ const protocolOptions: {
   icon: typeof Cable
   color: string
   borderColor: string
-  placeholder: string
+  hostPlaceholder: string
+  /** For non-Modbus protocols that still use address field */
+  addressPlaceholder?: string
 }[] = [
   {
     value: 'modbus-tcp',
@@ -41,7 +59,7 @@ const protocolOptions: {
     icon: Server,
     color: 'text-teal-400',
     borderColor: 'border-teal-500',
-    placeholder: '192.168.1.100:502'
+    hostPlaceholder: '192.168.1.100',
   },
   {
     value: 'mqtt',
@@ -49,7 +67,8 @@ const protocolOptions: {
     icon: Radio,
     color: 'text-green-400',
     borderColor: 'border-green-500',
-    placeholder: 'mqtt://localhost:1883'
+    hostPlaceholder: 'localhost',
+    addressPlaceholder: 'mqtt://localhost:1883',
   },
   {
     value: 'opcua',
@@ -57,7 +76,8 @@ const protocolOptions: {
     icon: Cable,
     color: 'text-purple-400',
     borderColor: 'border-purple-500',
-    placeholder: 'opc.tcp://localhost:4840'
+    hostPlaceholder: 'localhost',
+    addressPlaceholder: 'opc.tcp://localhost:4840',
   },
 ]
 
@@ -73,10 +93,22 @@ export function NewConnectionDialog({
 }: NewConnectionDialogProps): React.ReactElement {
   const [protocol, setProtocol] = useState<Protocol>('modbus-tcp')
   const [name, setName] = useState('')
+  // Separate host and port fields for Modbus TCP
+  const [host, setHost] = useState('')
+  const [port, setPort] = useState(String(DEFAULT_PORTS['modbus-tcp']))
+  // Combined address field for MQTT/OPC UA
   const [address, setAddress] = useState('')
   const [advancedOpen, setAdvancedOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isTesting, setIsTesting] = useState(false)
+  const [testResult, setTestResult] = useState<TestResult | null>(null)
+
+  // Validation errors
+  const [hostError, setHostError] = useState<string | undefined>()
+  const [portError, setPortError] = useState<string | undefined>()
+
+  // Track if port was manually edited (to preserve user input when switching protocols)
+  const [portManuallyEdited, setPortManuallyEdited] = useState(false)
 
   // Advanced options
   const [unitId, setUnitId] = useState(1)
@@ -84,6 +116,75 @@ export function NewConnectionDialog({
   const [byteOrder, setByteOrder] = useState<ByteOrder>('ABCD')
 
   const selectedProtocol = protocolOptions.find(p => p.value === protocol)!
+
+  // Reset test result when inputs change
+  useEffect(() => {
+    setTestResult(null)
+  }, [host, port, address, protocol])
+
+  // Handle protocol change - update port if not manually edited
+  const handleProtocolChange = useCallback((newProtocol: Protocol) => {
+    const oldDefaultPort = DEFAULT_PORTS[protocol]
+    const newDefaultPort = DEFAULT_PORTS[newProtocol]
+
+    setProtocol(newProtocol)
+
+    // Only update port if:
+    // 1. Port was never manually edited, OR
+    // 2. Port is currently the old protocol's default
+    if (!portManuallyEdited || port === String(oldDefaultPort)) {
+      setPort(String(newDefaultPort))
+    }
+
+    // Clear validation errors when switching protocol
+    setHostError(undefined)
+    setPortError(undefined)
+  }, [protocol, port, portManuallyEdited])
+
+  // Validate host with debounce effect
+  const handleHostChange = useCallback((value: string) => {
+    setHost(value)
+    // Clear error immediately when user starts typing
+    if (hostError) setHostError(undefined)
+  }, [hostError])
+
+  // Validate host on blur
+  const handleHostBlur = useCallback(() => {
+    if (host) {
+      const result = validateHost(host)
+      setHostError(result.error)
+    }
+  }, [host])
+
+  // Handle port change with filtering
+  const handlePortChange = useCallback((value: string) => {
+    const filtered = filterNumericInput(value)
+    setPort(filtered)
+    setPortManuallyEdited(true)
+    // Clear error immediately when user starts typing
+    if (portError) setPortError(undefined)
+  }, [portError])
+
+  // Validate port on blur
+  const handlePortBlur = useCallback(() => {
+    if (port) {
+      const result = validatePort(port)
+      setPortError(result.error)
+    }
+  }, [port])
+
+  // Check if form is valid for submission
+  const isFormValid = useCallback(() => {
+    if (!name) return false
+
+    if (protocol === 'modbus-tcp') {
+      const hostValidation = validateHost(host)
+      const portValidation = validatePort(port)
+      return hostValidation.valid && portValidation.valid
+    } else {
+      return !!address
+    }
+  }, [name, protocol, host, port, address])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -100,27 +201,50 @@ export function NewConnectionDialog({
   const handleTestConnection = async () => {
     if (!onTestConnection) return
 
+    // Validate before testing
+    if (protocol === 'modbus-tcp') {
+      const hostResult = validateHost(host)
+      const portResult = validatePort(port)
+
+      if (!hostResult.valid) {
+        setHostError(hostResult.error)
+        return
+      }
+      if (!portResult.valid) {
+        setPortError(portResult.error)
+        return
+      }
+    }
+
     setIsTesting(true)
+    setTestResult(null)
+
     try {
       const formData = buildFormData()
-      await onTestConnection(formData)
+      const success = await onTestConnection(formData)
+      setTestResult({
+        success,
+        message: success ? 'Connection successful' : 'Connection failed',
+      })
+    } catch (error) {
+      setTestResult({
+        success: false,
+        message: error instanceof Error ? error.message : 'Connection failed',
+      })
     } finally {
       setIsTesting(false)
     }
   }
 
   const buildFormData = (): ConnectionFormData => {
-    const baseConfig = { address }
-
     switch (protocol) {
       case 'modbus-tcp': {
-        const [host, port] = parseHostPort(address, 502)
         return {
           name,
           protocol,
           config: {
-            host,
-            port,
+            host: host.trim(),
+            port: Number(port),
             unitId,
             timeout,
             defaultByteOrder: byteOrder,
@@ -148,14 +272,6 @@ export function NewConnectionDialog({
           } as OpcUaConfig
         }
     }
-  }
-
-  const parseHostPort = (addr: string, defaultPort: number): [string, number] => {
-    const parts = addr.split(':')
-    if (parts.length === 2 && !isNaN(Number(parts[1]))) {
-      return [parts[0], Number(parts[1])]
-    }
-    return [addr, defaultPort]
   }
 
   return (
@@ -187,7 +303,7 @@ export function NewConnectionDialog({
                     <button
                       key={opt.value}
                       type="button"
-                      onClick={() => setProtocol(opt.value)}
+                      onClick={() => handleProtocolChange(opt.value)}
                       className={cn(
                         'p-3 rounded-lg border-2 transition-all',
                         'flex flex-col items-center gap-2',
@@ -227,26 +343,105 @@ export function NewConnectionDialog({
               />
             </div>
 
-            {/* Address */}
-            <div className="space-y-2">
-              <label htmlFor="connection-address" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Address
-              </label>
-              <input
-                id="connection-address"
-                type="text"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                placeholder={selectedProtocol.placeholder}
+            {/* Host/Port for Modbus TCP, Address for others */}
+            {protocol === 'modbus-tcp' ? (
+              <div className="grid grid-cols-3 gap-3">
+                {/* Host */}
+                <div className="col-span-2 space-y-2">
+                  <label htmlFor="connection-host" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Host
+                  </label>
+                  <input
+                    id="connection-host"
+                    type="text"
+                    value={host}
+                    onChange={(e) => handleHostChange(e.target.value)}
+                    onBlur={handleHostBlur}
+                    placeholder={selectedProtocol.hostPlaceholder}
+                    className={cn(
+                      'w-full px-4 py-2.5 rounded-lg',
+                      'bg-gray-50 dark:bg-gray-800 border',
+                      hostError
+                        ? 'border-red-500 focus:ring-red-500'
+                        : 'border-gray-200 dark:border-gray-700 focus:ring-blue-500',
+                      'text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500',
+                      'focus:outline-none focus:ring-2 focus:border-transparent',
+                      'transition-all'
+                    )}
+                  />
+                  {hostError && (
+                    <p className="text-xs text-red-500">{hostError}</p>
+                  )}
+                </div>
+                {/* Port */}
+                <div className="space-y-2">
+                  <label htmlFor="connection-port" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Port
+                  </label>
+                  <input
+                    id="connection-port"
+                    type="text"
+                    inputMode="numeric"
+                    value={port}
+                    onChange={(e) => handlePortChange(e.target.value)}
+                    onBlur={handlePortBlur}
+                    placeholder={String(DEFAULT_PORTS[protocol])}
+                    className={cn(
+                      'w-full px-4 py-2.5 rounded-lg',
+                      'bg-gray-50 dark:bg-gray-800 border',
+                      portError
+                        ? 'border-red-500 focus:ring-red-500'
+                        : 'border-gray-200 dark:border-gray-700 focus:ring-blue-500',
+                      'text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500',
+                      'focus:outline-none focus:ring-2 focus:border-transparent',
+                      'transition-all'
+                    )}
+                  />
+                  {portError && (
+                    <p className="text-xs text-red-500">{portError}</p>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <label htmlFor="connection-address" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Address
+                </label>
+                <input
+                  id="connection-address"
+                  type="text"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  placeholder={selectedProtocol.addressPlaceholder}
+                  className={cn(
+                    'w-full px-4 py-2.5 rounded-lg',
+                    'bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700',
+                    'text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500',
+                    'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent',
+                    'transition-all'
+                  )}
+                />
+              </div>
+            )}
+
+            {/* Test Connection Result */}
+            {testResult && (
+              <div
                 className={cn(
-                  'w-full px-4 py-2.5 rounded-lg',
-                  'bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700',
-                  'text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500',
-                  'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent',
-                  'transition-all'
+                  'flex items-center gap-2 px-3 py-2 rounded-lg text-sm',
+                  testResult.success
+                    ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400'
+                    : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400'
                 )}
-              />
-            </div>
+              >
+                {testResult.success ? (
+                  <CheckCircle2 className="w-4 h-4" />
+                ) : (
+                  <XCircle className="w-4 h-4" />
+                )}
+                {testResult.message}
+              </div>
+            )}
 
             {/* Advanced Options */}
             <div>
@@ -334,7 +529,7 @@ export function NewConnectionDialog({
               <button
                 type="button"
                 onClick={handleTestConnection}
-                disabled={isTesting || !address}
+                disabled={isTesting || !isFormValid()}
                 className={cn(
                   'px-4 py-2 rounded-lg text-sm',
                   'border border-gray-300 dark:border-gray-600',
@@ -348,7 +543,7 @@ export function NewConnectionDialog({
               </button>
               <button
                 type="submit"
-                disabled={isSubmitting || !name || !address}
+                disabled={isSubmitting || !isFormValid()}
                 className={cn(
                   'px-5 py-2 rounded-lg text-sm',
                   'bg-gradient-to-r from-blue-500 to-teal-400',

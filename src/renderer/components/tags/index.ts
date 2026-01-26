@@ -1,10 +1,11 @@
-/**
- * Tag Components Index
- *
- * Exports all tag-related components for monitoring and configuration.
- */
+export { BatchTagDialog } from "./BatchTagDialog"
+export type { BatchTagDialogProps } from "./BatchTagDialog"
 
-export { TagEditor } from './TagEditor'
-export { Sparkline } from './Sparkline'
-export { TagGrid } from './TagGrid'
-export { PollingControls } from './PollingControls'
+export { ImportTab } from "./ImportTab"
+export type { ImportTabProps } from "./ImportTab"
+
+export { ScanTab } from "./ScanTab"
+export type { ScanTabProps } from "./ScanTab"
+
+export { GenerateTab } from "./GenerateTab"
+export type { GenerateTabProps } from "./GenerateTab"

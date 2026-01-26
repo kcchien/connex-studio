@@ -10,50 +10,67 @@
 
 ---
 
+## Review Notes
+
+> **Reviewed:** 2026-01-26 | **Status:** Ready for implementation
+
+### Key Design Decisions
+
+1. **Test Runner for Shared Types**: Shared types are pure TypeScript without Node/Electron dependencies. Using `pnpm test:main` (Jest) is acceptable since Jest can run pure TS tests. If issues arise, consider adding `pnpm test:shared` script.
+
+2. **BatchReadConfig**: Added in Phase 1 for type completeness but **not consumed until follow-up batch read plan**. This is intentional forward-compatibility - the config will be used when batch read optimization is implemented.
+
+3. **Commit Strategy**: Commits are consolidated per logical feature (not per micro-task) to maintain clean git history while preserving rollback granularity.
+
+---
+
 ## Phase 1: Type Definitions
 
 ### Task 1.1: Create Modbus Types File
 
-- [ ] T001 Create `src/shared/types/modbus.ts` with ByteOrder type
+- [x] T001 Create `src/shared/types/modbus.ts` with ByteOrder type
   - **File:** `src/shared/types/modbus.ts`
   - **Content:** `ByteOrder` type union: `'ABCD' | 'DCBA' | 'BADC' | 'CDAB'`
   - **Test:** `pnpm typecheck` passes
   - **Pass Criteria:** File exists, no TypeScript errors
 
-- [ ] T002 Add `BYTE_ORDER_INFO` constant with vendor information
+- [x] T002 Add `BYTE_ORDER_INFO` constant with vendor information
   - **File:** `src/shared/types/modbus.ts`
   - **Content:** Record mapping each ByteOrder to `{ name, description, vendors[] }`
   - **Test:** `BYTE_ORDER_INFO['ABCD'].vendors` includes 'Siemens S7'
   - **Pass Criteria:** All 4 byte orders have name, description, and at least 2 vendors
 
-- [ ] T003 Add `DEFAULT_BYTE_ORDER` constant
+- [x] T003 Add `DEFAULT_BYTE_ORDER` constant
   - **File:** `src/shared/types/modbus.ts`
   - **Content:** `export const DEFAULT_BYTE_ORDER: ByteOrder = 'ABCD'`
   - **Test:** `pnpm typecheck` passes
   - **Pass Criteria:** Default is 'ABCD' (Modbus standard)
 
-- [ ] T004 Add `BatchReadConfig` interface
+- [x] T004 Add `BatchReadConfig` interface
   - **File:** `src/shared/types/modbus.ts`
   - **Content:** `{ enabled: boolean, maxGap: number, maxRegisters: number }`
   - **Test:** `pnpm typecheck` passes
   - **Pass Criteria:** Interface compiles
 
-- [ ] T005 Add `DEFAULT_BATCH_READ_CONFIG` constant
+- [x] T005 Add `DEFAULT_BATCH_READ_CONFIG` constant
   - **File:** `src/shared/types/modbus.ts`
   - **Content:** `{ enabled: true, maxGap: 10, maxRegisters: 125 }`
   - **Test:** `pnpm typecheck` passes
   - **Pass Criteria:** maxRegisters is 125 (Modbus protocol limit)
+  - **Note:** BatchReadConfig is defined now for type completeness but consumed in future batch read plan
 
 ---
 
 ### Task 1.2: Create Modbus Types Unit Test
 
-- [ ] T006 Create test file `tests/unit/shared/modbus.test.ts`
+> **Note:** Using `pnpm test:main` (Jest) for shared types tests. These are pure TypeScript without Node/Electron dependencies, so either test runner works. Jest is chosen for consistency with main process tests.
+
+- [x] T006 Create test file `tests/unit/shared/modbus.test.ts`
   - **File:** `tests/unit/shared/modbus.test.ts`
   - **Test:** File exists and imports from `@shared/types/modbus`
   - **Pass Criteria:** `pnpm test:main tests/unit/shared/modbus.test.ts` runs (may fail initially)
 
-- [ ] T007 Write test: ByteOrder has info for all 4 types
+- [x] T007 Write test: ByteOrder has info for all 4 types
   - **File:** `tests/unit/shared/modbus.test.ts`
   - **Test Code:**
     ```typescript
@@ -68,7 +85,7 @@
     ```
   - **Pass Criteria:** Test passes
 
-- [ ] T008 Write test: DEFAULT_BYTE_ORDER is ABCD
+- [x] T008 Write test: DEFAULT_BYTE_ORDER is ABCD
   - **File:** `tests/unit/shared/modbus.test.ts`
   - **Test Code:**
     ```typescript
@@ -78,7 +95,7 @@
     ```
   - **Pass Criteria:** Test passes
 
-- [ ] T009 Write test: BatchReadConfig defaults are sensible
+- [x] T009 Write test: BatchReadConfig defaults are sensible
   - **File:** `tests/unit/shared/modbus.test.ts`
   - **Test Code:**
     ```typescript
@@ -90,7 +107,7 @@
     ```
   - **Pass Criteria:** Test passes
 
-- [ ] T010 Run all modbus type tests
+- [x] T010 Run all modbus type tests
   - **Command:** `pnpm test:main tests/unit/shared/modbus.test.ts`
   - **Pass Criteria:** All tests pass
 
@@ -98,82 +115,79 @@
 
 ### Task 1.3: Export Modbus Types from Index
 
-- [ ] T011 Add export to `src/shared/types/index.ts`
+- [x] T011 Add export to `src/shared/types/index.ts`
   - **File:** `src/shared/types/index.ts`
   - **Content:** Add `export * from './modbus'`
   - **Test:** `pnpm typecheck` passes
   - **Pass Criteria:** Types can be imported from `@shared/types`
 
-- [ ] T012 Commit Phase 1.1-1.3
-  - **Command:** `git add src/shared/types/modbus.ts tests/unit/shared/modbus.test.ts src/shared/types/index.ts`
-  - **Commit:** `feat(types): add ByteOrder and BatchReadConfig types for Modbus`
-  - **Pass Criteria:** Commit successful
+- [ ] T012 ~~Commit Phase 1.1-1.3~~ (Deferred - see T026)
+  - **Note:** Commit deferred to T026 for consolidated Phase 1 commit
+  - **Pass Criteria:** Skip to next task
 
 ---
 
 ### Task 1.4: Extend ModbusTcpConfig
 
-- [ ] T013 Import ByteOrder in connection.ts
+- [x] T013 Import ByteOrder in connection.ts
   - **File:** `src/shared/types/connection.ts`
   - **Content:** Add `import type { ByteOrder, BatchReadConfig } from './modbus'`
   - **Test:** `pnpm typecheck` passes
   - **Pass Criteria:** Import resolves
 
-- [ ] T014 Add `defaultByteOrder` to ModbusTcpConfig
+- [x] T014 Add `defaultByteOrder` to ModbusTcpConfig
   - **File:** `src/shared/types/connection.ts`
   - **Content:** Add `defaultByteOrder?: ByteOrder` to interface
   - **Test:** `pnpm typecheck` passes
   - **Pass Criteria:** Field is optional (backward compatible)
 
-- [ ] T015 Add `batchRead` to ModbusTcpConfig
+- [x] T015 Add `batchRead` to ModbusTcpConfig
   - **File:** `src/shared/types/connection.ts`
   - **Content:** Add `batchRead?: BatchReadConfig` to interface
   - **Test:** `pnpm typecheck` passes
   - **Pass Criteria:** Field is optional
 
-- [ ] T016 Update DEFAULT_MODBUS_CONFIG with new fields
+- [x] T016 Update DEFAULT_MODBUS_CONFIG with new fields
   - **File:** `src/shared/types/connection.ts`
   - **Content:** Add `defaultByteOrder: 'ABCD'` and `batchRead: { enabled: true, maxGap: 10, maxRegisters: 125 }`
   - **Test:** `pnpm typecheck` passes
   - **Pass Criteria:** Defaults match spec
 
-- [ ] T017 Commit Task 1.4
-  - **Command:** `git add src/shared/types/connection.ts`
-  - **Commit:** `feat(types): add defaultByteOrder and batchRead to ModbusTcpConfig`
-  - **Pass Criteria:** Commit successful
+- [ ] T017 ~~Commit Task 1.4~~ (Deferred - see T026)
+  - **Note:** Commit deferred to T026 for consolidated Phase 1 commit
+  - **Pass Criteria:** Skip to next task
 
 ---
 
 ### Task 1.5: Extend ModbusAddress
 
-- [ ] T018 Import ByteOrder in tag.ts
+- [x] T018 Import ByteOrder in tag.ts
   - **File:** `src/shared/types/tag.ts`
   - **Content:** Add `import type { ByteOrder } from './modbus'`
   - **Test:** `pnpm typecheck` passes
   - **Pass Criteria:** Import resolves
 
-- [ ] T019 Add `byteOrder` override to ModbusAddress
+- [x] T019 Add `byteOrder` override to ModbusAddress
   - **File:** `src/shared/types/tag.ts`
   - **Content:** Add `byteOrder?: ByteOrder` to ModbusAddress interface
   - **Test:** `pnpm typecheck` passes
   - **Pass Criteria:** Field is optional (uses connection default if not set)
 
-- [ ] T020 Add `unitId` override to ModbusAddress
+- [x] T020 Add `unitId` override to ModbusAddress
   - **File:** `src/shared/types/tag.ts`
   - **Content:** Add `unitId?: number` to ModbusAddress interface
   - **Test:** `pnpm typecheck` passes
   - **Pass Criteria:** Field is optional (uses connection default if not set)
 
-- [ ] T021 Commit Task 1.5
-  - **Command:** `git add src/shared/types/tag.ts`
-  - **Commit:** `feat(types): add byteOrder and unitId override to ModbusAddress`
-  - **Pass Criteria:** Commit successful
+- [ ] T021 ~~Commit Task 1.5~~ (Deferred - see T026)
+  - **Note:** Commit deferred to T026 for consolidated Phase 1 commit
+  - **Pass Criteria:** Skip to next task
 
 ---
 
 ### Task 1.6: Add ConnectionMetrics Type
 
-- [ ] T022 Add ConnectionMetrics interface
+- [x] T022 Add ConnectionMetrics interface
   - **File:** `src/shared/types/connection.ts`
   - **Content:**
     ```typescript
@@ -193,13 +207,13 @@
   - **Test:** `pnpm typecheck` passes
   - **Pass Criteria:** Interface compiles
 
-- [ ] T023 Add INITIAL_METRICS constant
+- [x] T023 Add INITIAL_METRICS constant
   - **File:** `src/shared/types/connection.ts`
   - **Content:** All numeric fields set to 0, optional fields omitted
   - **Test:** `pnpm typecheck` passes
   - **Pass Criteria:** Can be used to initialize metrics state
 
-- [ ] T024 Add METRIC_THRESHOLDS constant
+- [x] T024 Add METRIC_THRESHOLDS constant
   - **File:** `src/shared/types/connection.ts`
   - **Content:**
     ```typescript
@@ -212,16 +226,23 @@
   - **Test:** `pnpm typecheck` passes
   - **Pass Criteria:** Thresholds match design spec
 
-- [ ] T025 Add `metrics` field to Connection interface
+- [x] T025 Add `metrics` field to Connection interface
   - **File:** `src/shared/types/connection.ts`
   - **Content:** Add `metrics?: ConnectionMetrics` to Connection interface
   - **Test:** `pnpm typecheck` passes
   - **Pass Criteria:** Field is optional
 
-- [ ] T026 Commit Task 1.6
-  - **Command:** `git add src/shared/types/connection.ts`
-  - **Commit:** `feat(types): add ConnectionMetrics for health monitoring`
-  - **Pass Criteria:** Commit successful
+- [x] T026 Commit Phase 1 (Consolidated)
+  - **Command:**
+    ```bash
+    git add src/shared/types/modbus.ts \
+            src/shared/types/connection.ts \
+            src/shared/types/tag.ts \
+            src/shared/types/index.ts \
+            tests/unit/shared/modbus.test.ts
+    ```
+  - **Commit:** `feat(types): add ByteOrder, BatchReadConfig, ConnectionMetrics for Modbus industrial features`
+  - **Pass Criteria:** Commit successful, all Phase 1 type definitions in single commit
 
 ---
 
@@ -229,13 +250,13 @@
 
 ### Task 2.1: Create Test File for Byte Order Utils
 
-- [ ] T027 Create test file `tests/unit/main/byteOrderUtils.test.ts`
+- [x] T027 Create test file `tests/unit/main/byteOrderUtils.test.ts`
   - **File:** `tests/unit/main/byteOrderUtils.test.ts`
   - **Content:** Basic describe block, import statement
   - **Test:** File exists
   - **Pass Criteria:** `pnpm test:main tests/unit/main/byteOrderUtils.test.ts` runs (fails with module not found)
 
-- [ ] T028 Write failing test: swapBytes function
+- [x] T028 Write failing test: swapBytes function
   - **File:** `tests/unit/main/byteOrderUtils.test.ts`
   - **Test Code:**
     ```typescript
@@ -249,7 +270,7 @@
     ```
   - **Pass Criteria:** Test fails with "swapBytes is not defined"
 
-- [ ] T029 Write failing test: convertFloat32 ABCD
+- [x] T029 Write failing test: convertFloat32 ABCD
   - **File:** `tests/unit/main/byteOrderUtils.test.ts`
   - **Test Code:**
     ```typescript
@@ -266,7 +287,7 @@
     ```
   - **Pass Criteria:** Test fails with "convertFloat32 is not defined"
 
-- [ ] T030 Write failing test: convertFloat32 DCBA
+- [x] T030 Write failing test: convertFloat32 DCBA
   - **File:** `tests/unit/main/byteOrderUtils.test.ts`
   - **Test Code:**
     ```typescript
@@ -277,7 +298,7 @@
     ```
   - **Pass Criteria:** Test added
 
-- [ ] T031 Write failing test: convertFloat32 BADC
+- [x] T031 Write failing test: convertFloat32 BADC
   - **File:** `tests/unit/main/byteOrderUtils.test.ts`
   - **Test Code:**
     ```typescript
@@ -290,7 +311,7 @@
     ```
   - **Pass Criteria:** Test added
 
-- [ ] T032 Write failing test: convertFloat32 CDAB
+- [x] T032 Write failing test: convertFloat32 CDAB
   - **File:** `tests/unit/main/byteOrderUtils.test.ts`
   - **Test Code:**
     ```typescript
@@ -303,7 +324,7 @@
     ```
   - **Pass Criteria:** Test added
 
-- [ ] T033 Write failing test: convertInt32 positive
+- [x] T033 Write failing test: convertInt32 positive
   - **File:** `tests/unit/main/byteOrderUtils.test.ts`
   - **Test Code:**
     ```typescript
@@ -316,7 +337,7 @@
     ```
   - **Pass Criteria:** Test added
 
-- [ ] T034 Write failing test: convertInt32 negative
+- [x] T034 Write failing test: convertInt32 negative
   - **File:** `tests/unit/main/byteOrderUtils.test.ts`
   - **Test Code:**
     ```typescript
@@ -327,7 +348,7 @@
     ```
   - **Pass Criteria:** Test added
 
-- [ ] T035 Write failing test: convertUint32 large value
+- [x] T035 Write failing test: convertUint32 large value
   - **File:** `tests/unit/main/byteOrderUtils.test.ts`
   - **Test Code:**
     ```typescript
@@ -340,17 +361,78 @@
     ```
   - **Pass Criteria:** Test added
 
+### Task 2.1a: Edge Case Tests (Industrial Robustness)
+
+> **Rationale:** Industrial environments produce edge cases (NaN from sensor faults, boundary values). These tests ensure robustness.
+
+- [x] T035a Write failing test: convertFloat32 handles NaN
+  - **File:** `tests/unit/main/byteOrderUtils.test.ts`
+  - **Test Code:**
+    ```typescript
+    describe('Edge Cases', () => {
+      it('should return NaN for NaN registers', () => {
+        // IEEE 754 NaN: 0x7FC00000
+        const result = convertFloat32(0x7FC0, 0x0000, 'ABCD')
+        expect(result).toBeNaN()
+      })
+    })
+    ```
+  - **Pass Criteria:** Test added
+
+- [x] T035b Write failing test: convertFloat32 handles Infinity
+  - **File:** `tests/unit/main/byteOrderUtils.test.ts`
+  - **Test Code:**
+    ```typescript
+    it('should return Infinity for Infinity registers', () => {
+      // IEEE 754 +Infinity: 0x7F800000
+      const result = convertFloat32(0x7F80, 0x0000, 'ABCD')
+      expect(result).toBe(Infinity)
+    })
+
+    it('should return -Infinity for -Infinity registers', () => {
+      // IEEE 754 -Infinity: 0xFF800000
+      const result = convertFloat32(0xFF80, 0x0000, 'ABCD')
+      expect(result).toBe(-Infinity)
+    })
+    ```
+  - **Pass Criteria:** Test added
+
+- [x] T035c Write failing test: convertInt32 boundary (MIN_INT32)
+  - **File:** `tests/unit/main/byteOrderUtils.test.ts`
+  - **Test Code:**
+    ```typescript
+    it('should handle INT32 minimum boundary', () => {
+      // 0x80000000 = -2147483648
+      const result = convertInt32(0x8000, 0x0000, 'ABCD')
+      expect(result).toBe(-2147483648)
+    })
+    ```
+  - **Pass Criteria:** Test added
+
+- [x] T035d Write failing test: swapBytes masks to 16-bit
+  - **File:** `tests/unit/main/byteOrderUtils.test.ts`
+  - **Test Code:**
+    ```typescript
+    it('should mask input to 16-bit', () => {
+      // Input > 0xFFFF should be masked
+      const result = swapBytes(0x12345678)
+      // Only lower 16 bits (0x5678) should be processed
+      expect(result).toBe(0x7856)
+    })
+    ```
+  - **Pass Criteria:** Test added
+
 ---
 
 ### Task 2.2: Implement Byte Order Utilities
 
-- [ ] T036 Create `src/main/protocols/byteOrderUtils.ts`
+- [x] T036 Create `src/main/protocols/byteOrderUtils.ts`
   - **File:** `src/main/protocols/byteOrderUtils.ts`
   - **Content:** File with imports and JSDoc header
   - **Test:** File exists
   - **Pass Criteria:** `pnpm typecheck` passes
 
-- [ ] T037 Implement swapBytes function
+- [x] T037 Implement swapBytes function
   - **File:** `src/main/protocols/byteOrderUtils.ts`
   - **Content:**
     ```typescript
@@ -361,7 +443,7 @@
   - **Test:** `pnpm test:main` - swapBytes tests pass
   - **Pass Criteria:** All swapBytes tests pass
 
-- [ ] T038 Implement reorderRegisters function
+- [x] T038 Implement reorderRegisters function
   - **File:** `src/main/protocols/byteOrderUtils.ts`
   - **Content:**
     ```typescript
@@ -381,7 +463,7 @@
   - **Test:** `pnpm typecheck` passes
   - **Pass Criteria:** Function compiles
 
-- [ ] T039 Implement convertFloat32 function
+- [x] T039 Implement convertFloat32 function
   - **File:** `src/main/protocols/byteOrderUtils.ts`
   - **Content:**
     ```typescript
@@ -401,7 +483,7 @@
   - **Test:** `pnpm test:main` - convertFloat32 tests pass
   - **Pass Criteria:** All 4 byte order tests pass
 
-- [ ] T040 Implement convertInt32 function
+- [x] T040 Implement convertInt32 function
   - **File:** `src/main/protocols/byteOrderUtils.ts`
   - **Content:**
     ```typescript
@@ -421,7 +503,7 @@
   - **Test:** `pnpm test:main` - convertInt32 tests pass
   - **Pass Criteria:** Positive and negative tests pass
 
-- [ ] T041 Implement convertUint32 function
+- [x] T041 Implement convertUint32 function
   - **File:** `src/main/protocols/byteOrderUtils.ts`
   - **Content:**
     ```typescript
@@ -437,11 +519,11 @@
   - **Test:** `pnpm test:main` - convertUint32 tests pass
   - **Pass Criteria:** Large unsigned value test passes
 
-- [ ] T042 Run all byteOrderUtils tests
+- [x] T042 Run all byteOrderUtils tests
   - **Command:** `pnpm test:main tests/unit/main/byteOrderUtils.test.ts`
   - **Pass Criteria:** All tests pass (8+ tests)
 
-- [ ] T043 Commit Phase 2
+- [x] T043 Commit Phase 2
   - **Command:** `git add src/main/protocols/byteOrderUtils.ts tests/unit/main/byteOrderUtils.test.ts`
   - **Commit:** `feat(modbus): add byte order conversion utilities with tests`
   - **Pass Criteria:** Commit successful
@@ -452,7 +534,7 @@
 
 ### Task 3.1: Add Byte Order Support to Adapter
 
-- [ ] T044 Write failing test: adapter uses connection default byte order
+- [x] T044 Write failing test: adapter uses connection default byte order
   - **File:** `tests/unit/main/ModbusTcpAdapter.test.ts`
   - **Test Code:**
     ```typescript
@@ -469,7 +551,7 @@
     ```
   - **Pass Criteria:** Test fails with "getDefaultByteOrder is not a function"
 
-- [ ] T045 Write failing test: adapter defaults to ABCD
+- [x] T045 Write failing test: adapter defaults to ABCD
   - **File:** `tests/unit/main/ModbusTcpAdapter.test.ts`
   - **Test Code:**
     ```typescript
@@ -480,13 +562,13 @@
     ```
   - **Pass Criteria:** Test added
 
-- [ ] T046 Import byte order utilities in adapter
+- [x] T046 Import byte order utilities in adapter
   - **File:** `src/main/protocols/ModbusTcpAdapter.ts`
   - **Content:** Add imports for `convertFloat32`, `convertInt32`, `convertUint32`
   - **Test:** `pnpm typecheck` passes
   - **Pass Criteria:** Imports resolve
 
-- [ ] T047 Add getDefaultByteOrder method
+- [x] T047 Add getDefaultByteOrder method
   - **File:** `src/main/protocols/ModbusTcpAdapter.ts`
   - **Content:**
     ```typescript
@@ -497,26 +579,25 @@
   - **Test:** `pnpm test:main` - byte order tests pass
   - **Pass Criteria:** Both byte order tests pass
 
-- [ ] T048 Update convertValue to use byte order
+- [x] T048 Update convertValue to use byte order
   - **File:** `src/main/protocols/ModbusTcpAdapter.ts`
   - **Content:** Replace hardcoded `toInt32`, `toUint32`, `toFloat32` with imported utilities
   - **Test:** Existing data type conversion tests still pass
   - **Pass Criteria:** All ModbusTcpAdapter tests pass
 
-- [ ] T049 Run all ModbusTcpAdapter tests
+- [x] T049 Run all ModbusTcpAdapter tests
   - **Command:** `pnpm test:main tests/unit/main/ModbusTcpAdapter.test.ts`
   - **Pass Criteria:** All tests pass
 
-- [ ] T050 Commit Task 3.1
-  - **Command:** `git add src/main/protocols/ModbusTcpAdapter.ts tests/unit/main/ModbusTcpAdapter.test.ts`
-  - **Commit:** `feat(modbus): implement configurable byte order in ModbusTcpAdapter`
-  - **Pass Criteria:** Commit successful
+- [ ] T050 ~~Commit Task 3.1~~ (Deferred - see T062)
+  - **Note:** Commit deferred to T062 for consolidated Phase 3 commit
+  - **Pass Criteria:** Skip to next task
 
 ---
 
 ### Task 3.2: Add Metrics Tracking to Adapter
 
-- [ ] T051 Write failing test: adapter tracks request count
+- [x] T051 Write failing test: adapter tracks request count
   - **File:** `tests/unit/main/ModbusTcpAdapter.test.ts`
   - **Test Code:**
     ```typescript
@@ -532,7 +613,7 @@
     ```
   - **Pass Criteria:** Test fails with "getMetrics is not a function"
 
-- [ ] T052 Write failing test: adapter tracks latency
+- [x] T052 Write failing test: adapter tracks latency
   - **File:** `tests/unit/main/ModbusTcpAdapter.test.ts`
   - **Test Code:**
     ```typescript
@@ -545,7 +626,7 @@
     ```
   - **Pass Criteria:** Test added
 
-- [ ] T053 Write failing test: adapter emits metrics-updated event
+- [x] T053 Write failing test: adapter emits metrics-updated event
   - **File:** `tests/unit/main/ModbusTcpAdapter.test.ts`
   - **Test Code:**
     ```typescript
@@ -560,13 +641,13 @@
     ```
   - **Pass Criteria:** Test added
 
-- [ ] T054 Import ConnectionMetrics types
+- [x] T054 Import ConnectionMetrics types
   - **File:** `src/main/protocols/ModbusTcpAdapter.ts`
   - **Content:** Add `import type { ConnectionMetrics } from '@shared/types'`
   - **Test:** `pnpm typecheck` passes
   - **Pass Criteria:** Import resolves
 
-- [ ] T055 Add metrics state to adapter
+- [x] T055 Add metrics state to adapter
   - **File:** `src/main/protocols/ModbusTcpAdapter.ts`
   - **Content:**
     ```typescript
@@ -577,7 +658,7 @@
   - **Test:** `pnpm typecheck` passes
   - **Pass Criteria:** State compiles
 
-- [ ] T056 Implement getMetrics method
+- [x] T056 Implement getMetrics method
   - **File:** `src/main/protocols/ModbusTcpAdapter.ts`
   - **Content:**
     ```typescript
@@ -588,38 +669,42 @@
   - **Test:** `pnpm typecheck` passes
   - **Pass Criteria:** Method compiles
 
-- [ ] T057 Implement updateMetrics private method
+- [x] T057 Implement updateMetrics private method
   - **File:** `src/main/protocols/ModbusTcpAdapter.ts`
   - **Content:** Method that updates all metrics fields and emits 'metrics-updated'
   - **Test:** `pnpm typecheck` passes
   - **Pass Criteria:** Method compiles
 
-- [ ] T058 Call updateMetrics in readTags
+- [x] T058 Call updateMetrics in readTags
   - **File:** `src/main/protocols/ModbusTcpAdapter.ts`
   - **Content:** Add timing with `performance.now()`, call updateMetrics at end of readTags
   - **Test:** `pnpm test:main` - metrics tests pass
   - **Pass Criteria:** All metrics tests pass
 
-- [ ] T059 Implement resetMetrics method
+- [x] T059 Implement resetMetrics method
   - **File:** `src/main/protocols/ModbusTcpAdapter.ts`
   - **Content:** Reset metrics to INITIAL_METRICS, clear latencyHistory
   - **Test:** `pnpm typecheck` passes
   - **Pass Criteria:** Method compiles
 
-- [ ] T060 Call resetMetrics in connect
+- [x] T060 Call resetMetrics in connect
   - **File:** `src/main/protocols/ModbusTcpAdapter.ts`
   - **Content:** Reset metrics when connection is established
   - **Test:** `pnpm test:main` passes
   - **Pass Criteria:** Metrics reset on new connection
 
-- [ ] T061 Run all adapter tests
+- [x] T061 Run all adapter tests
   - **Command:** `pnpm test:main tests/unit/main/ModbusTcpAdapter.test.ts`
   - **Pass Criteria:** All tests pass
 
-- [ ] T062 Commit Task 3.2
-  - **Command:** `git add src/main/protocols/ModbusTcpAdapter.ts tests/unit/main/ModbusTcpAdapter.test.ts`
-  - **Commit:** `feat(modbus): implement connection metrics tracking`
-  - **Pass Criteria:** Commit successful
+- [x] T062 Commit Phase 3 (Consolidated)
+  - **Command:**
+    ```bash
+    git add src/main/protocols/ModbusTcpAdapter.ts \
+            tests/unit/main/ModbusTcpAdapter.test.ts
+    ```
+  - **Commit:** `feat(modbus): add configurable byte order and connection metrics to ModbusTcpAdapter`
+  - **Pass Criteria:** Commit successful, byte order + metrics in single adapter commit
 
 ---
 
@@ -627,37 +712,37 @@
 
 ### Task 4.1: Create ByteOrderSelector Component
 
-- [ ] T063 Create `src/renderer/components/connection/ByteOrderSelector.tsx`
+- [x] T063 Create `src/renderer/components/connection/ByteOrderSelector.tsx`
   - **File:** `src/renderer/components/connection/ByteOrderSelector.tsx`
   - **Content:** Basic React component with props interface
   - **Test:** `pnpm typecheck` passes
   - **Pass Criteria:** Component compiles
 
-- [ ] T064 Add select dropdown for byte order
+- [x] T064 Add select dropdown for byte order
   - **File:** `src/renderer/components/connection/ByteOrderSelector.tsx`
   - **Content:** `<select>` with 4 options (ABCD, DCBA, BADC, CDAB)
   - **Test:** Component renders select element
   - **Pass Criteria:** Select has all 4 options
 
-- [ ] T065 Add visual example box showing register layout
+- [x] T065 Add visual example box showing register layout
   - **File:** `src/renderer/components/connection/ByteOrderSelector.tsx`
   - **Content:** Info box showing FLOAT32 123.456 as example
   - **Test:** Component shows example value
   - **Pass Criteria:** Example updates when byte order changes
 
-- [ ] T066 Add vendor list display
+- [x] T066 Add vendor list display
   - **File:** `src/renderer/components/connection/ByteOrderSelector.tsx`
   - **Content:** Show common vendors from BYTE_ORDER_INFO
   - **Test:** Siemens S7 shown for ABCD
   - **Pass Criteria:** Vendors display correctly
 
-- [ ] T067 Add helper text
+- [x] T067 Add helper text
   - **File:** `src/renderer/components/connection/ByteOrderSelector.tsx`
   - **Content:** "Not sure? Use Tools → Byte Order Converter..."
   - **Test:** Helper text visible
   - **Pass Criteria:** Text renders
 
-- [ ] T068 Export from connection index
+- [x] T068 Export from connection index
   - **File:** `src/renderer/components/connection/index.ts`
   - **Content:** Add `export { ByteOrderSelector } from './ByteOrderSelector'`
   - **Test:** `pnpm typecheck` passes
@@ -667,19 +752,21 @@
 
 ### Task 4.2: Integrate ByteOrderSelector in NewConnectionDialog
 
-- [ ] T069 Write failing test: byte order selector visible in advanced options
+- [x] T069 Write failing test: byte order selector visible in advanced options
   - **File:** `tests/unit/renderer/components/connection/NewConnectionDialog.test.tsx`
   - **Test Code:**
     ```typescript
     it('should show byte order selector in advanced options for Modbus', async () => {
       render(<NewConnectionDialog open={true} onOpenChange={vi.fn()} onSubmit={vi.fn()} />)
-      await userEvent.click(screen.getByText(/advanced options/i))
-      expect(screen.getByLabelText(/byte order/i)).toBeInTheDocument()
+      // Use data-testid for stability against i18n/copy changes
+      await userEvent.click(screen.getByTestId('advanced-options-toggle'))
+      expect(screen.getByTestId('byte-order-selector')).toBeInTheDocument()
     })
     ```
   - **Pass Criteria:** Test fails (byte order selector not found)
+  - **Note:** Requires adding `data-testid="advanced-options-toggle"` and `data-testid="byte-order-selector"` to components
 
-- [ ] T070 Write failing test: form data includes byte order
+- [x] T070 Write failing test: form data includes byte order
   - **File:** `tests/unit/renderer/components/connection/NewConnectionDialog.test.tsx`
   - **Test Code:**
     ```typescript
@@ -698,29 +785,32 @@
     ```
   - **Pass Criteria:** Test fails
 
-- [ ] T071 Add byteOrder state to NewConnectionDialog
+- [x] T071 Add byteOrder state to NewConnectionDialog
   - **File:** `src/renderer/components/connection/NewConnectionDialog.tsx`
   - **Content:** `const [byteOrder, setByteOrder] = useState<ByteOrder>('ABCD')`
   - **Test:** `pnpm typecheck` passes
   - **Pass Criteria:** State compiles
 
-- [ ] T072 Add ByteOrderSelector to advanced options (Modbus only)
+- [x] T072 Add ByteOrderSelector to advanced options (Modbus only)
   - **File:** `src/renderer/components/connection/NewConnectionDialog.tsx`
-  - **Content:** Render ByteOrderSelector inside advanced options when protocol is modbus-tcp
+  - **Content:**
+    - Render ByteOrderSelector inside advanced options when protocol is modbus-tcp
+    - Add `data-testid="advanced-options-toggle"` to the expand/collapse button
+    - Add `data-testid="byte-order-selector"` to the ByteOrderSelector wrapper
   - **Test:** Component visible in advanced options
-  - **Pass Criteria:** Selector appears for Modbus
+  - **Pass Criteria:** Selector appears for Modbus with required data-testid attributes
 
-- [ ] T073 Include byteOrder in buildFormData
+- [x] T073 Include byteOrder in buildFormData
   - **File:** `src/renderer/components/connection/NewConnectionDialog.tsx`
   - **Content:** Add `defaultByteOrder: byteOrder` to Modbus config
   - **Test:** `pnpm test:unit` - form data tests pass
   - **Pass Criteria:** Both tests pass
 
-- [ ] T074 Run NewConnectionDialog tests
+- [x] T074 Run NewConnectionDialog tests
   - **Command:** `pnpm test:unit tests/unit/renderer/components/connection/NewConnectionDialog.test.tsx`
   - **Pass Criteria:** All tests pass
 
-- [ ] T075 Commit Task 4.1-4.2
+- [x] T075 Commit Task 4.1-4.2
   - **Command:** `git add src/renderer/components/connection/`
   - **Commit:** `feat(ui): add ByteOrderSelector with visual example to NewConnectionDialog`
   - **Pass Criteria:** Commit successful
@@ -729,37 +819,39 @@
 
 ### Task 4.3: Create ConnectionStatusBar Component
 
-- [ ] T076 Create `src/renderer/components/explorer/ConnectionStatusBar.tsx`
+- [x] T076 Create `src/renderer/components/explorer/ConnectionStatusBar.tsx`
   - **File:** `src/renderer/components/explorer/ConnectionStatusBar.tsx`
-  - **Content:** Basic React component with ConnectionMetrics prop
+  - **Content:**
+    - Basic React component with ConnectionMetrics prop
+    - Add `data-testid="connection-status-bar"` to root element
   - **Test:** `pnpm typecheck` passes
-  - **Pass Criteria:** Component compiles
+  - **Pass Criteria:** Component compiles with required data-testid attribute
 
-- [ ] T077 Add latency display with color coding
+- [x] T077 Add latency display with color coding
   - **File:** `src/renderer/components/explorer/ConnectionStatusBar.tsx`
   - **Content:** Clock icon + latencyMs with green/yellow/red color based on thresholds
   - **Test:** `data-testid="latency-display"` present
   - **Pass Criteria:** Latency renders with correct color
 
-- [ ] T078 Add average latency display
+- [x] T078 Add average latency display
   - **File:** `src/renderer/components/explorer/ConnectionStatusBar.tsx`
   - **Content:** Activity icon + "Avg: Xms"
   - **Test:** Average latency visible
   - **Pass Criteria:** Average renders
 
-- [ ] T079 Add request count display
+- [x] T079 Add request count display
   - **File:** `src/renderer/components/explorer/ConnectionStatusBar.tsx`
   - **Content:** CheckCircle icon + request count with toLocaleString
   - **Test:** Request count visible
   - **Pass Criteria:** Count renders with comma formatting
 
-- [ ] T080 Add error count display (conditional)
+- [x] T080 Add error count display (conditional)
   - **File:** `src/renderer/components/explorer/ConnectionStatusBar.tsx`
   - **Content:** AlertTriangle icon + error count + percentage (only if errorCount > 0)
   - **Test:** Error count visible when > 0
   - **Pass Criteria:** Errors render conditionally with correct color
 
-- [ ] T081 Export from explorer index
+- [x] T081 Export from explorer index
   - **File:** `src/renderer/components/explorer/index.ts`
   - **Content:** Add `export { ConnectionStatusBar } from './ConnectionStatusBar'`
   - **Test:** `pnpm typecheck` passes
@@ -769,12 +861,14 @@
 
 ### Task 4.4: Integrate ConnectionStatusBar in DataExplorer
 
-- [ ] T082 Write failing test: latency display in DataExplorer
+> **Note:** UI tests use `data-testid` attributes for stability against i18n/copy changes. This is a testing best practice for elements that may have their text content localized.
+
+- [x] T082 Write failing test: latency display in DataExplorer
   - **File:** `tests/unit/renderer/components/explorer/DataExplorer.test.tsx`
   - **Test Code:**
     ```typescript
     describe('Connection Metrics Display', () => {
-      const mockMetrics = {
+      const mockMetrics: ConnectionMetrics = {
         latencyMs: 12, latencyAvgMs: 15, requestCount: 1234,
         errorCount: 2, errorRate: 0.001, lastSuccessAt: Date.now(),
         reconnectAttempts: 0
@@ -782,41 +876,66 @@
 
       it('should display latency', () => {
         render(<DataExplorer {...defaultProps} metrics={mockMetrics} />)
-        expect(screen.getByText(/12\s*ms/)).toBeInTheDocument()
+        // Use data-testid for stability; verify content separately
+        const latencyEl = screen.getByTestId('latency-display')
+        expect(latencyEl).toBeInTheDocument()
+        expect(latencyEl).toHaveTextContent('12')
       })
     })
     ```
   - **Pass Criteria:** Test fails
 
-- [ ] T083 Write failing test: warning color for high latency
+- [x] T083 Write failing test: warning and alarm colors for latency thresholds
   - **File:** `tests/unit/renderer/components/explorer/DataExplorer.test.tsx`
   - **Test Code:**
     ```typescript
-    it('should show warning color when latency exceeds threshold', () => {
+    it('should show warning color when latency exceeds warning threshold', () => {
       const highLatency = { ...mockMetrics, latencyMs: 150 }
       render(<DataExplorer {...defaultProps} metrics={highLatency} />)
       expect(screen.getByTestId('latency-display')).toHaveClass('text-yellow-500')
     })
+
+    it('should show alarm color when latency exceeds alarm threshold', () => {
+      const alarmLatency = { ...mockMetrics, latencyMs: 600 }
+      render(<DataExplorer {...defaultProps} metrics={alarmLatency} />)
+      expect(screen.getByTestId('latency-display')).toHaveClass('text-red-500')
+    })
+
+    it('should show normal color when latency is healthy', () => {
+      render(<DataExplorer {...defaultProps} metrics={mockMetrics} />)
+      expect(screen.getByTestId('latency-display')).toHaveClass('text-green-500')
+    })
+    ```
+  - **Pass Criteria:** Tests fail
+
+- [x] T083a Write failing test: handles undefined/missing metrics gracefully
+  - **File:** `tests/unit/renderer/components/explorer/DataExplorer.test.tsx`
+  - **Test Code:**
+    ```typescript
+    it('should not render status bar when metrics is undefined', () => {
+      render(<DataExplorer {...defaultProps} metrics={undefined} />)
+      expect(screen.queryByTestId('connection-status-bar')).not.toBeInTheDocument()
+    })
     ```
   - **Pass Criteria:** Test fails
 
-- [ ] T084 Add metrics prop to DataExplorer
+- [x] T084 Add metrics prop to DataExplorer
   - **File:** `src/renderer/components/explorer/DataExplorer.tsx`
   - **Content:** Add `metrics?: ConnectionMetrics` to props interface
   - **Test:** `pnpm typecheck` passes
   - **Pass Criteria:** Prop compiles
 
-- [ ] T085 Render ConnectionStatusBar in DataExplorer
+- [x] T085 Render ConnectionStatusBar in DataExplorer
   - **File:** `src/renderer/components/explorer/DataExplorer.tsx`
   - **Content:** Render `<ConnectionStatusBar metrics={metrics} />` when metrics provided
   - **Test:** `pnpm test:unit` - metrics tests pass
   - **Pass Criteria:** Both tests pass
 
-- [ ] T086 Run DataExplorer tests
+- [x] T086 Run DataExplorer tests
   - **Command:** `pnpm test:unit tests/unit/renderer/components/explorer/DataExplorer.test.tsx`
   - **Pass Criteria:** All tests pass
 
-- [ ] T087 Commit Task 4.3-4.4
+- [x] T087 Commit Task 4.3-4.4
   - **Command:** `git add src/renderer/components/explorer/`
   - **Commit:** `feat(ui): add ConnectionStatusBar with latency and error metrics`
   - **Pass Criteria:** Commit successful
@@ -857,10 +976,9 @@
   - **Test:** `pnpm typecheck` passes
   - **Pass Criteria:** Event wired up
 
-- [ ] T093 Commit Task 5.1
-  - **Command:** `git add src/shared/constants/ src/main/services/ src/main/ipc/`
-  - **Commit:** `feat(ipc): add metrics IPC channel for health monitoring`
-  - **Pass Criteria:** Commit successful
+- [ ] T093 ~~Commit Task 5.1~~ (Deferred - see T102)
+  - **Note:** Commit deferred to T102 for consolidated Phase 5 commit
+  - **Pass Criteria:** Skip to next task
 
 ---
 
@@ -884,10 +1002,9 @@
   - **Test:** `pnpm typecheck` passes
   - **Pass Criteria:** Types available in renderer
 
-- [ ] T097 Commit Task 5.2
-  - **Command:** `git add src/preload/`
-  - **Commit:** `feat(preload): expose connection metrics API`
-  - **Pass Criteria:** Commit successful
+- [ ] T097 ~~Commit Task 5.2~~ (Deferred - see T102)
+  - **Note:** Commit deferred to T102 for consolidated Phase 5 commit
+  - **Pass Criteria:** Skip to next task
 
 ---
 
@@ -917,10 +1034,19 @@
   - **Test:** `pnpm dev` - app runs
   - **Pass Criteria:** No runtime errors
 
-- [ ] T102 Commit Task 5.3
-  - **Command:** `git add src/renderer/stores/ src/renderer/App.tsx`
-  - **Commit:** `feat(renderer): integrate connection metrics in UI`
-  - **Pass Criteria:** Commit successful
+- [ ] T102 Commit Phase 5 (Consolidated)
+  - **Command:**
+    ```bash
+    git add src/shared/constants/ipc-channels.ts \
+            src/main/services/ConnectionManager.ts \
+            src/main/ipc/connection.ts \
+            src/preload/index.ts \
+            src/preload/index.d.ts \
+            src/renderer/stores/connectionStore.ts \
+            src/renderer/App.tsx
+    ```
+  - **Commit:** `feat(ipc): add metrics IPC channels, preload API, and renderer integration`
+  - **Pass Criteria:** Commit successful, full IPC pipeline in single commit
 
 ---
 
@@ -965,13 +1091,25 @@
 | Phase | Tasks | Description |
 |-------|-------|-------------|
 | 1 | T001-T026 | Type definitions (ByteOrder, BatchReadConfig, ConnectionMetrics) |
-| 2 | T027-T043 | Byte order conversion utilities |
+| 2 | T027-T043 | Byte order conversion utilities + edge case tests (T035a-d) |
 | 3 | T044-T062 | ModbusTcpAdapter updates (byte order, metrics) |
-| 4 | T063-T087 | UI components (ByteOrderSelector, ConnectionStatusBar) |
+| 4 | T063-T087 | UI components (ByteOrderSelector, ConnectionStatusBar) + edge case test (T083a) |
 | 5 | T088-T102 | IPC integration (channels, preload, store) |
 | 6 | T103-T108 | Final verification |
 
-**Total: 108 tasks**
+**Total: 113 tasks** (108 original + 5 edge case tests)
+
+### Commit Strategy (Consolidated)
+
+| Commit | Scope | Tasks |
+|--------|-------|-------|
+| 1 | `feat(types)` | Phase 1 complete (T026) |
+| 2 | `feat(modbus)` | Phase 2 byte order utils (T043) |
+| 3 | `feat(modbus)` | Phase 3 adapter updates (T062) |
+| 4 | `feat(ui)` | Phase 4 UI components (T075, T087) |
+| 5 | `feat(ipc)` | Phase 5 IPC integration (T102) |
+
+**Total: 7 commits** (reduced from 12 for cleaner history)
 
 ---
 

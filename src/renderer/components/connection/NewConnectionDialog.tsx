@@ -11,6 +11,8 @@ import {
 } from 'lucide-react'
 import * as Dialog from '@radix-ui/react-dialog'
 import type { Protocol, ModbusTcpConfig, MqttConfig, OpcUaConfig } from '@shared/types/connection'
+import type { ByteOrder } from '@shared/types'
+import { ByteOrderSelector } from './ByteOrderSelector'
 
 export interface ConnectionFormData {
   name: string
@@ -79,6 +81,7 @@ export function NewConnectionDialog({
   // Advanced options
   const [unitId, setUnitId] = useState(1)
   const [timeout, setTimeout] = useState(5000)
+  const [byteOrder, setByteOrder] = useState<ByteOrder>('ABCD')
 
   const selectedProtocol = protocolOptions.find(p => p.value === protocol)!
 
@@ -120,6 +123,7 @@ export function NewConnectionDialog({
             port,
             unitId,
             timeout,
+            defaultByteOrder: byteOrder,
           } as ModbusTcpConfig
         }
       }
@@ -249,6 +253,7 @@ export function NewConnectionDialog({
               <button
                 type="button"
                 onClick={() => setAdvancedOpen(!advancedOpen)}
+                data-testid="advanced-options-toggle"
                 className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
               >
                 {advancedOpen ? (
@@ -302,6 +307,10 @@ export function NewConnectionDialog({
                           )}
                         />
                       </div>
+                      <ByteOrderSelector
+                        value={byteOrder}
+                        onChange={setByteOrder}
+                      />
                     </>
                   )}
                 </div>

@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NewConnectionDialog } from '@renderer/components/connection/NewConnectionDialog'
 
@@ -33,7 +34,7 @@ describe('NewConnectionDialog', () => {
 
     fireEvent.change(screen.getByLabelText(/connection name/i), { target: { value: 'PLC-01' } })
     fireEvent.change(screen.getByLabelText(/address/i), { target: { value: '192.168.1.100:502' } })
-    fireEvent.click(screen.getByRole('button', { name: /connect & explore/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^connect$/i }))
 
     await waitFor(() => {
       expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
@@ -45,7 +46,7 @@ describe('NewConnectionDialog', () => {
 
   it('shows test connection button', () => {
     render(<NewConnectionDialog open onOpenChange={vi.fn()} onSubmit={vi.fn()} />)
-    expect(screen.getByRole('button', { name: /test connection/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^test$/i })).toBeInTheDocument()
   })
 
   it('selects different protocols when clicked', () => {
@@ -77,5 +78,28 @@ describe('NewConnectionDialog', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /cancel/i }))
     expect(onOpenChange).toHaveBeenCalledWith(false)
+  })
+
+  describe('Byte Order Selector', () => {
+    it('should show byte order selector in advanced options for Modbus', async () => {
+      render(<NewConnectionDialog open={true} onOpenChange={vi.fn()} onSubmit={vi.fn()} />)
+      await userEvent.click(screen.getByTestId('advanced-options-toggle'))
+      expect(screen.getByTestId('byte-order-selector')).toBeInTheDocument()
+    })
+
+    it('should include defaultByteOrder in form data', async () => {
+      const onSubmit = vi.fn()
+      render(<NewConnectionDialog open={true} onOpenChange={vi.fn()} onSubmit={onSubmit} />)
+      await userEvent.type(screen.getByLabelText(/connection name/i), 'Test')
+      await userEvent.type(screen.getByLabelText(/address/i), '192.168.1.100')
+      await userEvent.click(screen.getByRole('button', { name: /connect/i }))
+      await waitFor(() => {
+        expect(onSubmit).toHaveBeenCalledWith(
+          expect.objectContaining({
+            config: expect.objectContaining({ defaultByteOrder: 'ABCD' })
+          })
+        )
+      })
+    })
   })
 })

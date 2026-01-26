@@ -10,8 +10,10 @@ import {
   Loader2,
 } from 'lucide-react'
 import type { Tag } from '@shared/types/tag'
+import type { ConnectionMetrics } from '@shared/types'
 import { TagRow } from './TagRow'
 import { TagDetails } from './TagDetails'
+import { ConnectionStatusBar } from './ConnectionStatusBar'
 
 export type ConnectionStatus = 'connected' | 'connecting' | 'disconnected' | 'error'
 
@@ -25,6 +27,7 @@ export interface DataExplorerProps {
   connectionName: string
   connectionStatus: ConnectionStatus
   latency?: number
+  metrics?: ConnectionMetrics
   tags: Tag[]
   displayStates: Record<string, TagDisplayState>
   onAddTag: () => void
@@ -48,6 +51,7 @@ export function DataExplorer({
   connectionName,
   connectionStatus,
   latency,
+  metrics,
   tags,
   displayStates,
   onAddTag,
@@ -117,6 +121,11 @@ export function DataExplorer({
           </button>
         </div>
       </div>
+
+      {/* Connection Status Bar */}
+      {metrics && connectionStatus === 'connected' && (
+        <ConnectionStatusBar metrics={metrics} />
+      )}
 
       {/* Main Content Area */}
       <div className="flex flex-1 overflow-hidden">

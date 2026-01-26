@@ -6,3 +6,6 @@ export type { TagRowProps, AlarmState } from './TagRow'
 
 export { TagDetails } from './TagDetails'
 export type { TagDetailsProps } from './TagDetails'
+
+export { ConnectionStatusBar } from './ConnectionStatusBar'
+export type { ConnectionStatusBarProps } from './ConnectionStatusBar'

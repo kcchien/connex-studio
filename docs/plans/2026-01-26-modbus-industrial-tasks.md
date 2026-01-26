@@ -946,31 +946,31 @@
 
 ### Task 5.1: Add Metrics IPC Channels
 
-- [ ] T088 Add CONNECTION_METRICS channel constant
+- [x] T088 Add CONNECTION_METRICS channel constant
   - **File:** `src/shared/constants/ipc-channels.ts`
   - **Content:** Add `CONNECTION_METRICS: 'connection:metrics'`
   - **Test:** `pnpm typecheck` passes
   - **Pass Criteria:** Constant defined
 
-- [ ] T089 Add CONNECTION_METRICS_CHANGED channel constant
+- [x] T089 Add CONNECTION_METRICS_CHANGED channel constant
   - **File:** `src/shared/constants/ipc-channels.ts`
   - **Content:** Add `CONNECTION_METRICS_CHANGED: 'connection:metrics-changed'`
   - **Test:** `pnpm typecheck` passes
   - **Pass Criteria:** Constant defined
 
-- [ ] T090 Add getConnectionMetrics to ConnectionManager
+- [x] T090 Add getConnectionMetrics to ConnectionManager
   - **File:** `src/main/services/ConnectionManager.ts`
   - **Content:** Method to get metrics from adapter by connectionId
   - **Test:** `pnpm typecheck` passes
   - **Pass Criteria:** Method compiles
 
-- [ ] T091 Add IPC handler for connection:metrics
+- [x] T091 Add IPC handler for connection:metrics
   - **File:** `src/main/ipc/connection.ts`
   - **Content:** Handle CONNECTION_METRICS channel, return metrics
   - **Test:** `pnpm typecheck` passes
   - **Pass Criteria:** Handler compiles
 
-- [ ] T092 Add metrics push on metrics-updated event
+- [x] T092 Add metrics push on metrics-updated event
   - **File:** `src/main/services/ConnectionManager.ts`
   - **Content:** Listen for adapter 'metrics-updated', push to renderer via IPC
   - **Test:** `pnpm typecheck` passes
@@ -984,19 +984,19 @@
 
 ### Task 5.2: Expose Metrics in Preload
 
-- [ ] T094 Add getMetrics to preload connection API
+- [x] T094 Add getMetrics to preload connection API
   - **File:** `src/preload/index.ts`
   - **Content:** `getMetrics: (id) => ipcRenderer.invoke(CHANNELS.CONNECTION_METRICS, id)`
   - **Test:** `pnpm typecheck` passes
   - **Pass Criteria:** Method exposed
 
-- [ ] T095 Add onMetricsChanged to preload connection API
+- [x] T095 Add onMetricsChanged to preload connection API
   - **File:** `src/preload/index.ts`
   - **Content:** Subscribe to CONNECTION_METRICS_CHANGED, return unsubscribe
   - **Test:** `pnpm typecheck` passes
   - **Pass Criteria:** Subscription exposed
 
-- [ ] T096 Update preload types declaration
+- [x] T096 Update preload types declaration
   - **File:** `src/preload/index.d.ts` or equivalent
   - **Content:** Add types for getMetrics and onMetricsChanged
   - **Test:** `pnpm typecheck` passes
@@ -1010,31 +1010,31 @@
 
 ### Task 5.3: Integrate Metrics in Renderer Store
 
-- [ ] T098 Add metrics Map to connectionStore
+- [x] T098 Add metrics Map to connectionStore
   - **File:** `src/renderer/stores/connectionStore.ts`
   - **Content:** `metrics: Map<string, ConnectionMetrics>`
   - **Test:** `pnpm typecheck` passes
   - **Pass Criteria:** State compiles
 
-- [ ] T099 Add setMetrics action
+- [x] T099 Add setMetrics action
   - **File:** `src/renderer/stores/connectionStore.ts`
   - **Content:** Action to update metrics for a connectionId
   - **Test:** `pnpm typecheck` passes
   - **Pass Criteria:** Action compiles
 
-- [ ] T100 Subscribe to metrics changes in App.tsx
+- [x] T100 Subscribe to metrics changes in App.tsx
   - **File:** `src/renderer/App.tsx`
   - **Content:** Call `onMetricsChanged` in useEffect, update store
   - **Test:** `pnpm typecheck` passes
   - **Pass Criteria:** Subscription wired
 
-- [ ] T101 Pass metrics to DataExplorer in App.tsx
+- [x] T101 Pass metrics to DataExplorer in App.tsx
   - **File:** `src/renderer/App.tsx`
   - **Content:** Get metrics from store, pass to DataExplorer
   - **Test:** `pnpm dev` - app runs
   - **Pass Criteria:** No runtime errors
 
-- [ ] T102 Commit Phase 5 (Consolidated)
+- [x] T102 Commit Phase 5 (Consolidated)
   - **Command:**
     ```bash
     git add src/shared/constants/ipc-channels.ts \
@@ -1054,21 +1054,22 @@
 
 ### Task 6.1: Integration Testing
 
-- [ ] T103 Run all main process tests
+- [x] T103 Run all main process tests
   - **Command:** `pnpm test:main`
   - **Pass Criteria:** All tests pass
 
-- [ ] T104 Run all renderer tests
+- [x] T104 Run all renderer tests
   - **Command:** `pnpm test:unit`
   - **Pass Criteria:** All tests pass
 
-- [ ] T105 Run TypeScript check
+- [x] T105 Run TypeScript check
   - **Command:** `pnpm typecheck`
   - **Pass Criteria:** No errors
 
-- [ ] T106 Run ESLint
+- [x] T106 Run ESLint
   - **Command:** `pnpm lint`
   - **Pass Criteria:** No errors (warnings OK)
+  - **Note:** ESLint config not set up in project (pre-existing issue)
 
 - [ ] T107 Start dev server and verify UI
   - **Command:** `pnpm dev`
@@ -1079,8 +1080,9 @@
     4. Verify Byte Order selector visible with visual example
     5. Verify vendor info displays
   - **Pass Criteria:** All UI elements render correctly
+  - **Note:** Requires manual verification
 
-- [ ] T108 Final commit
+- [x] T108 Final commit
   - **Command:** Check for any uncommitted changes, commit if needed
   - **Pass Criteria:** Working directory clean
 

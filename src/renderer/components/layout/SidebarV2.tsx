@@ -11,8 +11,12 @@ import {
   Calculator,
   HardDrive,
   Settings,
-  User
+  Sun,
+  Moon,
+  Monitor
 } from 'lucide-react'
+import { Logo } from '@renderer/components/common'
+import { useUIStore, type Theme } from '@renderer/stores/uiStore'
 import type { Protocol, ConnectionStatus } from '@shared/types/connection'
 
 export interface Connection {
@@ -53,6 +57,18 @@ const toolItems = [
  * SidebarV2 - Connection-centric navigation sidebar
  * Displays connections directly in the sidebar for quick access.
  */
+const themeIcons: Record<Theme, typeof Sun> = {
+  light: Sun,
+  dark: Moon,
+  system: Monitor,
+}
+
+const themeLabels: Record<Theme, string> = {
+  light: 'Light',
+  dark: 'Dark',
+  system: 'System',
+}
+
 export function SidebarV2({
   connections,
   selectedConnectionId,
@@ -61,6 +77,9 @@ export function SidebarV2({
   userName = 'User',
 }: SidebarV2Props): React.ReactElement {
   const [toolsExpanded, setToolsExpanded] = useState(false)
+  const theme = useUIStore((state) => state.theme)
+  const toggleTheme = useUIStore((state) => state.toggleTheme)
+  const ThemeIcon = themeIcons[theme]
 
   const userInitials = userName
     .split(' ')
@@ -73,17 +92,15 @@ export function SidebarV2({
     <aside
       className={cn(
         'w-[280px] min-w-[280px] h-full',
-        'bg-[#0A0E14] border-r border-gray-800',
+        'bg-white dark:bg-[#0A0E14] border-r border-gray-200 dark:border-gray-800',
         'flex flex-col overflow-hidden'
       )}
     >
       {/* Logo Section */}
-      <div className="p-4 border-b border-gray-800">
+      <div className="p-4 border-b border-gray-800 dark:border-gray-800">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500 to-teal-400 flex items-center justify-center">
-            <span className="text-white font-bold text-sm">CX</span>
-          </div>
-          <span className="text-white font-semibold text-lg">ConneX Studio</span>
+          <Logo size={36} />
+          <span className="text-gray-900 dark:text-white font-semibold text-lg">ConneX Studio</span>
         </div>
       </div>
 
@@ -195,15 +212,23 @@ export function SidebarV2({
       </div>
 
       {/* Footer - User Section */}
-      <div className="p-4 border-t border-gray-800">
+      <div className="p-4 border-t border-gray-800 dark:border-gray-800">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center">
-            <span className="text-xs font-medium text-gray-300">{userInitials}</span>
+          <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+            <span className="text-xs font-medium text-gray-600 dark:text-gray-300">{userInitials}</span>
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-sm font-medium text-gray-300 truncate">{userName}</div>
+            <div className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">{userName}</div>
           </div>
-          <button className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-800 hover:text-gray-300 transition-colors">
+          {/* Theme Toggle */}
+          <button
+            onClick={toggleTheme}
+            className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+            title={`Theme: ${themeLabels[theme]}`}
+          >
+            <ThemeIcon className="w-4 h-4" />
+          </button>
+          <button className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
             <Settings className="w-4 h-4" />
           </button>
         </div>

@@ -309,12 +309,12 @@ export function NewConnectionDialog({
             </div>
 
             {/* Actions */}
-            <div className="flex items-center gap-3 pt-2">
+            <div className="flex items-center justify-end gap-3 pt-2">
               <button
                 type="button"
                 onClick={() => onOpenChange(false)}
                 className={cn(
-                  'px-4 py-2.5 rounded-lg',
+                  'px-4 py-2 rounded-lg text-sm',
                   'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300',
                   'hover:bg-gray-200 dark:hover:bg-gray-600 hover:text-gray-900 dark:hover:text-white',
                   'transition-colors'
@@ -327,7 +327,7 @@ export function NewConnectionDialog({
                 onClick={handleTestConnection}
                 disabled={isTesting || !address}
                 className={cn(
-                  'px-4 py-2.5 rounded-lg',
+                  'px-4 py-2 rounded-lg text-sm',
                   'border border-gray-300 dark:border-gray-600',
                   'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:border-gray-400 dark:hover:border-gray-500',
                   'disabled:opacity-50 disabled:cursor-not-allowed',
@@ -335,22 +335,22 @@ export function NewConnectionDialog({
                 )}
               >
                 {isTesting && <Loader2 className="w-4 h-4 animate-spin" />}
-                Test Connection
+                Test
               </button>
               <button
                 type="submit"
                 disabled={isSubmitting || !name || !address}
                 className={cn(
-                  'flex-1 px-4 py-2.5 rounded-lg',
+                  'px-5 py-2 rounded-lg text-sm',
                   'bg-gradient-to-r from-blue-500 to-teal-400',
                   'text-white font-medium',
                   'hover:shadow-lg hover:shadow-blue-500/25',
                   'disabled:opacity-50 disabled:cursor-not-allowed',
-                  'transition-all flex items-center justify-center gap-2'
+                  'transition-all flex items-center gap-2'
                 )}
               >
                 {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-                Connect & Explore
+                Connect
               </button>
             </div>
           </form>

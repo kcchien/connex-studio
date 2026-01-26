@@ -111,7 +111,7 @@ export function ImportTab({
             ? 'border-green-500 bg-green-500/10'
             : state === 'error'
             ? 'border-red-500 bg-red-500/10'
-            : 'border-gray-600 hover:border-gray-500 bg-gray-800/50'
+            : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 bg-gray-100 dark:bg-gray-800/50'
         )}
       >
         <input
@@ -124,26 +124,26 @@ export function ImportTab({
         {state === 'parsing' ? (
           <div className="flex flex-col items-center gap-2">
             <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-            <p className="text-sm text-gray-400">Parsing {fileName}...</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Parsing {fileName}...</p>
           </div>
         ) : state === 'success' ? (
           <div className="flex flex-col items-center gap-2">
             <CheckCircle className="w-10 h-10 text-green-500" />
-            <p className="text-sm text-green-400">{parsedCount} tags found in {fileName}</p>
+            <p className="text-sm text-green-600 dark:text-green-400">{parsedCount} tags found in {fileName}</p>
           </div>
         ) : state === 'error' ? (
           <div className="flex flex-col items-center gap-2">
             <AlertCircle className="w-10 h-10 text-red-500" />
-            <p className="text-sm text-red-400">{error}</p>
+            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
             <p className="text-xs text-gray-500">Click or drop to try again</p>
           </div>
         ) : (
           <div className="flex flex-col items-center gap-2">
             <Upload className={cn(
               'w-10 h-10',
-              state === 'dragging' ? 'text-blue-400' : 'text-gray-500'
+              state === 'dragging' ? 'text-blue-400' : 'text-gray-400 dark:text-gray-500'
             )} />
-            <p className="text-sm text-gray-300">
+            <p className="text-sm text-gray-700 dark:text-gray-300">
               Drag & drop CSV or Excel file here
             </p>
             <p className="text-xs text-gray-500">or click to browse</p>
@@ -152,10 +152,10 @@ export function ImportTab({
       </div>
 
       {/* Format Help */}
-      <div className="flex items-start gap-3 p-3 rounded-lg bg-gray-800/50 border border-gray-700">
-        <FileSpreadsheet className="w-5 h-5 text-gray-500 flex-shrink-0 mt-0.5" />
+      <div className="flex items-start gap-3 p-3 rounded-lg bg-gray-100 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700">
+        <FileSpreadsheet className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0 mt-0.5" />
         <div>
-          <p className="text-sm text-gray-300">Supported formats</p>
+          <p className="text-sm text-gray-700 dark:text-gray-300">Supported formats</p>
           <p className="text-xs text-gray-500 mt-1">
             CSV with columns: name, address, dataType, unit (optional)
             <br />

@@ -55,7 +55,7 @@ export function GenerateTab({
     <div className="space-y-6">
       {/* Naming Pattern */}
       <div className="space-y-2">
-        <label htmlFor="naming-pattern" className="text-sm font-medium text-gray-300">
+        <label htmlFor="naming-pattern" className="text-sm font-medium text-gray-700 dark:text-gray-300">
           Naming Pattern
         </label>
         <input
@@ -66,8 +66,8 @@ export function GenerateTab({
           placeholder="Tag_{n}"
           className={cn(
             'w-full px-4 py-2.5 rounded-lg',
-            'bg-gray-800 border border-gray-700',
-            'text-white placeholder-gray-500',
+            'bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700',
+            'text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500',
             'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
           )}
         />
@@ -79,7 +79,7 @@ export function GenerateTab({
       {/* Quantity & Start Index */}
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <label htmlFor="quantity" className="text-sm font-medium text-gray-300">
+          <label htmlFor="quantity" className="text-sm font-medium text-gray-700 dark:text-gray-300">
             Quantity
           </label>
           <input
@@ -91,14 +91,14 @@ export function GenerateTab({
             onChange={(e) => setQuantity(Math.min(100, Math.max(1, Number(e.target.value))))}
             className={cn(
               'w-full px-4 py-2.5 rounded-lg',
-              'bg-gray-800 border border-gray-700',
-              'text-white',
+              'bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700',
+              'text-gray-900 dark:text-white',
               'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
             )}
           />
         </div>
         <div className="space-y-2">
-          <label htmlFor="start-index" className="text-sm font-medium text-gray-300">
+          <label htmlFor="start-index" className="text-sm font-medium text-gray-700 dark:text-gray-300">
             Start Index
           </label>
           <input
@@ -109,8 +109,8 @@ export function GenerateTab({
             onChange={(e) => setStartIndex(Number(e.target.value))}
             className={cn(
               'w-full px-4 py-2.5 rounded-lg',
-              'bg-gray-800 border border-gray-700',
-              'text-white',
+              'bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700',
+              'text-gray-900 dark:text-white',
               'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
             )}
           />
@@ -120,7 +120,7 @@ export function GenerateTab({
       {/* Address & Data Type */}
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <label htmlFor="gen-start-address" className="text-sm font-medium text-gray-300">
+          <label htmlFor="gen-start-address" className="text-sm font-medium text-gray-700 dark:text-gray-300">
             Base Address
           </label>
           <input
@@ -131,14 +131,14 @@ export function GenerateTab({
             onChange={(e) => setStartAddress(Number(e.target.value))}
             className={cn(
               'w-full px-4 py-2.5 rounded-lg',
-              'bg-gray-800 border border-gray-700',
-              'text-white',
+              'bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700',
+              'text-gray-900 dark:text-white',
               'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
             )}
           />
         </div>
         <div className="space-y-2">
-          <label htmlFor="data-type" className="text-sm font-medium text-gray-300">
+          <label htmlFor="data-type" className="text-sm font-medium text-gray-700 dark:text-gray-300">
             Data Type
           </label>
           <select
@@ -147,8 +147,8 @@ export function GenerateTab({
             onChange={(e) => setDataType(e.target.value as DataType)}
             className={cn(
               'w-full px-4 py-2.5 rounded-lg',
-              'bg-gray-800 border border-gray-700',
-              'text-white',
+              'bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700',
+              'text-gray-900 dark:text-white',
               'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
             )}
           >
@@ -163,15 +163,15 @@ export function GenerateTab({
       </div>
 
       {/* Preview */}
-      <div className="p-4 rounded-lg bg-gray-800/50 border border-gray-700">
+      <div className="p-4 rounded-lg bg-gray-100 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700">
         <div className="flex items-center gap-2 mb-3">
-          <Wand2 className="w-4 h-4 text-purple-400" />
-          <span className="text-sm font-medium text-gray-300">Preview</span>
+          <Wand2 className="w-4 h-4 text-purple-500 dark:text-purple-400" />
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Preview</span>
         </div>
-        <div className="text-sm text-gray-400 space-y-1">
+        <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
           <p>{namingPattern.replace('{n}', String(startIndex).padStart(2, '0'))} → Address {startAddress}</p>
           <p>{namingPattern.replace('{n}', String(startIndex + 1).padStart(2, '0'))} → Address {startAddress + 1}</p>
-          <p className="text-gray-600">...</p>
+          <p className="text-gray-400 dark:text-gray-600">...</p>
           <p>{namingPattern.replace('{n}', String(startIndex + quantity - 1).padStart(2, '0'))} → Address {startAddress + quantity - 1}</p>
         </div>
       </div>

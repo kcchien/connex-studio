@@ -5,7 +5,7 @@
  * and threshold-based row highlighting. Supports 100+ tags at 60 FPS.
  */
 
-import React, { useMemo, useCallback, memo } from 'react'
+import React, { useMemo, useCallback, memo, useRef } from 'react'
 import { useVirtualizer, type VirtualItem } from '@tanstack/react-virtual'
 import {
   TrendingUp,
@@ -20,7 +20,10 @@ import {
   History,
   Radio,
   Wifi,
-  Network
+  Network,
+  Square,
+  CheckSquare,
+  MinusSquare
 } from 'lucide-react'
 import { cn } from '@renderer/lib/utils'
 import { Sparkline } from './Sparkline'
@@ -48,8 +51,10 @@ interface TagRowProps {
   historicalValue?: TagValue
   isHistorical: boolean
   protocol?: Protocol
+  isSelected: boolean
   onEdit?: (tag: Tag) => void
   onDelete?: (tagId: string) => void
+  onToggleSelect?: (tagId: string, event: React.MouseEvent) => void
 }
 
 // Alarm state colors for row highlighting
@@ -146,7 +151,7 @@ function formatAddress(address: Tag['address']): string {
  * Individual tag row with value display and controls.
  * Supports both live and historical display modes.
  */
-const TagRow = memo(function TagRow({ tag, displayState, historicalValue, isHistorical, protocol, onEdit, onDelete }: TagRowProps) {
+const TagRow = memo(function TagRow({ tag, displayState, historicalValue, isHistorical, protocol, isSelected, onEdit, onDelete, onToggleSelect }: TagRowProps) {
   // Determine which value to display: historical or live
   const formattedValue = useMemo(() => {
     // Use historical value if in historical mode
@@ -174,6 +179,13 @@ const TagRow = memo(function TagRow({ tag, displayState, historicalValue, isHist
 
   const handleEdit = useCallback(() => onEdit?.(tag), [tag, onEdit])
   const handleDelete = useCallback(() => onDelete?.(tag.id), [tag.id, onDelete])
+  const handleCheckboxClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation()
+      onToggleSelect?.(tag.id, e)
+    },
+    [tag.id, onToggleSelect]
+  )
 
   return (
     <div
@@ -181,9 +193,30 @@ const TagRow = memo(function TagRow({ tag, displayState, historicalValue, isHist
         'flex items-center gap-3 px-3 py-2 border-b border-border',
         'hover:bg-muted/50 transition-colors',
         ALARM_STATE_STYLES[displayState?.alarmState || 'normal'],
-        isHistorical && 'bg-amber-500/5'
+        isHistorical && 'bg-amber-500/5',
+        isSelected && 'bg-blue-500/10 hover:bg-blue-500/15'
       )}
     >
+      {/* Checkbox for selection */}
+      <button
+        type="button"
+        onClick={handleCheckboxClick}
+        className={cn(
+          'flex-shrink-0 p-0.5 rounded',
+          'text-muted-foreground hover:text-foreground',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+          isSelected && 'text-blue-500 hover:text-blue-600'
+        )}
+        aria-label={isSelected ? 'Deselect tag' : 'Select tag'}
+        data-testid={`tag-checkbox-${tag.id}`}
+      >
+        {isSelected ? (
+          <CheckSquare className="h-4 w-4" />
+        ) : (
+          <Square className="h-4 w-4" />
+        )}
+      </button>
+
       {/* Enabled indicator / Historical indicator */}
       <div className="flex-shrink-0">
         {isHistorical ? (
@@ -289,6 +322,15 @@ export function TagGrid({
   const displayStates = useTagStore((state) => state.displayStates)
   const connections = useConnectionStore((state) => state.connections)
 
+  // Selection state
+  const selectedTagIds = useTagStore((state) => state.selectedTagIds)
+  const lastSelectedTagId = useTagStore((state) => state.lastSelectedTagId)
+  const toggleTagSelection = useTagStore((state) => state.toggleTagSelection)
+  const selectAllTags = useTagStore((state) => state.selectAllTags)
+  const clearSelection = useTagStore((state) => state.clearSelection)
+  const selectTagRange = useTagStore((state) => state.selectTagRange)
+  const setLastSelectedTag = useTagStore((state) => state.setLastSelectedTag)
+
   // Get the protocol for the current connection
   const connection = connections.find((c) => c.id === connectionId)
   const protocol = connection?.protocol
@@ -325,6 +367,34 @@ export function TagGrid({
     [onDeleteTag]
   )
 
+  // Handle tag selection with shift-click for range selection
+  const handleToggleSelect = useCallback(
+    (tagId: string, event: React.MouseEvent) => {
+      if (event.shiftKey && lastSelectedTagId) {
+        // Range selection
+        selectTagRange(connectionId, lastSelectedTagId, tagId)
+      } else {
+        // Single toggle
+        toggleTagSelection(tagId)
+      }
+    },
+    [connectionId, lastSelectedTagId, selectTagRange, toggleTagSelection]
+  )
+
+  // Handle header checkbox click
+  const handleSelectAllToggle = useCallback(() => {
+    const allSelected = tags.length > 0 && tags.every((t) => selectedTagIds.has(t.id))
+    if (allSelected) {
+      clearSelection()
+    } else {
+      selectAllTags(connectionId)
+    }
+  }, [tags, selectedTagIds, clearSelection, selectAllTags, connectionId])
+
+  // Calculate header checkbox state
+  const allSelected = tags.length > 0 && tags.every((t) => selectedTagIds.has(t.id))
+  const someSelected = tags.some((t) => selectedTagIds.has(t.id)) && !allSelected
+
   if (tags.length === 0) {
     return (
       <div className={cn('flex items-center justify-center h-48 text-muted-foreground', className)}>
@@ -340,6 +410,27 @@ export function TagGrid({
     <div className={cn('border rounded-lg overflow-hidden bg-card', className)}>
       {/* Header */}
       <div className="flex items-center gap-3 px-3 py-2 bg-muted/50 border-b border-border text-xs font-medium text-muted-foreground">
+        {/* Select all checkbox */}
+        <button
+          type="button"
+          onClick={handleSelectAllToggle}
+          className={cn(
+            'flex-shrink-0 p-0.5 rounded',
+            'text-muted-foreground hover:text-foreground',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+            (allSelected || someSelected) && 'text-blue-500 hover:text-blue-600'
+          )}
+          aria-label={allSelected ? 'Deselect all' : 'Select all'}
+          data-testid="tag-select-all-checkbox"
+        >
+          {allSelected ? (
+            <CheckSquare className="h-4 w-4" />
+          ) : someSelected ? (
+            <MinusSquare className="h-4 w-4" />
+          ) : (
+            <Square className="h-4 w-4" />
+          )}
+        </button>
         <div className="w-4" /> {/* Enabled */}
         <div className="w-4" /> {/* Alarm */}
         <div className="flex-1">Name</div>
@@ -385,8 +476,10 @@ export function TagGrid({
                   historicalValue={historicalValue}
                   isHistorical={!isLive}
                   protocol={protocol}
+                  isSelected={selectedTagIds.has(tag.id)}
                   onEdit={onEditTag}
                   onDelete={handleDeleteTag}
+                  onToggleSelect={handleToggleSelect}
                 />
               </div>
             )

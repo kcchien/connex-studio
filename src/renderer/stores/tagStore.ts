@@ -28,12 +28,34 @@ interface TagState {
   // Real-time display state per tag
   displayStates: Map<string, TagDisplayState>
 
+  // Selection state for multi-select
+  selectedTagIds: Set<string>
+
+  // Track the last clicked tag for shift-click range selection
+  lastSelectedTagId: string | null
+
+  // Currently editing tag (for side panel)
+  editingTagId: string | null
+
   // Actions
   setTags: (connectionId: string, tags: Tag[]) => void
   addTag: (connectionId: string, tag: Tag) => void
   updateTag: (tagId: string, updates: Partial<Tag>) => void
   removeTag: (tagId: string) => void
+  removeTags: (tagIds: string[]) => void
   clearTags: (connectionId: string) => void
+
+  // Selection actions
+  toggleTagSelection: (tagId: string) => void
+  selectTag: (tagId: string) => void
+  deselectTag: (tagId: string) => void
+  selectAllTags: (connectionId: string) => void
+  clearSelection: () => void
+  selectTagRange: (connectionId: string, fromTagId: string, toTagId: string) => void
+  setLastSelectedTag: (tagId: string | null) => void
+
+  // Editing actions
+  setEditingTag: (tagId: string | null) => void
 
   // Handle polling data from main process
   handlePollingData: (payload: PollingDataPayload) => void
@@ -43,6 +65,12 @@ interface TagState {
 
   // Get display state for a tag
   getDisplayState: (tagId: string) => TagDisplayState | undefined
+
+  // Check if tag is selected
+  isTagSelected: (tagId: string) => boolean
+
+  // Get selected tag count
+  getSelectedCount: () => number
 }
 
 // Maximum sparkline data points to keep
@@ -92,6 +120,9 @@ function calculateTrend(sparklineData: number[]): TrendDirection {
 export const useTagStore = create<TagState>((set, get) => ({
   tagsByConnection: new Map(),
   displayStates: new Map(),
+  selectedTagIds: new Set(),
+  lastSelectedTagId: null,
+  editingTagId: null,
 
   setTags: (connectionId, tags) => {
     set((state) => {
@@ -132,6 +163,7 @@ export const useTagStore = create<TagState>((set, get) => ({
     set((state) => {
       const newTagsMap = new Map(state.tagsByConnection)
       const newDisplayMap = new Map(state.displayStates)
+      const newSelectedIds = new Set(state.selectedTagIds)
 
       for (const [connId, tags] of newTagsMap.entries()) {
         const filtered = tags.filter((t) => t.id !== tagId)
@@ -142,10 +174,41 @@ export const useTagStore = create<TagState>((set, get) => ({
       }
 
       newDisplayMap.delete(tagId)
+      newSelectedIds.delete(tagId)
 
       return {
         tagsByConnection: newTagsMap,
-        displayStates: newDisplayMap
+        displayStates: newDisplayMap,
+        selectedTagIds: newSelectedIds,
+        editingTagId: state.editingTagId === tagId ? null : state.editingTagId
+      }
+    })
+  },
+
+  removeTags: (tagIds) => {
+    set((state) => {
+      const newTagsMap = new Map(state.tagsByConnection)
+      const newDisplayMap = new Map(state.displayStates)
+      const newSelectedIds = new Set(state.selectedTagIds)
+      const tagIdSet = new Set(tagIds)
+
+      for (const [connId, tags] of newTagsMap.entries()) {
+        const filtered = tags.filter((t) => !tagIdSet.has(t.id))
+        if (filtered.length !== tags.length) {
+          newTagsMap.set(connId, filtered)
+        }
+      }
+
+      for (const tagId of tagIds) {
+        newDisplayMap.delete(tagId)
+        newSelectedIds.delete(tagId)
+      }
+
+      return {
+        tagsByConnection: newTagsMap,
+        displayStates: newDisplayMap,
+        selectedTagIds: newSelectedIds,
+        editingTagId: state.editingTagId && tagIdSet.has(state.editingTagId) ? null : state.editingTagId
       }
     })
   },
@@ -154,19 +217,105 @@ export const useTagStore = create<TagState>((set, get) => ({
     set((state) => {
       const newTagsMap = new Map(state.tagsByConnection)
       const newDisplayMap = new Map(state.displayStates)
+      const newSelectedIds = new Set(state.selectedTagIds)
 
       const tags = newTagsMap.get(connectionId) ?? []
       for (const tag of tags) {
         newDisplayMap.delete(tag.id)
+        newSelectedIds.delete(tag.id)
       }
 
       newTagsMap.delete(connectionId)
 
       return {
         tagsByConnection: newTagsMap,
-        displayStates: newDisplayMap
+        displayStates: newDisplayMap,
+        selectedTagIds: newSelectedIds,
+        editingTagId: null
       }
     })
+  },
+
+  // Selection actions
+  toggleTagSelection: (tagId) => {
+    set((state) => {
+      const newSelectedIds = new Set(state.selectedTagIds)
+      if (newSelectedIds.has(tagId)) {
+        newSelectedIds.delete(tagId)
+      } else {
+        newSelectedIds.add(tagId)
+      }
+      return {
+        selectedTagIds: newSelectedIds,
+        lastSelectedTagId: tagId
+      }
+    })
+  },
+
+  selectTag: (tagId) => {
+    set((state) => {
+      const newSelectedIds = new Set(state.selectedTagIds)
+      newSelectedIds.add(tagId)
+      return {
+        selectedTagIds: newSelectedIds,
+        lastSelectedTagId: tagId
+      }
+    })
+  },
+
+  deselectTag: (tagId) => {
+    set((state) => {
+      const newSelectedIds = new Set(state.selectedTagIds)
+      newSelectedIds.delete(tagId)
+      return { selectedTagIds: newSelectedIds }
+    })
+  },
+
+  selectAllTags: (connectionId) => {
+    set((state) => {
+      const tags = state.tagsByConnection.get(connectionId) ?? []
+      const newSelectedIds = new Set(tags.map((t) => t.id))
+      return {
+        selectedTagIds: newSelectedIds,
+        lastSelectedTagId: tags.length > 0 ? tags[tags.length - 1].id : null
+      }
+    })
+  },
+
+  clearSelection: () => {
+    set({ selectedTagIds: new Set(), lastSelectedTagId: null })
+  },
+
+  selectTagRange: (connectionId, fromTagId, toTagId) => {
+    set((state) => {
+      const tags = state.tagsByConnection.get(connectionId) ?? []
+      const fromIndex = tags.findIndex((t) => t.id === fromTagId)
+      const toIndex = tags.findIndex((t) => t.id === toTagId)
+
+      if (fromIndex === -1 || toIndex === -1) return state
+
+      const startIndex = Math.min(fromIndex, toIndex)
+      const endIndex = Math.max(fromIndex, toIndex)
+
+      const newSelectedIds = new Set(state.selectedTagIds)
+      for (let i = startIndex; i <= endIndex; i++) {
+        newSelectedIds.add(tags[i].id)
+      }
+
+      return {
+        selectedTagIds: newSelectedIds,
+        lastSelectedTagId: toTagId
+      }
+    })
+  },
+
+  setLastSelectedTag: (tagId) => {
+    set({ lastSelectedTagId: tagId })
+  },
+
+  // Editing actions
+  setEditingTag: (tagId) => {
+    set({ editingTagId: tagId })
   },
 
   handlePollingData: (payload) => {
@@ -217,6 +366,14 @@ export const useTagStore = create<TagState>((set, get) => ({
 
   getDisplayState: (tagId) => {
     return get().displayStates.get(tagId)
+  },
+
+  isTagSelected: (tagId) => {
+    return get().selectedTagIds.has(tagId)
+  },
+
+  getSelectedCount: () => {
+    return get().selectedTagIds.size
   }
 }))
 
@@ -229,3 +386,15 @@ export const selectDisplayState = (tagId: string) => (state: TagState) =>
 
 export const selectAllDisplayStates = (state: TagState) =>
   Array.from(state.displayStates.values())
+
+export const selectSelectedTagIds = (state: TagState) =>
+  state.selectedTagIds
+
+export const selectSelectedCount = (state: TagState) =>
+  state.selectedTagIds.size
+
+export const selectIsTagSelected = (tagId: string) => (state: TagState) =>
+  state.selectedTagIds.has(tagId)
+
+export const selectEditingTagId = (state: TagState) =>
+  state.editingTagId

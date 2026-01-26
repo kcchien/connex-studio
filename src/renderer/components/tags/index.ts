@@ -19,3 +19,12 @@ export type { GenerateTabProps } from "./GenerateTab"
 
 export { ModbusAddressInput } from "./ModbusAddressInput"
 export type { ModbusAddressInputProps } from "./ModbusAddressInput"
+
+export { TagBatchActions } from "./TagBatchActions"
+export type { TagBatchActionsProps } from "./TagBatchActions"
+
+export { DeleteTagsDialog } from "./DeleteTagsDialog"
+export type { DeleteTagsDialogProps } from "./DeleteTagsDialog"
+
+export { TagDetailPanel } from "./TagDetailPanel"
+export type { TagDetailPanelProps } from "./TagDetailPanel"

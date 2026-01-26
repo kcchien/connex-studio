@@ -42,8 +42,21 @@ export type DataType =
   | 'int32'
   | 'uint32'
   | 'float32'
+  | 'float64'
   | 'boolean'
   | 'string'
+
+// Data type metadata for UI display and register calculation
+export const DATA_TYPE_INFO: Record<DataType, { label: string; registers: number; description: string }> = {
+  int16: { label: 'INT16 (Signed)', registers: 1, description: 'Signed 16-bit integer' },
+  uint16: { label: 'UINT16 (Unsigned)', registers: 1, description: 'Unsigned 16-bit integer' },
+  int32: { label: 'INT32 (2 registers)', registers: 2, description: 'Signed 32-bit integer' },
+  uint32: { label: 'UINT32 (2 registers)', registers: 2, description: 'Unsigned 32-bit integer' },
+  float32: { label: 'FLOAT32 (2 registers)', registers: 2, description: '32-bit floating point' },
+  float64: { label: 'FLOAT64 (4 registers)', registers: 4, description: '64-bit floating point' },
+  boolean: { label: 'BOOL (Bit)', registers: 1, description: 'Boolean / Bit' },
+  string: { label: 'STRING (ASCII)', registers: 1, description: 'ASCII string' },
+}
 
 export interface DisplayFormat {
   decimals: number

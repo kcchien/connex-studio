@@ -12,7 +12,7 @@ import {
   parseModbusAddress,
   createModbusTcpAdapter
 } from '@main/protocols/ModbusTcpAdapter'
-import type { Connection, Tag, ModbusAddress } from '@shared/types'
+import type { Connection, Tag } from '@shared/types'
 
 // Mock modbus-serial
 jest.mock('modbus-serial', () => {
@@ -254,6 +254,120 @@ describe('ModbusTcpAdapter', () => {
       const adapter = new ModbusTcpAdapter(mockConnection)
       expect(adapter.isConnected()).toBe(false)
     })
+  })
+})
+
+describe('Byte Order Support', () => {
+  const mockConnection: Connection = {
+    id: 'test-conn-1',
+    name: 'Test Connection',
+    protocol: 'modbus-tcp',
+    config: {
+      host: '192.168.1.100',
+      port: 502,
+      unitId: 1,
+      timeout: 5000
+    },
+    status: 'disconnected',
+    createdAt: Date.now()
+  }
+
+  it('should use connection default byte order', () => {
+    const connection = {
+      ...mockConnection,
+      config: { ...mockConnection.config, defaultByteOrder: 'DCBA' as const }
+    }
+    const adapter = new ModbusTcpAdapter(connection)
+    expect(adapter.getDefaultByteOrder()).toBe('DCBA')
+  })
+
+  it('should default to ABCD when not specified', () => {
+    const adapter = new ModbusTcpAdapter(mockConnection)
+    expect(adapter.getDefaultByteOrder()).toBe('ABCD')
+  })
+})
+
+describe('Metrics Tracking', () => {
+  const mockConnection: Connection = {
+    id: 'test-conn-1',
+    name: 'Test Connection',
+    protocol: 'modbus-tcp',
+    config: {
+      host: '192.168.1.100',
+      port: 502,
+      unitId: 1,
+      timeout: 5000
+    },
+    status: 'disconnected',
+    createdAt: Date.now()
+  }
+
+  const mockTag: Tag = {
+    id: 'tag-1',
+    name: 'Test Tag',
+    connectionId: 'test-conn-1',
+    dataType: 'uint16',
+    address: {
+      type: 'modbus',
+      registerType: 'holding',
+      address: 0,
+      length: 1
+    },
+    pollingInterval: 1000,
+    enabled: true
+  }
+
+  beforeEach(() => {
+    // Reset modbus-serial mock
+    jest.clearAllMocks()
+    const ModbusRTU = require('modbus-serial')
+    ModbusRTU.mockImplementation(() => ({
+      connectTCP: jest.fn().mockResolvedValue(undefined),
+      setTimeout: jest.fn(),
+      setID: jest.fn(),
+      close: jest.fn((callback) => callback?.()),
+      isOpen: true,
+      readHoldingRegisters: jest.fn().mockResolvedValue({ data: [100] }),
+      readInputRegisters: jest.fn(),
+      readCoils: jest.fn(),
+      readDiscreteInputs: jest.fn()
+    }))
+  })
+
+  it('should track request count', async () => {
+    const adapter = new ModbusTcpAdapter(mockConnection)
+    await adapter.connect()
+    await adapter.readTags([mockTag])
+    await adapter.readTags([mockTag])
+    expect(adapter.getMetrics().requestCount).toBe(2)
+  })
+
+  it('should track latency', async () => {
+    const adapter = new ModbusTcpAdapter(mockConnection)
+    await adapter.connect()
+    await adapter.readTags([mockTag])
+    expect(adapter.getMetrics().latencyMs).toBeGreaterThanOrEqual(0)
+  })
+
+  it('should emit metrics-updated event', async () => {
+    const adapter = new ModbusTcpAdapter(mockConnection)
+    const handler = jest.fn()
+    adapter.on('metrics-updated', handler)
+    await adapter.connect()
+    await adapter.readTags([mockTag])
+    expect(handler).toHaveBeenCalledWith(expect.objectContaining({ requestCount: 1 }))
+  })
+
+  it('should reset metrics on connect', async () => {
+    const adapter = new ModbusTcpAdapter(mockConnection)
+    await adapter.connect()
+    await adapter.readTags([mockTag])
+    expect(adapter.getMetrics().requestCount).toBe(1)
+
+    // Reconnect should reset
+    await adapter.disconnect()
+    await adapter.connect()
+    expect(adapter.getMetrics().requestCount).toBe(0)
   })
 })
 

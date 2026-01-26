@@ -18,8 +18,16 @@ import type {
   Tag,
   ModbusTcpConfig,
   ModbusAddress,
-  DataType
+  DataType,
+  ByteOrder,
+  ConnectionMetrics
 } from '@shared/types'
+import { INITIAL_METRICS } from '@shared/types'
+import {
+  convertFloat32,
+  convertInt32,
+  convertUint32
+} from './byteOrderUtils'
 import { ProtocolAdapter, type ReadResult } from './ProtocolAdapter'
 
 /**
@@ -37,6 +45,9 @@ export class ModbusTcpAdapter extends ProtocolAdapter {
   private config: ModbusTcpConfig
   private reconnectTimer: NodeJS.Timeout | null = null
   private isDisposed = false
+  private metrics: ConnectionMetrics = { ...INITIAL_METRICS }
+  private latencyHistory: number[] = []
+  private readonly LATENCY_HISTORY_SIZE = 10
 
   constructor(connection: Connection) {
     super(connection)
@@ -47,6 +58,67 @@ export class ModbusTcpAdapter extends ProtocolAdapter {
 
     this.config = connection.config as ModbusTcpConfig
     this.client = new ModbusRTU()
+  }
+
+  /**
+   * Get the default byte order for this connection.
+   * Returns 'ABCD' (big-endian) if not explicitly configured.
+   */
+  getDefaultByteOrder(): ByteOrder {
+    return this.config.defaultByteOrder ?? 'ABCD'
+  }
+
+  /**
+   * Get the current connection metrics.
+   * Returns a copy of the metrics to prevent external mutation.
+   */
+  getMetrics(): ConnectionMetrics {
+    return { ...this.metrics }
+  }
+
+  /**
+   * Reset metrics to initial values.
+   * Called when a new connection is established.
+   */
+  private resetMetrics(): void {
+    this.metrics = { ...INITIAL_METRICS }
+    this.latencyHistory = []
+  }
+
+  /**
+   * Update metrics after a read operation.
+   * @param latencyMs The latency of the operation in milliseconds
+   * @param isSuccess Whether the operation was successful
+   * @param errorMessage Optional error message if the operation failed
+   */
+  private updateMetrics(latencyMs: number, isSuccess: boolean, errorMessage?: string): void {
+    this.metrics.requestCount++
+
+    if (isSuccess) {
+      this.metrics.latencyMs = latencyMs
+      this.metrics.lastSuccessAt = Date.now()
+
+      // Update rolling average latency
+      this.latencyHistory.push(latencyMs)
+      if (this.latencyHistory.length > this.LATENCY_HISTORY_SIZE) {
+        this.latencyHistory.shift()
+      }
+      this.metrics.latencyAvgMs = Math.round(
+        this.latencyHistory.reduce((a, b) => a + b, 0) / this.latencyHistory.length
+      )
+    } else {
+      this.metrics.errorCount++
+      this.metrics.lastErrorAt = Date.now()
+      this.metrics.lastErrorMessage = errorMessage
+    }
+
+    // Calculate error rate
+    this.metrics.errorRate = this.metrics.requestCount > 0
+      ? this.metrics.errorCount / this.metrics.requestCount
+      : 0
+
+    // Emit metrics-updated event
+    this.emit('metrics-updated', this.getMetrics())
   }
 
   /**
@@ -71,6 +143,10 @@ export class ModbusTcpAdapter extends ProtocolAdapter {
 
       // Set unit ID
       this.client.setID(this.config.unitId || 1)
+
+      // Reset metrics on successful connection
+      this.resetMetrics()
+      this.metrics.connectedAt = Date.now()
 
       this.setStatus('connected')
       log.info(`[ModbusTcp] Connected to ${this.config.host}:${this.config.port}`)
@@ -107,6 +183,9 @@ export class ModbusTcpAdapter extends ProtocolAdapter {
   async readTags(tags: Tag[]): Promise<ReadResult[]> {
     const results: ReadResult[] = []
     const timestamp = Date.now()
+    const startTime = performance.now()
+    let hasErrors = false
+    let lastErrorMessage: string | undefined
 
     for (const tag of tags) {
       if (!tag.enabled) {
@@ -119,6 +198,8 @@ export class ModbusTcpAdapter extends ProtocolAdapter {
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
         log.debug(`[ModbusTcp] Read failed for tag ${tag.name}: ${message}`)
+        hasErrors = true
+        lastErrorMessage = message
 
         results.push({
           tagId: tag.id,
@@ -134,6 +215,10 @@ export class ModbusTcpAdapter extends ProtocolAdapter {
         }
       }
     }
+
+    // Update metrics after read operation
+    const latencyMs = Math.round(performance.now() - startTime)
+    this.updateMetrics(latencyMs, !hasErrors, lastErrorMessage)
 
     return results
   }
@@ -193,6 +278,14 @@ export class ModbusTcpAdapter extends ProtocolAdapter {
   }
 
   /**
+   * Get the effective byte order for an address.
+   * Uses tag-level override if specified, otherwise connection default.
+   */
+  private getEffectiveByteOrder(address: ModbusAddress): ByteOrder {
+    return address.byteOrder ?? this.getDefaultByteOrder()
+  }
+
+  /**
    * Convert raw register data to the target data type.
    */
   private convertValue(
@@ -206,6 +299,7 @@ export class ModbusTcpAdapter extends ProtocolAdapter {
     }
 
     const registers = rawData as number[]
+    const byteOrder = this.getEffectiveByteOrder(address)
 
     switch (dataType) {
       case 'boolean':
@@ -222,19 +316,19 @@ export class ModbusTcpAdapter extends ProtocolAdapter {
         if (registers.length < 2) {
           throw new Error('INT32 requires 2 registers')
         }
-        return this.toInt32(registers[0], registers[1])
+        return convertInt32(registers[0], registers[1], byteOrder)
 
       case 'uint32':
         if (registers.length < 2) {
           throw new Error('UINT32 requires 2 registers')
         }
-        return this.toUint32(registers[0], registers[1])
+        return convertUint32(registers[0], registers[1], byteOrder)
 
       case 'float32':
         if (registers.length < 2) {
           throw new Error('FLOAT32 requires 2 registers')
         }
-        return this.toFloat32(registers[0], registers[1])
+        return convertFloat32(registers[0], registers[1], byteOrder)
 
       case 'string':
         // Interpret registers as ASCII characters (2 chars per register)
@@ -254,38 +348,6 @@ export class ModbusTcpAdapter extends ProtocolAdapter {
       return value - 0x10000
     }
     return value
-  }
-
-  /**
-   * Convert two registers to signed 32-bit integer (big-endian).
-   */
-  private toInt32(high: number, low: number): number {
-    const unsigned = (high << 16) | low
-    if (unsigned >= 0x80000000) {
-      return unsigned - 0x100000000
-    }
-    return unsigned
-  }
-
-  /**
-   * Convert two registers to unsigned 32-bit integer (big-endian).
-   */
-  private toUint32(high: number, low: number): number {
-    return ((high << 16) | low) >>> 0
-  }
-
-  /**
-   * Convert two registers to 32-bit float (IEEE 754, big-endian).
-   */
-  private toFloat32(high: number, low: number): number {
-    const buffer = new ArrayBuffer(4)
-    const view = new DataView(buffer)
-
-    // Big-endian: high word first
-    view.setUint16(0, high, false)
-    view.setUint16(2, low, false)
-
-    return view.getFloat32(0, false)
   }
 
   /**

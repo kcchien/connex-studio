@@ -7,7 +7,11 @@
 // Common Types
 // -----------------------------------------------------------------------------
 
-export type ByteOrder = 'big-endian' | 'little-endian' | 'mid-big' | 'mid-little'
+/**
+ * Calculator-specific byte order type for UI display names.
+ * Maps to the core ByteOrder type (ABCD, DCBA, BADC, CDAB).
+ */
+export type CalculatorByteOrder = 'big-endian' | 'little-endian' | 'mid-big' | 'mid-little'
 
 // -----------------------------------------------------------------------------
 // CRC/LRC Types
@@ -50,12 +54,12 @@ export interface FloatEncodeResult {
 // Request types for IPC
 export interface DecodeFloatRequest {
   data: number[] | string
-  byteOrder?: ByteOrder
+  byteOrder?: CalculatorByteOrder
 }
 
 export interface EncodeFloatRequest {
   value: number
-  byteOrder?: ByteOrder
+  byteOrder?: CalculatorByteOrder
 }
 
 // -----------------------------------------------------------------------------
@@ -71,8 +75,8 @@ export interface ByteSwapResult {
 
 export interface ConvertByteOrderRequest {
   data: number[] | string
-  from: ByteOrder
-  to: ByteOrder
+  from: CalculatorByteOrder
+  to: CalculatorByteOrder
 }
 
 // -----------------------------------------------------------------------------

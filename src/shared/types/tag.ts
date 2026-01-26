@@ -3,6 +3,8 @@
  * Shared between Main and Renderer processes.
  */
 
+import type { ByteOrder } from './modbus'
+
 export interface Tag {
   id: string
   connectionId: string
@@ -19,6 +21,8 @@ export interface ModbusAddress {
   registerType: 'holding' | 'input' | 'coil' | 'discrete'
   address: number
   length: number
+  byteOrder?: ByteOrder
+  unitId?: number
 }
 
 export interface MqttAddress {

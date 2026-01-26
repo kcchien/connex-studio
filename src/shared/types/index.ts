@@ -7,6 +7,7 @@
 export * from './common'
 export * from './connection'
 export * from './tag'
+export * from './modbus'
 export * from './datapoint'
 export * from './polling'
 export * from './profile'

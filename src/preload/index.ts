@@ -101,7 +101,7 @@ import type {
   FloatDecodeResult,
   FloatEncodeResult,
   ByteSwapResult,
-  ByteOrder,
+  CalculatorByteOrder,
   ModbusAddressInfo,
   PacketAnalysis
 } from '@shared/types/calculator'
@@ -415,12 +415,12 @@ export interface ElectronAPI {
   calculator: {
     crc16Modbus: (data: number[] | string) => Promise<CrcResult>
     lrc: (data: number[] | string) => Promise<LrcResult>
-    decodeFloat32: (params: { data: number[] | string; byteOrder?: ByteOrder }) => Promise<FloatDecodeResult>
-    encodeFloat32: (params: { value: number; byteOrder?: ByteOrder }) => Promise<FloatEncodeResult>
-    decodeFloat64: (params: { data: number[] | string; byteOrder?: ByteOrder }) => Promise<FloatDecodeResult>
+    decodeFloat32: (params: { data: number[] | string; byteOrder?: CalculatorByteOrder }) => Promise<FloatDecodeResult>
+    encodeFloat32: (params: { value: number; byteOrder?: CalculatorByteOrder }) => Promise<FloatEncodeResult>
+    decodeFloat64: (params: { data: number[] | string; byteOrder?: CalculatorByteOrder }) => Promise<FloatDecodeResult>
     swapBytes: (data: number[] | string) => Promise<ByteSwapResult>
     swapWords: (data: number[] | string) => Promise<ByteSwapResult>
-    convertByteOrder: (params: { data: number[] | string; from: ByteOrder; to: ByteOrder }) => Promise<ByteSwapResult>
+    convertByteOrder: (params: { data: number[] | string; from: CalculatorByteOrder; to: CalculatorByteOrder }) => Promise<ByteSwapResult>
     parseModbusAddress: (params: { address: string; registerType?: string }) => Promise<ModbusAddressInfo>
     analyzePacket: (data: number[] | string) => Promise<PacketAnalysis>
     hexToBytes: (hex: string) => Promise<number[]>

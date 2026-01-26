@@ -13,7 +13,7 @@ import React, { useState, useCallback } from 'react'
 import { Binary, Copy, Check, AlertCircle } from 'lucide-react'
 import { cn } from '@renderer/lib/utils'
 import { calculatorApi } from '@renderer/lib/ipc'
-import type { ByteOrder } from '@shared/types/calculator'
+import type { CalculatorByteOrder } from '@shared/types/calculator'
 
 // =============================================================================
 // Types
@@ -41,7 +41,7 @@ interface FloatDecoderProps {
   className?: string
 }
 
-const BYTE_ORDERS: { value: ByteOrder; label: string }[] = [
+const BYTE_ORDERS: { value: CalculatorByteOrder; label: string }[] = [
   { value: 'big-endian', label: 'Big-Endian (ABCD)' },
   { value: 'little-endian', label: 'Little-Endian (DCBA)' },
   { value: 'mid-big', label: 'Mid-Big (CDAB)' },
@@ -57,7 +57,7 @@ export function FloatDecoder({ className }: FloatDecoderProps): React.ReactEleme
   const [floatSize, setFloatSize] = useState<'float32' | 'float64'>('float32')
   const [hexInput, setHexInput] = useState('')
   const [floatInput, setFloatInput] = useState('')
-  const [byteOrder, setByteOrder] = useState<ByteOrder>('big-endian')
+  const [byteOrder, setByteOrder] = useState<CalculatorByteOrder>('big-endian')
   const [decodeResult, setDecodeResult] = useState<FloatDecodeResult | null>(null)
   const [encodeResult, setEncodeResult] = useState<FloatEncodeResult | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -189,7 +189,7 @@ export function FloatDecoder({ className }: FloatDecoderProps): React.ReactEleme
         <label className="text-sm text-muted-foreground">Byte Order</label>
         <select
           value={byteOrder}
-          onChange={(e) => setByteOrder(e.target.value as ByteOrder)}
+          onChange={(e) => setByteOrder(e.target.value as CalculatorByteOrder)}
           className="w-full p-2 bg-muted/50 rounded-md border text-sm"
         >
           {BYTE_ORDERS.map(order => (

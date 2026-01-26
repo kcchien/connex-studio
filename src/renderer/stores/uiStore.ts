@@ -23,6 +23,12 @@ interface UIState {
   // Log viewer
   logViewerOpen: boolean
 
+  // Navigation state (UI/UX redesign)
+  newConnectionDialogOpen: boolean
+  toolsExpanded: boolean
+  selectedConnectionId: string | null
+  batchTagDialogOpen: boolean
+
   // Actions
   setTheme: (theme: Theme) => void
   toggleTheme: () => void
@@ -30,6 +36,13 @@ interface UIState {
   toggleSidebar: () => void
   setLogViewerOpen: (open: boolean) => void
   toggleLogViewer: () => void
+
+  // Navigation actions (UI/UX redesign)
+  setNewConnectionDialogOpen: (open: boolean) => void
+  setToolsExpanded: (expanded: boolean) => void
+  toggleToolsExpanded: () => void
+  setSelectedConnectionId: (id: string | null) => void
+  setBatchTagDialogOpen: (open: boolean) => void
 }
 
 /**
@@ -63,6 +76,12 @@ export const useUIStore = create<UIState>()(
       sidebarCollapsed: false,
       logViewerOpen: false,
 
+      // Navigation state (UI/UX redesign)
+      newConnectionDialogOpen: false,
+      toolsExpanded: false,
+      selectedConnectionId: null,
+      batchTagDialogOpen: false,
+
       // Theme actions
       setTheme: (theme) => {
         const resolvedTheme = resolveTheme(theme)
@@ -85,7 +104,14 @@ export const useUIStore = create<UIState>()(
 
       // Log viewer actions
       setLogViewerOpen: (open) => set({ logViewerOpen: open }),
-      toggleLogViewer: () => set((state) => ({ logViewerOpen: !state.logViewerOpen }))
+      toggleLogViewer: () => set((state) => ({ logViewerOpen: !state.logViewerOpen })),
+
+      // Navigation actions (UI/UX redesign)
+      setNewConnectionDialogOpen: (open) => set({ newConnectionDialogOpen: open }),
+      setToolsExpanded: (expanded) => set({ toolsExpanded: expanded }),
+      toggleToolsExpanded: () => set((state) => ({ toolsExpanded: !state.toolsExpanded })),
+      setSelectedConnectionId: (id) => set({ selectedConnectionId: id }),
+      setBatchTagDialogOpen: (open) => set({ batchTagDialogOpen: open })
     }),
     {
       name: 'connex-ui-storage',

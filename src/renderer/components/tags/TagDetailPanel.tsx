@@ -97,9 +97,10 @@ export function TagDetailPanel({
         ? toTraditionalAddress(modbusAddress.registerType, modbusAddress.address)
         : 0
 
+      const addressStr = traditionalAddr.toString()
       setFormState({
         name: tag.name,
-        address: traditionalAddr.toString(),
+        address: addressStr,
         dataType: tag.dataType,
         decimals: tag.displayFormat.decimals,
         unit: tag.displayFormat.unit,
@@ -109,8 +110,16 @@ export function TagDetailPanel({
         alarmHigh: tag.thresholds.alarmHigh?.toString() ?? '',
       })
 
-      if (tag.address.type === 'modbus' && modbusAddress.byteOrder) {
-        setByteOrder(modbusAddress.byteOrder)
+      // Initialize parsedAddress from tag (important for Save button to work)
+      if (tag.address.type === 'modbus') {
+        setParsedAddress({
+          registerType: modbusAddress.registerType,
+          address: modbusAddress.address,
+          traditional: traditionalAddr,
+        })
+        if (modbusAddress.byteOrder) {
+          setByteOrder(modbusAddress.byteOrder)
+        }
       }
 
       setIsDirty(false)

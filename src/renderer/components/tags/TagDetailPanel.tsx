@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
-import { X, Save, Trash2, AlertTriangle, RefreshCw, Loader2 } from 'lucide-react'
+import { X, Save, Trash2, AlertTriangle, RefreshCw, Loader2, Clock, XCircle } from 'lucide-react'
 import { cn } from '@renderer/lib/utils'
 import { useTagStore, type TagDisplayState } from '@renderer/stores/tagStore'
 import type { Tag, DataType, ModbusAddress } from '@shared/types/tag'
@@ -14,6 +14,8 @@ import { DATA_TYPE_INFO } from '@shared/types/tag'
 import { ModbusAddressInput } from './ModbusAddressInput'
 import type { ParsedModbusAddress } from '@shared/utils/modbusAddress'
 import { toTraditionalAddress } from '@shared/utils/modbusAddress'
+import { getFullErrorDetails } from '@shared/utils/modbusErrors'
+import { TagStatusIcon, TagStatusBadge } from './TagStatusIcon'
 
 export interface TagDetailPanelProps {
   /** Tag to display/edit */
@@ -26,6 +28,8 @@ export interface TagDetailPanelProps {
   onSave?: (tag: Tag) => void
   /** Callback when tag is deleted */
   onDelete?: (tagId: string) => void
+  /** Callback when retry is requested for error tags */
+  onRetry?: (tagId: string) => void
   /** Optional additional className */
   className?: string
 }
@@ -60,9 +64,12 @@ export function TagDetailPanel({
   onClose,
   onSave,
   onDelete,
+  onRetry,
   className
 }: TagDetailPanelProps): React.ReactElement | null {
   const updateTag = useTagStore((state) => state.updateTag)
+  const clearTagError = useTagStore((state) => state.clearTagError)
+  const [isRetrying, setIsRetrying] = useState(false)
 
   // Form state
   const [formState, setFormState] = useState<FormState>({
@@ -205,6 +212,21 @@ export function TagDetailPanel({
     onClose()
   }, [onClose])
 
+  // Handle retry (P3-7)
+  const handleRetry = useCallback(async () => {
+    if (!tag) return
+    setIsRetrying(true)
+    try {
+      // Clear the error state
+      clearTagError(tag.id)
+      // Call the onRetry callback if provided
+      onRetry?.(tag.id)
+    } finally {
+      // Reset retrying state after a delay
+      setTimeout(() => setIsRetrying(false), 1000)
+    }
+  }, [tag, clearTagError, onRetry])
+
   // Handle escape key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -231,6 +253,15 @@ export function TagDetailPanel({
     }
     return String(value)
   }, [displayState?.currentValue, formState.decimals, formState.unit])
+
+  // Get error details (P3-7)
+  const errorDetails = useMemo(() => {
+    if (!displayState?.lastError) return null
+    return getFullErrorDetails(displayState.lastError)
+  }, [displayState?.lastError])
+
+  // Check if tag has error or timeout status
+  const hasError = displayState?.status === 'error' || displayState?.status === 'timeout'
 
   return (
     <>
@@ -274,7 +305,12 @@ export function TagDetailPanel({
         <div className="flex-1 overflow-y-auto p-4 space-y-6">
           {/* Current value display */}
           <div className="p-4 rounded-lg bg-muted/50 border border-border">
-            <div className="text-sm text-muted-foreground">Current Value</div>
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-muted-foreground">Current Value</div>
+              {displayState?.status && (
+                <TagStatusBadge status={displayState.status} size="sm" />
+              )}
+            </div>
             <div className="mt-1 text-2xl font-mono font-bold text-foreground">
               {formattedValue}
             </div>
@@ -282,31 +318,78 @@ export function TagDetailPanel({
               <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
                 <span>Quality: {displayState.quality}</span>
                 <span>|</span>
-                <span>Status: {displayState.alarmState}</span>
+                <span>Alarm: {displayState.alarmState}</span>
+                {displayState.lastSuccessAt && (
+                  <>
+                    <span>|</span>
+                    <span>Last read: {new Date(displayState.lastSuccessAt).toLocaleTimeString()}</span>
+                  </>
+                )}
               </div>
             )}
           </div>
 
-          {/* Error display (if tag has errors) */}
-          {displayState?.alarmState === 'alarm' && (
-            <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30">
+          {/* Error/Timeout display (P3-7) */}
+          {hasError && (
+            <div
+              className={cn(
+                'p-3 rounded-lg border',
+                displayState?.status === 'error' && 'bg-destructive/10 border-destructive/30',
+                displayState?.status === 'timeout' && 'bg-amber-500/10 border-amber-500/30'
+              )}
+              data-testid="tag-error-details"
+            >
               <div className="flex items-start gap-2">
-                <AlertTriangle className="h-4 w-4 text-destructive mt-0.5" />
-                <div className="flex-1">
-                  <div className="text-sm font-medium text-destructive">Error Status</div>
-                  <div className="mt-1 text-xs text-muted-foreground">
-                    Tag is in alarm state. Check address and connection.
+                {displayState?.status === 'error' ? (
+                  <XCircle className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
+                ) : (
+                  <Clock className="h-4 w-4 text-amber-500 mt-0.5 flex-shrink-0" />
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className={cn(
+                    'text-sm font-medium',
+                    displayState?.status === 'error' && 'text-destructive',
+                    displayState?.status === 'timeout' && 'text-amber-600 dark:text-amber-400'
+                  )}>
+                    {errorDetails?.name ?? (displayState?.status === 'timeout' ? 'Read Timeout' : 'Read Error')}
                   </div>
+                  {errorDetails && (
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      {errorDetails.description}
+                    </div>
+                  )}
+                  {errorDetails?.suggestion && (
+                    <div className="mt-1.5 text-xs text-muted-foreground italic">
+                      💡 {errorDetails.suggestion}
+                    </div>
+                  )}
+                  {displayState?.consecutiveFailures > 0 && (
+                    <div className="mt-2 flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">
+                        Failed {displayState.consecutiveFailures} time{displayState.consecutiveFailures !== 1 ? 's' : ''}
+                      </span>
+                      {displayState.isThrottled && (
+                        <span className="px-1.5 py-0.5 rounded text-xs bg-amber-500/20 text-amber-600 dark:text-amber-400">
+                          Throttled
+                        </span>
+                      )}
+                    </div>
+                  )}
                   <button
                     type="button"
+                    onClick={handleRetry}
+                    disabled={isRetrying}
                     className={cn(
                       'mt-2 flex items-center gap-1 px-2 py-1 rounded text-xs',
-                      'bg-destructive/10 hover:bg-destructive/20',
-                      'text-destructive transition-colors'
+                      displayState?.status === 'error' && 'bg-destructive/10 hover:bg-destructive/20 text-destructive',
+                      displayState?.status === 'timeout' && 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400',
+                      'transition-colors',
+                      'disabled:opacity-50 disabled:cursor-not-allowed'
                     )}
+                    data-testid="tag-retry-button"
                   >
-                    <RefreshCw className="h-3 w-3" />
-                    Retry Now
+                    <RefreshCw className={cn('h-3 w-3', isRetrying && 'animate-spin')} />
+                    {isRetrying ? 'Retrying...' : 'Retry Now'}
                   </button>
                 </div>
               </div>

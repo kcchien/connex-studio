@@ -7,6 +7,7 @@ import { create } from 'zustand'
 import type { Tag } from '@shared/types/tag'
 import type { DataQuality } from '@shared/types/common'
 import type { TagValue, PollingDataPayload } from '@shared/types/polling'
+import type { TagStatus } from '@renderer/components/tags/TagStatusIcon'
 
 export type AlarmState = 'normal' | 'warning' | 'alarm'
 export type TrendDirection = 'up' | 'down' | 'stable'
@@ -19,6 +20,14 @@ export interface TagDisplayState {
   sparklineData: number[]
   alarmState: AlarmState
   trend: TrendDirection
+
+  // Error tracking (P3-5)
+  status: TagStatus
+  lastError?: string
+  lastErrorCode?: string
+  lastSuccessAt?: number
+  consecutiveFailures: number
+  isThrottled: boolean
 }
 
 interface TagState {
@@ -71,10 +80,24 @@ interface TagState {
 
   // Get selected tag count
   getSelectedCount: () => number
+
+  // Error tracking (P3-5)
+  recordTagSuccess: (tagId: string) => void
+  recordTagError: (tagId: string, errorMessage: string, errorCode?: string) => void
+  recordTagTimeout: (tagId: string) => void
+  clearTagError: (tagId: string) => void
+
+  // Get tag status
+  getTagStatus: (tagId: string) => TagStatus
+  isTagThrottled: (tagId: string) => boolean
 }
 
 // Maximum sparkline data points to keep
 const MAX_SPARKLINE_POINTS = 60
+
+// Error throttling configuration (P3-5, P3-6)
+const THROTTLE_AFTER_FAILURES = 5 // Throttle after 5 consecutive failures
+const STALE_AFTER_MS = 30000 // Consider value stale after 30 seconds without update
 
 /**
  * Calculate alarm state based on thresholds.
@@ -343,6 +366,26 @@ export const useTagStore = create<TagState>((set, get) => ({
         const alarmState = calculateAlarmState(numericValue, tag.thresholds)
         const trend = calculateTrend(sparklineData)
 
+        // Determine status based on quality (P3-5)
+        let status: TagStatus = 'normal'
+        let consecutiveFailures = existing?.consecutiveFailures ?? 0
+        let lastError = existing?.lastError
+        let lastErrorCode = existing?.lastErrorCode
+        let lastSuccessAt = existing?.lastSuccessAt
+
+        if (value.quality === 'good') {
+          status = 'normal'
+          consecutiveFailures = 0
+          lastSuccessAt = payload.timestamp
+        } else if (value.quality === 'uncertain') {
+          status = 'stale'
+        } else if (value.quality === 'bad') {
+          status = 'error'
+          consecutiveFailures = (existing?.consecutiveFailures ?? 0) + 1
+        }
+
+        const isThrottled = consecutiveFailures >= THROTTLE_AFTER_FAILURES
+
         const displayState: TagDisplayState = {
           tagId: value.tagId,
           currentValue: value.value,
@@ -350,7 +393,13 @@ export const useTagStore = create<TagState>((set, get) => ({
           timestamp: payload.timestamp,
           sparklineData,
           alarmState,
-          trend
+          trend,
+          status,
+          lastError,
+          lastErrorCode,
+          lastSuccessAt,
+          consecutiveFailures,
+          isThrottled,
         }
 
         newDisplayMap.set(value.tagId, displayState)
@@ -374,7 +423,98 @@ export const useTagStore = create<TagState>((set, get) => ({
 
   getSelectedCount: () => {
     return get().selectedTagIds.size
-  }
+  },
+
+  // Error tracking methods (P3-5)
+  recordTagSuccess: (tagId) => {
+    set((state) => {
+      const newDisplayMap = new Map(state.displayStates)
+      const existing = newDisplayMap.get(tagId)
+
+      if (existing) {
+        newDisplayMap.set(tagId, {
+          ...existing,
+          status: 'normal',
+          consecutiveFailures: 0,
+          isThrottled: false,
+          lastSuccessAt: Date.now(),
+        })
+      }
+
+      return { displayStates: newDisplayMap }
+    })
+  },
+
+  recordTagError: (tagId, errorMessage, errorCode) => {
+    set((state) => {
+      const newDisplayMap = new Map(state.displayStates)
+      const existing = newDisplayMap.get(tagId)
+
+      if (existing) {
+        const newFailures = existing.consecutiveFailures + 1
+        newDisplayMap.set(tagId, {
+          ...existing,
+          status: 'error',
+          lastError: errorMessage,
+          lastErrorCode: errorCode,
+          consecutiveFailures: newFailures,
+          isThrottled: newFailures >= THROTTLE_AFTER_FAILURES,
+        })
+      }
+
+      return { displayStates: newDisplayMap }
+    })
+  },
+
+  recordTagTimeout: (tagId) => {
+    set((state) => {
+      const newDisplayMap = new Map(state.displayStates)
+      const existing = newDisplayMap.get(tagId)
+
+      if (existing) {
+        const newFailures = existing.consecutiveFailures + 1
+        newDisplayMap.set(tagId, {
+          ...existing,
+          status: 'timeout',
+          lastError: 'Read timeout',
+          consecutiveFailures: newFailures,
+          isThrottled: newFailures >= THROTTLE_AFTER_FAILURES,
+        })
+      }
+
+      return { displayStates: newDisplayMap }
+    })
+  },
+
+  clearTagError: (tagId) => {
+    set((state) => {
+      const newDisplayMap = new Map(state.displayStates)
+      const existing = newDisplayMap.get(tagId)
+
+      if (existing) {
+        newDisplayMap.set(tagId, {
+          ...existing,
+          status: 'normal',
+          lastError: undefined,
+          lastErrorCode: undefined,
+          consecutiveFailures: 0,
+          isThrottled: false,
+        })
+      }
+
+      return { displayStates: newDisplayMap }
+    })
+  },
+
+  getTagStatus: (tagId) => {
+    const state = get().displayStates.get(tagId)
+    return state?.status ?? 'stale'
+  },
+
+  isTagThrottled: (tagId) => {
+    const state = get().displayStates.get(tagId)
+    return state?.isThrottled ?? false
+  },
 }))
 
 // Selector helpers
@@ -398,3 +538,23 @@ export const selectIsTagSelected = (tagId: string) => (state: TagState) =>
 
 export const selectEditingTagId = (state: TagState) =>
   state.editingTagId
+
+export const selectTagStatus = (tagId: string) => (state: TagState) =>
+  state.displayStates.get(tagId)?.status ?? 'stale'
+
+export const selectIsTagThrottled = (tagId: string) => (state: TagState) =>
+  state.displayStates.get(tagId)?.isThrottled ?? false
+
+export const selectTagError = (tagId: string) => (state: TagState) => {
+  const display = state.displayStates.get(tagId)
+  if (!display) return null
+  return {
+    message: display.lastError,
+    code: display.lastErrorCode,
+    consecutiveFailures: display.consecutiveFailures,
+    isThrottled: display.isThrottled,
+  }
+}
+
+// Re-export TagStatus type for convenience
+export type { TagStatus } from '@renderer/components/tags/TagStatusIcon'

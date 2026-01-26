@@ -28,3 +28,6 @@ export type { DeleteTagsDialogProps } from "./DeleteTagsDialog"
 
 export { TagDetailPanel } from "./TagDetailPanel"
 export type { TagDetailPanelProps } from "./TagDetailPanel"
+
+export { TagStatusIcon, TagStatusBadge } from "./TagStatusIcon"
+export type { TagStatusIconProps, TagStatusBadgeProps, TagStatus } from "./TagStatusIcon"

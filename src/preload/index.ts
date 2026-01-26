@@ -142,6 +142,11 @@ export interface ElectronAPI {
       connectionId: string
       metrics: ConnectionMetrics
     }) => void) => () => void
+    testConnection: (params: {
+      protocol: 'modbus-tcp' | 'mqtt' | 'opcua'
+      host: string
+      port: number
+    }) => Promise<{ success: boolean; error?: string }>
   }
 
   // Tag operations
@@ -461,7 +466,8 @@ const electronAPI: ElectronAPI = {
       const handler = (_event: Electron.IpcRendererEvent, payload: { connectionId: string; metrics: ConnectionMetrics }) => callback(payload)
       ipcRenderer.on('connection:metrics-changed', handler)
       return () => ipcRenderer.removeListener('connection:metrics-changed', handler)
-    }
+    },
+    testConnection: (params) => ipcRenderer.invoke('connection:test', params)
   },
 
   tag: {

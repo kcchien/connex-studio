@@ -13,6 +13,7 @@ export const CONNECTION_READ_ONCE = 'connection:read-once'
 export const CONNECTION_STATUS_CHANGED = 'connection:status-changed'
 export const CONNECTION_METRICS = 'connection:metrics'
 export const CONNECTION_METRICS_CHANGED = 'connection:metrics-changed'
+export const CONNECTION_TEST = 'connection:test'
 
 // Tag channels
 export const TAG_CREATE = 'tag:create'
@@ -220,7 +221,8 @@ export const IPC_CHANNELS = {
     readOnce: CONNECTION_READ_ONCE,
     statusChanged: CONNECTION_STATUS_CHANGED,
     metrics: CONNECTION_METRICS,
-    metricsChanged: CONNECTION_METRICS_CHANGED
+    metricsChanged: CONNECTION_METRICS_CHANGED,
+    test: CONNECTION_TEST
   },
   tag: {
     create: TAG_CREATE,

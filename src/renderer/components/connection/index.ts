@@ -11,3 +11,5 @@ export type { NewConnectionDialogProps, ConnectionFormData } from './NewConnecti
 export { QuickReadPanel } from './QuickReadPanel'
 export { ByteOrderSelector } from './ByteOrderSelector'
 export type { ByteOrderSelectorProps } from './ByteOrderSelector'
+export { ConnectionStatusIndicator } from './ConnectionStatusIndicator'
+export type { ConnectionStatusIndicatorProps, ConnectionStatus } from './ConnectionStatusIndicator'

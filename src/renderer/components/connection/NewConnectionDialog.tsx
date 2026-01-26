@@ -199,8 +199,6 @@ export function NewConnectionDialog({
   }
 
   const handleTestConnection = async () => {
-    if (!onTestConnection) return
-
     // Validate before testing
     if (protocol === 'modbus-tcp') {
       const hostResult = validateHost(host)
@@ -220,12 +218,32 @@ export function NewConnectionDialog({
     setTestResult(null)
 
     try {
-      const formData = buildFormData()
-      const success = await onTestConnection(formData)
-      setTestResult({
-        success,
-        message: success ? 'Connection successful' : 'Connection failed',
-      })
+      // Use prop callback if provided (for testing), otherwise use IPC
+      if (onTestConnection) {
+        const formData = buildFormData()
+        const success = await onTestConnection(formData)
+        setTestResult({
+          success,
+          message: success ? 'Connection successful' : 'Connection failed',
+        })
+      } else if (protocol === 'modbus-tcp') {
+        // Use IPC for actual test connection
+        const result = await window.electronAPI.connection.testConnection({
+          protocol,
+          host: host.trim(),
+          port: Number(port),
+        })
+        setTestResult({
+          success: result.success,
+          message: result.success ? 'Connection successful' : result.error || 'Connection failed',
+        })
+      } else {
+        // Other protocols not yet implemented
+        setTestResult({
+          success: false,
+          message: `Test connection not implemented for ${protocol}`,
+        })
+      }
     } catch (error) {
       setTestResult({
         success: false,

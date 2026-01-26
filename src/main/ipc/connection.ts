@@ -15,8 +15,10 @@ import {
   CONNECTION_DELETE,
   CONNECTION_LIST,
   CONNECTION_READ_ONCE,
-  CONNECTION_METRICS
+  CONNECTION_METRICS,
+  CONNECTION_TEST
 } from '@shared/constants/ipc-channels'
+import * as net from 'net'
 import { getConnectionManager } from '../services/ConnectionManager'
 import type {
   Connection,
@@ -57,6 +59,12 @@ interface ReadOnceParams {
 
 interface GetMetricsParams {
   connectionId: string
+}
+
+interface TestConnectionParams {
+  protocol: Protocol
+  host: string
+  port: number
 }
 
 /**
@@ -165,5 +173,67 @@ export function registerConnectionHandlers(): void {
     }
   })
 
+  // connection:test - Test TCP connection without creating a persistent connection
+  ipcMain.handle(CONNECTION_TEST, async (_event, params: TestConnectionParams) => {
+    log.debug(`[IPC] ${CONNECTION_TEST}`, params)
+
+    const { protocol, host, port } = params
+    const timeout = 5000 // 5 seconds
+
+    // For now, we only support TCP-based protocols (Modbus TCP)
+    if (protocol === 'modbus-tcp') {
+      return new Promise<{ success: boolean; error?: string }>((resolve) => {
+        const socket = new net.Socket()
+
+        const timer = setTimeout(() => {
+          socket.destroy()
+          resolve({ success: false, error: 'Connection timeout (5s)' })
+        }, timeout)
+
+        socket.connect(port, host, () => {
+          clearTimeout(timer)
+          socket.destroy()
+          log.info(`[IPC] ${CONNECTION_TEST} success: ${host}:${port}`)
+          resolve({ success: true })
+        })
+
+        socket.on('error', (err) => {
+          clearTimeout(timer)
+          socket.destroy()
+          const errorMessage = translateConnectionError(err)
+          log.warn(`[IPC] ${CONNECTION_TEST} failed: ${errorMessage}`)
+          resolve({ success: false, error: errorMessage })
+        })
+      })
+    }
+
+    // For other protocols, return not implemented
+    return { success: false, error: `Test connection not implemented for ${protocol}` }
+  })
+
   log.info('[IPC] Connection handlers registered')
+}
+
+/**
+ * Translate Node.js socket errors to human-readable messages
+ */
+function translateConnectionError(err: Error & { code?: string }): string {
+  switch (err.code) {
+    case 'ECONNREFUSED':
+      return 'Connection refused - no device listening at this address'
+    case 'ETIMEDOUT':
+      return 'Connection timeout - device not responding'
+    case 'ENOTFOUND':
+      return 'Host not found - check the hostname or IP address'
+    case 'ENETUNREACH':
+      return 'Network unreachable - check your network connection'
+    case 'EHOSTUNREACH':
+      return 'Host unreachable - device may be offline'
+    case 'ECONNRESET':
+      return 'Connection reset by device'
+    case 'EADDRINUSE':
+      return 'Address already in use'
+    default:
+      return err.message || 'Unknown connection error'
+  }
 }

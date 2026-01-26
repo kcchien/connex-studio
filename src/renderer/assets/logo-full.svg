@@ -1,0 +1,11 @@
+<svg width="180" height="40" viewBox="0 0 180 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- ConneX Logo with text -->
+  <rect x="4" y="4" width="32" height="32" rx="4" fill="#002FA7"/>
+  <!-- Thin line (top-left to bottom-right) - parallelogram shape -->
+  <polygon points="11,12 12.5,12 29,28.5 27.5,28.5" fill="white"/>
+  <!-- Thick line (top-right to bottom-left) - parallelogram shape, 4px width -->
+  <polygon points="26,12 30,12 14,28 10,28" fill="white"/>
+  <text x="46" y="27" font-family="Inter, -apple-system, sans-serif" font-size="20" font-weight="500" letter-spacing="-0.02em">
+    <tspan fill="#1E293B">Conne</tspan><tspan fill="#002FA7">X</tspan><tspan fill="#64748B"> Studio</tspan>
+  </text>
+</svg>

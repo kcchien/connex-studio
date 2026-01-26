@@ -218,6 +218,7 @@ function App(): React.ReactElement {
       <main className="flex-1 overflow-hidden flex flex-col">
         {selectedConnectionId && selectedConnection ? (
           <DataExplorer
+            connectionId={selectedConnectionId}
             connectionName={selectedConnection.name}
             connectionStatus={selectedConnection.status}
             latency={connectionMetrics?.latencyMs}

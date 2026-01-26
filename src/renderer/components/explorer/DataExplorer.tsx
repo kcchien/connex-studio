@@ -12,7 +12,7 @@ import {
 import type { Tag } from '@shared/types/tag'
 import type { ConnectionMetrics } from '@shared/types'
 import { TagRow } from './TagRow'
-import { TagDetailPanel } from '@renderer/components/tags'
+import { TagDetailPanel, PollingControls } from '@renderer/components/tags'
 import { ConnectionStatusBar } from './ConnectionStatusBar'
 import type { TagDisplayState as StoreTagDisplayState } from '@renderer/stores/tagStore'
 
@@ -42,6 +42,7 @@ function toStoreDisplayState(tagId: string, local: TagDisplayState): StoreTagDis
 }
 
 export interface DataExplorerProps {
+  connectionId: string
   connectionName: string
   connectionStatus: ConnectionStatus
   latency?: number
@@ -66,6 +67,7 @@ const statusConfig: Record<ConnectionStatus, { icon: typeof Wifi; color: string;
  * Shows connection status, tag list with live values, and tag details panel
  */
 export function DataExplorer({
+  connectionId,
   connectionName,
   connectionStatus,
   latency,
@@ -139,6 +141,13 @@ export function DataExplorer({
           </button>
         </div>
       </div>
+
+      {/* Polling Controls - only show when connected with tags */}
+      {connectionStatus === 'connected' && tags.length > 0 && (
+        <div className="px-6 py-3 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50">
+          <PollingControls connectionId={connectionId} />
+        </div>
+      )}
 
       {/* Connection Status Bar */}
       {metrics && connectionStatus === 'connected' && (

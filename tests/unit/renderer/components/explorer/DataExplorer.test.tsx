@@ -1,8 +1,27 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { DataExplorer } from '@renderer/components/explorer/DataExplorer'
 import type { Tag, ModbusAddress } from '@shared/types/tag'
 import type { ConnectionMetrics } from '@shared/types'
+
+// Mock window.electronAPI for polling hooks
+const mockElectronAPI = {
+  polling: {
+    onData: vi.fn(() => vi.fn()), // Returns unsubscribe function
+    onError: vi.fn(() => vi.fn()),
+    start: vi.fn(),
+    stop: vi.fn(),
+    status: vi.fn().mockResolvedValue({ isPolling: false, interval: 1000, connectionId: null }),
+    getState: vi.fn().mockResolvedValue({ isPolling: false, interval: 1000, connectionId: null }),
+    setInterval: vi.fn(),
+  },
+}
+
+beforeEach(() => {
+  // @ts-expect-error - mock window.electronAPI
+  window.electronAPI = mockElectronAPI
+  vi.clearAllMocks()
+})
 
 // Mock tags data
 const mockTags: Tag[] = [
@@ -45,6 +64,7 @@ const mockDisplayStates: Record<string, { value: number | string | boolean; alar
 }
 
 const defaultProps = {
+  connectionId: 'conn-1',
   connectionName: 'PLC-01',
   connectionStatus: 'connected' as const,
   latency: 12,

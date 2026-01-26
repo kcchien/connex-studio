@@ -68,8 +68,8 @@ test.describe('Connection Flow', () => {
     await page.fill('#connection-host', MODBUS_HOST)
     await page.fill('#connection-port', MODBUS_PORT)
 
-    // Step 3: Create the connection
-    await page.click('button:has-text("Create Connection")')
+    // Step 3: Create the connection (button is "Connect" in the new dialog)
+    await page.click('button:has-text("Connect")')
     await page.waitForTimeout(1000)
 
     // Step 4: Verify connection card appears

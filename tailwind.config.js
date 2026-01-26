@@ -38,6 +38,23 @@ export default {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))'
         },
+        // Brand colors (MQTTX-inspired gradient)
+        brand: {
+          blue: '#0066FF',
+          teal: '#00D4AA'
+        },
+        // Surface color hierarchy
+        surface: {
+          DEFAULT: '#111827',
+          elevated: '#1F2937',
+          active: '#374151'
+        },
+        // Protocol-specific colors
+        protocol: {
+          modbus: '#14B8A6',
+          mqtt: '#22C55E',
+          opcua: '#8B5CF6'
+        },
         // IIoT-specific status colors
         status: {
           connected: '#22c55e',
@@ -50,6 +67,14 @@ export default {
           warning: '#eab308',
           critical: '#ef4444'
         }
+      },
+      backgroundImage: {
+        'gradient-brand': 'linear-gradient(135deg, #0066FF 0%, #00D4AA 100%)',
+        'gradient-brand-horizontal': 'linear-gradient(90deg, #0066FF 0%, #00D4AA 100%)'
+      },
+      boxShadow: {
+        'brand': '0 4px 14px 0 rgba(0, 102, 255, 0.25)',
+        'brand-lg': '0 8px 24px 0 rgba(0, 102, 255, 0.35)'
       },
       borderRadius: {
         lg: 'var(--radius)',

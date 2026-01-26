@@ -1,13 +1,16 @@
 import { defineConfig } from 'vitest/config'
 import { resolve } from 'path'
+import react from '@vitejs/plugin-react'
 
 export default defineConfig({
+  plugins: [react()],
   test: {
     name: 'renderer',
-    environment: 'node', // Use 'node' for pure function tests; add jsdom when needed for React component tests
+    environment: 'jsdom',
     root: './tests/unit/renderer',
     include: ['**/*.test.{ts,tsx}'],
     globals: true,
+    setupFiles: ['./vitest.setup.ts'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov', 'html'],

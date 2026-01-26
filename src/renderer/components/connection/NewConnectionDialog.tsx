@@ -157,14 +157,14 @@ export function NewConnectionDialog({
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 bg-black/60 backdrop-blur-sm" />
-        <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-[#111827] rounded-xl border border-gray-700 shadow-2xl">
+        <Dialog.Overlay className="fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm" />
+        <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white dark:bg-[#111827] rounded-xl border border-gray-200 dark:border-gray-700 shadow-2xl">
           {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-700">
-            <Dialog.Title className="text-lg font-semibold text-white">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <Dialog.Title className="text-lg font-semibold text-gray-900 dark:text-white">
               New Connection
             </Dialog.Title>
-            <Dialog.Close className="p-1 rounded-lg text-gray-400 hover:bg-gray-700 hover:text-white transition-colors">
+            <Dialog.Close className="p-1 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white transition-colors">
               <X className="w-5 h-5" />
             </Dialog.Close>
           </div>
@@ -173,7 +173,7 @@ export function NewConnectionDialog({
           <form onSubmit={handleSubmit} className="p-6 space-y-6">
             {/* Protocol Selection */}
             <div className="space-y-3">
-              <label className="text-sm font-medium text-gray-300">Protocol</label>
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Protocol</label>
               <div className="grid grid-cols-3 gap-3">
                 {protocolOptions.map((opt) => {
                   const Icon = opt.icon
@@ -188,12 +188,12 @@ export function NewConnectionDialog({
                         'p-3 rounded-lg border-2 transition-all',
                         'flex flex-col items-center gap-2',
                         isSelected
-                          ? `${opt.borderColor} bg-gray-800`
-                          : 'border-gray-700 hover:border-gray-600 bg-gray-800/50'
+                          ? `${opt.borderColor} bg-gray-100 dark:bg-gray-800`
+                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 bg-gray-50 dark:bg-gray-800/50'
                       )}
                     >
                       <Icon className={cn('w-6 h-6', opt.color)} />
-                      <span className={cn('text-xs font-medium', isSelected ? 'text-white' : 'text-gray-400')}>
+                      <span className={cn('text-xs font-medium', isSelected ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400')}>
                         {opt.label}
                       </span>
                     </button>
@@ -204,7 +204,7 @@ export function NewConnectionDialog({
 
             {/* Connection Name */}
             <div className="space-y-2">
-              <label htmlFor="connection-name" className="text-sm font-medium text-gray-300">
+              <label htmlFor="connection-name" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Connection Name
               </label>
               <input
@@ -215,8 +215,8 @@ export function NewConnectionDialog({
                 placeholder="My PLC"
                 className={cn(
                   'w-full px-4 py-2.5 rounded-lg',
-                  'bg-gray-800 border border-gray-700',
-                  'text-white placeholder-gray-500',
+                  'bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700',
+                  'text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500',
                   'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent',
                   'transition-all'
                 )}
@@ -225,7 +225,7 @@ export function NewConnectionDialog({
 
             {/* Address */}
             <div className="space-y-2">
-              <label htmlFor="connection-address" className="text-sm font-medium text-gray-300">
+              <label htmlFor="connection-address" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Address
               </label>
               <input
@@ -236,8 +236,8 @@ export function NewConnectionDialog({
                 placeholder={selectedProtocol.placeholder}
                 className={cn(
                   'w-full px-4 py-2.5 rounded-lg',
-                  'bg-gray-800 border border-gray-700',
-                  'text-white placeholder-gray-500',
+                  'bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700',
+                  'text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500',
                   'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent',
                   'transition-all'
                 )}
@@ -249,7 +249,7 @@ export function NewConnectionDialog({
               <button
                 type="button"
                 onClick={() => setAdvancedOpen(!advancedOpen)}
-                className="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-300 transition-colors"
+                className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
               >
                 {advancedOpen ? (
                   <ChevronDown className="w-4 h-4" />
@@ -260,11 +260,11 @@ export function NewConnectionDialog({
               </button>
 
               {advancedOpen && (
-                <div className="mt-4 p-4 rounded-lg bg-gray-800/50 border border-gray-700 space-y-4">
+                <div className="mt-4 p-4 rounded-lg bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 space-y-4">
                   {protocol === 'modbus-tcp' && (
                     <>
                       <div className="space-y-2">
-                        <label htmlFor="unit-id" className="text-sm font-medium text-gray-300">
+                        <label htmlFor="unit-id" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                           Unit ID
                         </label>
                         <input
@@ -276,14 +276,14 @@ export function NewConnectionDialog({
                           onChange={(e) => setUnitId(Number(e.target.value))}
                           className={cn(
                             'w-full px-4 py-2 rounded-lg',
-                            'bg-gray-800 border border-gray-700',
-                            'text-white',
+                            'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700',
+                            'text-gray-900 dark:text-white',
                             'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
                           )}
                         />
                       </div>
                       <div className="space-y-2">
-                        <label htmlFor="timeout" className="text-sm font-medium text-gray-300">
+                        <label htmlFor="timeout" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                           Timeout (ms)
                         </label>
                         <input
@@ -296,8 +296,8 @@ export function NewConnectionDialog({
                           onChange={(e) => setTimeout(Number(e.target.value))}
                           className={cn(
                             'w-full px-4 py-2 rounded-lg',
-                            'bg-gray-800 border border-gray-700',
-                            'text-white',
+                            'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700',
+                            'text-gray-900 dark:text-white',
                             'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
                           )}
                         />
@@ -315,8 +315,8 @@ export function NewConnectionDialog({
                 onClick={() => onOpenChange(false)}
                 className={cn(
                   'px-4 py-2.5 rounded-lg',
-                  'bg-gray-700 text-gray-300',
-                  'hover:bg-gray-600 hover:text-white',
+                  'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300',
+                  'hover:bg-gray-200 dark:hover:bg-gray-600 hover:text-gray-900 dark:hover:text-white',
                   'transition-colors'
                 )}
               >
@@ -328,8 +328,8 @@ export function NewConnectionDialog({
                 disabled={isTesting || !address}
                 className={cn(
                   'px-4 py-2.5 rounded-lg',
-                  'border border-gray-600',
-                  'text-gray-300 hover:text-white hover:border-gray-500',
+                  'border border-gray-300 dark:border-gray-600',
+                  'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:border-gray-400 dark:hover:border-gray-500',
                   'disabled:opacity-50 disabled:cursor-not-allowed',
                   'transition-colors flex items-center gap-2'
                 )}

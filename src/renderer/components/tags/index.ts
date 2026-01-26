@@ -16,3 +16,6 @@ export type { ScanTabProps } from "./ScanTab"
 
 export { GenerateTab } from "./GenerateTab"
 export type { GenerateTabProps } from "./GenerateTab"
+
+export { ModbusAddressInput } from "./ModbusAddressInput"
+export type { ModbusAddressInputProps } from "./ModbusAddressInput"

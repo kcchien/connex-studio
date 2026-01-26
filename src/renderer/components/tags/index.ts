@@ -1,3 +1,10 @@
+// Original tag components
+export { TagEditor } from "./TagEditor"
+export { TagGrid } from "./TagGrid"
+export { PollingControls } from "./PollingControls"
+export { Sparkline } from "./Sparkline"
+
+// New batch tag dialog components
 export { BatchTagDialog } from "./BatchTagDialog"
 export type { BatchTagDialogProps } from "./BatchTagDialog"
 

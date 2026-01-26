@@ -80,3 +80,6 @@ playwright-report/
 
 # Profile data (development)
 profiles/
+
+# Worktrees
+.worktrees/

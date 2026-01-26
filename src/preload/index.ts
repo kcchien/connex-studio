@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { IpcResult } from '@shared/types/common'
-import type { Connection, ModbusTcpConfig, MqttConfig, OpcUaConfig } from '@shared/types/connection'
+import type { Connection, ModbusTcpConfig, MqttConfig, OpcUaConfig, ConnectionMetrics } from '@shared/types/connection'
 import type { Tag, ModbusAddress, MqttAddress, OpcUaAddress, DataType } from '@shared/types/tag'
 import type { PollingStatus, PollingDataPayload } from '@shared/types/polling'
 import type { Profile, ProfileSummary } from '@shared/types/profile'
@@ -136,6 +136,11 @@ export interface ElectronAPI {
       connectionId: string
       status: string
       error?: string
+    }) => void) => () => void
+    getMetrics: (connectionId: string) => Promise<IpcResult<{ metrics?: ConnectionMetrics }>>
+    onMetricsChanged: (callback: (payload: {
+      connectionId: string
+      metrics: ConnectionMetrics
     }) => void) => () => void
   }
 
@@ -450,6 +455,12 @@ const electronAPI: ElectronAPI = {
       const handler = (_event: Electron.IpcRendererEvent, payload: any) => callback(payload)
       ipcRenderer.on('connection:status-changed', handler)
       return () => ipcRenderer.removeListener('connection:status-changed', handler)
+    },
+    getMetrics: (connectionId) => ipcRenderer.invoke('connection:metrics', { connectionId }),
+    onMetricsChanged: (callback) => {
+      const handler = (_event: Electron.IpcRendererEvent, payload: { connectionId: string; metrics: ConnectionMetrics }) => callback(payload)
+      ipcRenderer.on('connection:metrics-changed', handler)
+      return () => ipcRenderer.removeListener('connection:metrics-changed', handler)
     }
   },
 

@@ -33,7 +33,8 @@ import type {
 } from '@shared/types'
 import { ProtocolAdapter, getProtocolRegistry, type ReadResult } from '../protocols/ProtocolAdapter'
 import type { BrowserWindow } from 'electron'
-import { CONNECTION_STATUS_CHANGED } from '@shared/constants/ipc-channels'
+import { CONNECTION_STATUS_CHANGED, CONNECTION_METRICS_CHANGED } from '@shared/constants/ipc-channels'
+import type { ConnectionMetrics } from '@shared/types'
 
 export interface ConnectionManagerEvents {
   'status-changed': (connectionId: string, status: ConnectionStatus, error?: string) => void
@@ -187,6 +188,11 @@ export class ConnectionManager {
         adapter.on('error', (error) => {
           log.error(`[ConnectionManager] Adapter error for ${connectionId}: ${error.message}`)
           this.handleConnectionError(connectionId, error.message)
+        })
+
+        // Listen for metrics updates
+        adapter.on('metrics-updated', (metrics: ConnectionMetrics) => {
+          this.pushMetricsUpdate(connectionId, metrics)
         })
       }
 
@@ -394,6 +400,21 @@ export class ConnectionManager {
   }
 
   /**
+   * Get connection metrics for a connection.
+   */
+  getConnectionMetrics(connectionId: string): ConnectionMetrics | undefined {
+    const adapter = this.adapters.get(connectionId)
+    if (!adapter) return undefined
+
+    // Check if adapter has getMetrics method (ModbusTcpAdapter does)
+    if ('getMetrics' in adapter && typeof adapter.getMetrics === 'function') {
+      return adapter.getMetrics()
+    }
+
+    return undefined
+  }
+
+  /**
    * Update connection status and notify renderer.
    */
   private updateStatus(connectionId: string, status: ConnectionStatus, error?: string): void {
@@ -409,6 +430,18 @@ export class ConnectionManager {
         connectionId,
         status,
         error
+      })
+    }
+  }
+
+  /**
+   * Push metrics update to renderer.
+   */
+  private pushMetricsUpdate(connectionId: string, metrics: ConnectionMetrics): void {
+    if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+      this.mainWindow.webContents.send(CONNECTION_METRICS_CHANGED, {
+        connectionId,
+        metrics
       })
     }
   }

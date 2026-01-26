@@ -14,7 +14,8 @@ import {
   CONNECTION_DISCONNECT,
   CONNECTION_DELETE,
   CONNECTION_LIST,
-  CONNECTION_READ_ONCE
+  CONNECTION_READ_ONCE,
+  CONNECTION_METRICS
 } from '@shared/constants/ipc-channels'
 import { getConnectionManager } from '../services/ConnectionManager'
 import type {
@@ -52,6 +53,10 @@ interface ReadOnceParams {
   connectionId: string
   address: ModbusAddress | MqttAddress | OpcUaAddress
   dataType?: DataType
+}
+
+interface GetMetricsParams {
+  connectionId: string
 }
 
 /**
@@ -142,6 +147,20 @@ export function registerConnectionHandlers(): void {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       log.error(`[IPC] ${CONNECTION_READ_ONCE} failed: ${message}`)
+      return { success: false, error: message }
+    }
+  })
+
+  // connection:metrics
+  ipcMain.handle(CONNECTION_METRICS, async (_event, params: GetMetricsParams) => {
+    log.debug(`[IPC] ${CONNECTION_METRICS}`, params)
+
+    try {
+      const metrics = manager.getConnectionMetrics(params.connectionId)
+      return { success: true, metrics }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      log.error(`[IPC] ${CONNECTION_METRICS} failed: ${message}`)
       return { success: false, error: message }
     }
   })

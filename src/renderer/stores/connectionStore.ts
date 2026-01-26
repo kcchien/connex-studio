@@ -4,11 +4,12 @@
  */
 
 import { create } from 'zustand'
-import type { Connection, ConnectionStatus } from '@shared/types/connection'
+import type { Connection, ConnectionStatus, ConnectionMetrics } from '@shared/types/connection'
 
 export interface ConnectionState {
   connections: Connection[]
   selectedConnectionId: string | null
+  metrics: Map<string, ConnectionMetrics>
 
   // Actions
   addConnection: (conn: Connection) => void
@@ -19,11 +20,17 @@ export interface ConnectionState {
 
   // Internal action for status updates from main process
   handleStatusChanged: (connectionId: string, status: ConnectionStatus, error?: string) => void
+
+  // Metrics actions
+  setMetrics: (connectionId: string, metrics: ConnectionMetrics) => void
+  clearMetrics: (connectionId: string) => void
+  getMetrics: (connectionId: string) => ConnectionMetrics | undefined
 }
 
 export const useConnectionStore = create<ConnectionState>((set, get) => ({
   connections: [],
   selectedConnectionId: null,
+  metrics: new Map<string, ConnectionMetrics>(),
 
   addConnection: (conn: Connection) => {
     set((state) => ({
@@ -81,6 +88,26 @@ export const useConnectionStore = create<ConnectionState>((set, get) => ({
           : conn
       )
     }))
+  },
+
+  setMetrics: (connectionId: string, metrics: ConnectionMetrics) => {
+    set((state) => {
+      const newMetrics = new Map(state.metrics)
+      newMetrics.set(connectionId, metrics)
+      return { metrics: newMetrics }
+    })
+  },
+
+  clearMetrics: (connectionId: string) => {
+    set((state) => {
+      const newMetrics = new Map(state.metrics)
+      newMetrics.delete(connectionId)
+      return { metrics: newMetrics }
+    })
+  },
+
+  getMetrics: (connectionId: string) => {
+    return get().metrics.get(connectionId)
   }
 }))
 
@@ -93,3 +120,6 @@ export const selectConnectionById = (id: string) => (state: ConnectionState) =>
   state.connections.find((c) => c.id === id)
 export const selectConnectionsByProtocol = (protocol: Connection['protocol']) => (state: ConnectionState) =>
   state.connections.filter((c) => c.protocol === protocol)
+export const selectMetrics = (state: ConnectionState) => state.metrics
+export const selectMetricsById = (connectionId: string) => (state: ConnectionState) =>
+  state.metrics.get(connectionId)

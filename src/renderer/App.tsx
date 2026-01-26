@@ -9,7 +9,7 @@ import { useTagStore } from '@renderer/stores/tagStore'
 import { useUIStore } from '@renderer/stores/uiStore'
 import { usePolling } from '@renderer/hooks/usePolling'
 import { useKeyboardShortcuts } from '@renderer/hooks/useKeyboardShortcuts'
-import type { ConnectionStatus as ConnStatus } from '@shared/types/connection'
+import type { ConnectionStatus as ConnStatus, ConnectionMetrics } from '@shared/types/connection'
 import type { Tag } from '@shared/types/tag'
 
 /**
@@ -21,6 +21,9 @@ function App(): React.ReactElement {
   const setConnections = useConnectionStore((state) => state.setConnections)
   const handleStatusChanged = useConnectionStore((state) => state.handleStatusChanged)
   const connections = useConnectionStore((state) => state.connections)
+  const setMetrics = useConnectionStore((state) => state.setMetrics)
+  const clearMetrics = useConnectionStore((state) => state.clearMetrics)
+  const metricsMap = useConnectionStore((state) => state.metrics)
 
   // Tag store
   const tagsByConnection = useTagStore((state) => state.tagsByConnection)
@@ -60,6 +63,12 @@ function App(): React.ReactElement {
   const connectionTags = useMemo(() =>
     selectedConnectionId ? (tagsByConnection.get(selectedConnectionId) ?? []) : [],
     [selectedConnectionId, tagsByConnection]
+  )
+
+  // Get metrics for selected connection
+  const connectionMetrics = useMemo<ConnectionMetrics | undefined>(() =>
+    selectedConnectionId ? metricsMap.get(selectedConnectionId) : undefined,
+    [selectedConnectionId, metricsMap]
   )
 
   // Build display states from tag values for DataExplorer
@@ -137,18 +146,28 @@ function App(): React.ReactElement {
     initializeConnections()
 
     // Subscribe to status changes
-    const unsubscribe = window.electronAPI.connection.onStatusChanged((payload) => {
+    const unsubscribeStatus = window.electronAPI.connection.onStatusChanged((payload) => {
       handleStatusChanged(
         payload.connectionId,
         payload.status as ConnStatus,
         payload.error
       )
+      // Clear metrics when disconnected
+      if (payload.status === 'disconnected' || payload.status === 'error') {
+        clearMetrics(payload.connectionId)
+      }
+    })
+
+    // Subscribe to metrics changes
+    const unsubscribeMetrics = window.electronAPI.connection.onMetricsChanged((payload) => {
+      setMetrics(payload.connectionId, payload.metrics)
     })
 
     return () => {
-      unsubscribe()
+      unsubscribeStatus()
+      unsubscribeMetrics()
     }
-  }, [setConnections, handleStatusChanged])
+  }, [setConnections, handleStatusChanged, setMetrics, clearMetrics])
 
   // Load tags when connection changes
   useEffect(() => {
@@ -201,7 +220,8 @@ function App(): React.ReactElement {
           <DataExplorer
             connectionName={selectedConnection.name}
             connectionStatus={selectedConnection.status}
-            latency={12} // Would come from real metrics
+            latency={connectionMetrics?.latencyMs}
+            metrics={connectionMetrics}
             tags={connectionTags}
             displayStates={tagDisplayStates}
             onAddTag={() => setBatchTagDialogOpen(true)}

@@ -11,6 +11,8 @@ export const CONNECTION_DELETE = 'connection:delete'
 export const CONNECTION_LIST = 'connection:list'
 export const CONNECTION_READ_ONCE = 'connection:read-once'
 export const CONNECTION_STATUS_CHANGED = 'connection:status-changed'
+export const CONNECTION_METRICS = 'connection:metrics'
+export const CONNECTION_METRICS_CHANGED = 'connection:metrics-changed'
 
 // Tag channels
 export const TAG_CREATE = 'tag:create'
@@ -216,7 +218,9 @@ export const IPC_CHANNELS = {
     delete: CONNECTION_DELETE,
     list: CONNECTION_LIST,
     readOnce: CONNECTION_READ_ONCE,
-    statusChanged: CONNECTION_STATUS_CHANGED
+    statusChanged: CONNECTION_STATUS_CHANGED,
+    metrics: CONNECTION_METRICS,
+    metricsChanged: CONNECTION_METRICS_CHANGED
   },
   tag: {
     create: TAG_CREATE,

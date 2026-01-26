@@ -66,14 +66,14 @@ export function BatchTagDialog({
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 bg-black/60 backdrop-blur-sm" />
-        <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl bg-[#111827] rounded-xl border border-gray-700 shadow-2xl">
+        <Dialog.Overlay className="fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm" />
+        <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl bg-white dark:bg-[#111827] rounded-xl border border-gray-200 dark:border-gray-700 shadow-2xl">
           {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-700">
-            <Dialog.Title className="text-lg font-semibold text-white">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <Dialog.Title className="text-lg font-semibold text-gray-900 dark:text-white">
               Add Tags
             </Dialog.Title>
-            <Dialog.Close className="p-1 rounded-lg text-gray-400 hover:bg-gray-700 hover:text-white transition-colors">
+            <Dialog.Close className="p-1 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white transition-colors">
               <X className="w-5 h-5" />
             </Dialog.Close>
           </div>
@@ -81,7 +81,7 @@ export function BatchTagDialog({
           {/* Tabs Content */}
           <Tabs.Root value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)}>
             {/* Tab List */}
-            <Tabs.List className="flex border-b border-gray-700">
+            <Tabs.List className="flex border-b border-gray-200 dark:border-gray-700">
               {tabConfig.map((tab) => {
                 const Icon = tab.icon
                 const isActive = activeTab === tab.value
@@ -94,8 +94,8 @@ export function BatchTagDialog({
                       'text-sm font-medium transition-colors',
                       'border-b-2 -mb-px',
                       isActive
-                        ? 'border-blue-500 text-blue-400'
-                        : 'border-transparent text-gray-400 hover:text-gray-300'
+                        ? 'border-blue-500 text-blue-500 dark:text-blue-400'
+                        : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
                     )}
                   >
                     <Icon className="w-4 h-4" />
@@ -134,8 +134,8 @@ export function BatchTagDialog({
           </Tabs.Root>
 
           {/* Preview & Actions */}
-          <div className="flex items-center justify-between px-6 py-4 border-t border-gray-700">
-            <div className="text-sm text-gray-400">
+          <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 dark:border-gray-700">
+            <div className="text-sm text-gray-500 dark:text-gray-400">
               {previewTags.length > 0 ? (
                 <span>{previewTags.length} tags ready to create</span>
               ) : (
@@ -148,8 +148,8 @@ export function BatchTagDialog({
                 onClick={() => onOpenChange(false)}
                 className={cn(
                   'px-4 py-2 rounded-lg',
-                  'bg-gray-700 text-gray-300',
-                  'hover:bg-gray-600 hover:text-white',
+                  'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300',
+                  'hover:bg-gray-200 dark:hover:bg-gray-600 hover:text-gray-900 dark:hover:text-white',
                   'transition-colors'
                 )}
               >

@@ -51,7 +51,7 @@ export function TagRow({
       className={cn(
         'flex items-center px-6 py-3 cursor-pointer transition-colors',
         alarm.bgColor,
-        isSelected ? 'bg-blue-500/10 border-l-2 border-blue-500' : 'hover:bg-gray-800/50',
+        isSelected ? 'bg-blue-500/10 border-l-2 border-blue-500' : 'hover:bg-gray-100 dark:hover:bg-gray-800/50',
       )}
     >
       {/* Alarm/Status Icon */}
@@ -61,7 +61,7 @@ export function TagRow({
 
       {/* Tag Name */}
       <div className="flex-1 min-w-0 mr-4">
-        <p className="text-sm font-medium text-white truncate">{tag.name}</p>
+        <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{tag.name}</p>
         <p className="text-xs text-gray-500 truncate">
           {getAddressDisplay(tag)}
         </p>
@@ -80,7 +80,7 @@ export function TagRow({
           'text-lg font-mono font-semibold',
           alarmState === 'alarm' ? 'text-red-400' :
           alarmState === 'warning' ? 'text-yellow-400' :
-          'text-white'
+          'text-gray-900 dark:text-white'
         )}>
           {formatValue(value)}
         </p>

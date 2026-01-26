@@ -65,13 +65,13 @@ export function TagDetails({
   const TrendIcon = trend?.icon
 
   return (
-    <div data-testid="tag-details" className="w-80 flex flex-col bg-[#111827] border-l border-gray-800">
+    <div data-testid="tag-details" className="w-80 flex flex-col bg-white dark:bg-[#111827] border-l border-gray-200 dark:border-gray-800">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-800">
-        <h2 className="text-sm font-semibold text-white truncate">{tag.name}</h2>
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-800">
+        <h2 className="text-sm font-semibold text-gray-900 dark:text-white truncate">{tag.name}</h2>
         <button
           onClick={onClose}
-          className="p-1 rounded-lg text-gray-400 hover:bg-gray-700 hover:text-white transition-colors"
+          className="p-1 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white transition-colors"
         >
           <X className="w-4 h-4" />
         </button>
@@ -86,25 +86,25 @@ export function TagDetails({
       )}>
         <p className={cn(
           'text-4xl font-mono font-bold',
-          displayState.alarmState === 'alarm' ? 'text-red-400' :
-          displayState.alarmState === 'warning' ? 'text-yellow-400' :
-          'text-white'
+          displayState.alarmState === 'alarm' ? 'text-red-500 dark:text-red-400' :
+          displayState.alarmState === 'warning' ? 'text-yellow-600 dark:text-yellow-400' :
+          'text-gray-900 dark:text-white'
         )}>
           {formatValue(displayState.value)}
         </p>
         {tag.displayFormat.unit && (
-          <p className="text-sm text-gray-400 mt-1">{tag.displayFormat.unit}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{tag.displayFormat.unit}</p>
         )}
       </div>
 
       {/* Status & Trend */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-800">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-800">
         <div className="flex items-center gap-2">
           <AlarmIcon className={cn('w-4 h-4', alarm.color)} />
           <span className={cn('text-sm', alarm.color)}>{alarm.label}</span>
         </div>
         {trend && TrendIcon && (
-          <div className="flex items-center gap-1 text-gray-400">
+          <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400">
             <TrendIcon className="w-4 h-4" />
             <span className="text-sm">{trend.label}</span>
           </div>
@@ -116,13 +116,13 @@ export function TagDetails({
         {/* Address */}
         <div>
           <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Address</p>
-          <p className="text-sm text-gray-300 font-mono">{getAddressDisplay(tag)}</p>
+          <p className="text-sm text-gray-700 dark:text-gray-300 font-mono">{getAddressDisplay(tag)}</p>
         </div>
 
         {/* Data Type */}
         <div>
           <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Data Type</p>
-          <p className="text-sm text-gray-300">{tag.dataType}</p>
+          <p className="text-sm text-gray-700 dark:text-gray-300">{tag.dataType}</p>
         </div>
 
         {/* Thresholds */}
@@ -131,16 +131,16 @@ export function TagDetails({
             <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">Thresholds</p>
             <div className="space-y-1">
               {tag.thresholds.alarmHigh !== undefined && (
-                <ThresholdRow label="Alarm High" value={tag.thresholds.alarmHigh} color="text-red-400" />
+                <ThresholdRow label="Alarm High" value={tag.thresholds.alarmHigh} color="text-red-500 dark:text-red-400" />
               )}
               {tag.thresholds.warningHigh !== undefined && (
-                <ThresholdRow label="Warning High" value={tag.thresholds.warningHigh} color="text-yellow-400" />
+                <ThresholdRow label="Warning High" value={tag.thresholds.warningHigh} color="text-yellow-600 dark:text-yellow-400" />
               )}
               {tag.thresholds.warningLow !== undefined && (
-                <ThresholdRow label="Warning Low" value={tag.thresholds.warningLow} color="text-yellow-400" />
+                <ThresholdRow label="Warning Low" value={tag.thresholds.warningLow} color="text-yellow-600 dark:text-yellow-400" />
               )}
               {tag.thresholds.alarmLow !== undefined && (
-                <ThresholdRow label="Alarm Low" value={tag.thresholds.alarmLow} color="text-red-400" />
+                <ThresholdRow label="Alarm Low" value={tag.thresholds.alarmLow} color="text-red-500 dark:text-red-400" />
               )}
             </div>
           </div>
@@ -148,14 +148,14 @@ export function TagDetails({
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-2 px-4 py-3 border-t border-gray-800">
+      <div className="flex items-center gap-2 px-4 py-3 border-t border-gray-200 dark:border-gray-800">
         <button
           onClick={onConfigure}
           className={cn(
             'flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg',
-            'bg-gray-800 border border-gray-700',
-            'text-gray-300 text-sm',
-            'hover:bg-gray-700 hover:text-white',
+            'bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700',
+            'text-gray-700 dark:text-gray-300 text-sm',
+            'hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white',
             'transition-colors'
           )}
         >
@@ -167,8 +167,8 @@ export function TagDetails({
           className={cn(
             'flex items-center justify-center gap-2 px-3 py-2 rounded-lg',
             'bg-red-500/10 border border-red-500/30',
-            'text-red-400 text-sm',
-            'hover:bg-red-500/20 hover:text-red-300',
+            'text-red-500 dark:text-red-400 text-sm',
+            'hover:bg-red-500/20 hover:text-red-600 dark:hover:text-red-300',
             'transition-colors'
           )}
         >

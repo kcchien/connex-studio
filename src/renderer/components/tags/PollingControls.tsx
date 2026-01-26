@@ -23,6 +23,10 @@ interface PollingControlsProps {
   tagIds?: string[]
   /** Optional additional className */
   className?: string
+  /** Whether the controls are disabled (e.g., when not connected) */
+  disabled?: boolean
+  /** Message to show when disabled */
+  disabledMessage?: string
 }
 
 // Preset intervals for quick selection
@@ -55,7 +59,9 @@ function formatRelativeTime(timestamp: number): string {
 export const PollingControls = memo(function PollingControls({
   connectionId,
   tagIds = [],
-  className
+  className,
+  disabled = false,
+  disabledMessage = 'Connect to enable polling'
 }: PollingControlsProps): React.ReactElement {
   const [showSettings, setShowSettings] = useState(false)
   const [intervalMs, setIntervalMs] = useState(DEFAULT_POLLING_INTERVAL_MS)
@@ -97,7 +103,7 @@ export const PollingControls = memo(function PollingControls({
         {/* Start/Stop button */}
         <button
           onClick={isPolling ? handleStop : handleStart}
-          disabled={isLoading}
+          disabled={isLoading || disabled}
           className={cn(
             'h-8 px-3 text-sm font-medium rounded-md',
             'flex items-center gap-2',
@@ -146,19 +152,25 @@ export const PollingControls = memo(function PollingControls({
             </>
           )}
 
-          {!isPolling && (
+          {!isPolling && !disabled && (
             <span className="text-muted-foreground">Polling stopped</span>
+          )}
+
+          {disabled && (
+            <span className="text-muted-foreground">{disabledMessage}</span>
           )}
         </div>
 
         {/* Settings toggle */}
         <button
           onClick={toggleSettings}
+          disabled={disabled}
           className={cn(
             'p-2 rounded-md',
             'text-muted-foreground hover:text-foreground',
             'hover:bg-muted transition-colors',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+            'disabled:opacity-50 disabled:cursor-not-allowed',
             showSettings && 'bg-muted text-foreground'
           )}
           title="Polling settings"

@@ -3,6 +3,18 @@
   "children": [
     {
       "type": "frame",
+      "id": "bi8Au",
+      "x": 0,
+      "y": 0,
+      "name": "Frame",
+      "clip": true,
+      "width": 800,
+      "height": 600,
+      "fill": "#FFFFFF",
+      "layout": "none"
+    },
+    {
+      "type": "frame",
       "id": "SwSUE",
       "x": 0,
       "y": 1000,
@@ -56,18 +68,24 @@
                       "height": 36,
                       "fill": "#002FA7",
                       "cornerRadius": 8,
-                      "justifyContent": "center",
-                      "alignItems": "center",
                       "children": [
                         {
-                          "type": "icon_font",
-                          "id": "15SUv",
-                          "name": "xIcon1",
+                          "type": "path",
+                          "id": "uXgzs",
+                          "name": "xThin",
+                          "geometry": "M1 2l2 0 16 16-2 0z",
+                          "fill": "#FFFFFF",
                           "width": 20,
-                          "height": 20,
-                          "iconFontName": "x",
-                          "iconFontFamily": "lucide",
-                          "fill": "#FFFFFF"
+                          "height": 20
+                        },
+                        {
+                          "type": "path",
+                          "id": "1uQei",
+                          "name": "xThick",
+                          "geometry": "M15 2l4 0-14 16-4 0z",
+                          "fill": "#FFFFFF",
+                          "width": 20,
+                          "height": 20
                         }
                       ]
                     },
@@ -1555,215 +1573,6 @@
     },
     {
       "type": "frame",
-      "id": "lIwig",
-      "x": 1758,
-      "y": 70,
-      "name": "Logo Showcase",
-      "width": 785,
-      "height": 610,
-      "fill": "#FFFFFF",
-      "layout": "vertical",
-      "gap": 40,
-      "padding": 40,
-      "children": [
-        {
-          "type": "frame",
-          "id": "69mqU",
-          "name": "titleSection",
-          "width": "fill_container",
-          "layout": "vertical",
-          "gap": 8,
-          "children": [
-            {
-              "type": "text",
-              "id": "8OirU",
-              "name": "title",
-              "fill": "#0F172A",
-              "content": "Connex Studio Logo",
-              "fontFamily": "Inter",
-              "fontSize": 28,
-              "fontWeight": "700"
-            },
-            {
-              "type": "text",
-              "id": "samfS",
-              "name": "subtitle",
-              "fill": "#64748B",
-              "content": "Hexagonal Data Hub - Industrial IoT Identity",
-              "fontFamily": "Inter",
-              "fontSize": 14,
-              "fontWeight": "normal"
-            }
-          ]
-        },
-        {
-          "type": "frame",
-          "id": "ABR7k",
-          "name": "variants",
-          "width": "fill_container",
-          "gap": 60,
-          "justifyContent": "center",
-          "alignItems": "center",
-          "children": [
-            {
-              "type": "frame",
-              "id": "Dfsny",
-              "name": "lightBox",
-              "fill": "#F8F9FC",
-              "cornerRadius": 16,
-              "layout": "vertical",
-              "gap": 16,
-              "padding": [
-                32,
-                40
-              ],
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "text",
-                  "id": "YOqff",
-                  "name": "lightLabel",
-                  "fill": "#64748B",
-                  "content": "Light Mode",
-                  "fontFamily": "Inter",
-                  "fontSize": 12,
-                  "fontWeight": "600"
-                },
-                {
-                  "type": "frame",
-                  "id": "m3zA0",
-                  "name": "lightHex",
-                  "width": 80,
-                  "height": 92,
-                  "fill": "#002FA7"
-                },
-                {
-                  "type": "frame",
-                  "id": "J0V8q",
-                  "name": "lightHexInner",
-                  "opacity": 0.3,
-                  "width": 60,
-                  "height": 69,
-                  "fill": "#3B82F6"
-                },
-                {
-                  "type": "frame",
-                  "id": "OUPnt",
-                  "name": "lightHub",
-                  "width": 20,
-                  "height": 24,
-                  "fill": "#FFFFFF"
-                },
-                {
-                  "type": "ellipse",
-                  "id": "HbLcy",
-                  "name": "lightDot1",
-                  "opacity": 0.8,
-                  "fill": "#FFFFFF",
-                  "width": 8,
-                  "height": 8
-                },
-                {
-                  "type": "ellipse",
-                  "id": "CNMll",
-                  "name": "lightDot2",
-                  "opacity": 0.8,
-                  "fill": "#FFFFFF",
-                  "width": 8,
-                  "height": 8
-                },
-                {
-                  "type": "ellipse",
-                  "id": "RVBI4",
-                  "name": "lightDot3",
-                  "opacity": 0.8,
-                  "fill": "#FFFFFF",
-                  "width": 8,
-                  "height": 8
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "vdLWp",
-              "name": "darkBox",
-              "fill": "#0F172A",
-              "cornerRadius": 16,
-              "layout": "vertical",
-              "gap": 16,
-              "padding": [
-                32,
-                40
-              ],
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "text",
-                  "id": "jB5CV",
-                  "name": "darkLabel",
-                  "fill": "#94A3B8",
-                  "content": "Dark Mode",
-                  "fontFamily": "Inter",
-                  "fontSize": 12,
-                  "fontWeight": "600"
-                },
-                {
-                  "type": "frame",
-                  "id": "4vsnJ",
-                  "name": "darkHex",
-                  "width": 80,
-                  "height": 92,
-                  "fill": "#3B82F6"
-                },
-                {
-                  "type": "frame",
-                  "id": "6Pps9",
-                  "name": "darkHexInner",
-                  "opacity": 0.25,
-                  "width": 60,
-                  "height": 69,
-                  "fill": "#93C5FD"
-                },
-                {
-                  "type": "frame",
-                  "id": "Vg02a",
-                  "name": "darkHub",
-                  "width": 20,
-                  "height": 24,
-                  "fill": "#FFFFFF"
-                },
-                {
-                  "type": "ellipse",
-                  "id": "L3sz0",
-                  "name": "darkDot1",
-                  "fill": "#FFFFFF",
-                  "width": 8,
-                  "height": 8
-                },
-                {
-                  "type": "ellipse",
-                  "id": "aK9BR",
-                  "name": "darkDot2",
-                  "fill": "#FFFFFF",
-                  "width": 8,
-                  "height": 8
-                },
-                {
-                  "type": "ellipse",
-                  "id": "lOpBW",
-                  "name": "darkDot3",
-                  "fill": "#FFFFFF",
-                  "width": 8,
-                  "height": 8
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "type": "frame",
       "id": "YKRBu",
       "x": 1500,
       "y": 1000,
@@ -1817,18 +1626,24 @@
                       "height": 36,
                       "fill": "#3B82F6",
                       "cornerRadius": 8,
-                      "justifyContent": "center",
-                      "alignItems": "center",
                       "children": [
                         {
-                          "type": "icon_font",
-                          "id": "PRfU7",
-                          "name": "xIcon2",
+                          "type": "path",
+                          "id": "8ui3K",
+                          "name": "xThin",
+                          "geometry": "M1 2l2 0 16 16-2 0z",
+                          "fill": "#FFFFFF",
                           "width": 20,
-                          "height": 20,
-                          "iconFontName": "x",
-                          "iconFontFamily": "lucide",
-                          "fill": "#FFFFFF"
+                          "height": 20
+                        },
+                        {
+                          "type": "path",
+                          "id": "2QXd8",
+                          "name": "xThick",
+                          "geometry": "M15 2l4 0-14 16-4 0z",
+                          "fill": "#FFFFFF",
+                          "width": 20,
+                          "height": 20
                         }
                       ]
                     },

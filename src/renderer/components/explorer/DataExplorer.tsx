@@ -142,10 +142,14 @@ export function DataExplorer({
         </div>
       </div>
 
-      {/* Polling Controls - only show when connected with tags */}
-      {connectionStatus === 'connected' && tags.length > 0 && (
+      {/* Polling Controls - show when tags exist, disabled when not connected */}
+      {tags.length > 0 && (
         <div className="px-6 py-3 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50">
-          <PollingControls connectionId={connectionId} />
+          <PollingControls
+            connectionId={connectionId}
+            disabled={connectionStatus !== 'connected'}
+            disabledMessage={connectionStatus === 'connecting' ? 'Connecting...' : 'Connect to enable polling'}
+          />
         </div>
       )}
 

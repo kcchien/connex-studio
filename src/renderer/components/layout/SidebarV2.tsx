@@ -15,15 +15,15 @@ import {
 } from 'lucide-react'
 import type { Protocol, ConnectionStatus } from '@shared/types/connection'
 
-interface ConnectionItem {
+export interface Connection {
   id: string
   name: string
   protocol: Protocol
   status: ConnectionStatus
 }
 
-interface SidebarV2Props {
-  connections: ConnectionItem[]
+export interface SidebarV2Props {
+  connections: Connection[]
   selectedConnectionId?: string | null
   onNewConnection: () => void
   onSelectConnection: (id: string) => void

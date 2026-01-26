@@ -1,3 +1,5 @@
 export { AppShell } from './AppShell'
 export { Header } from './Header'
 export { Sidebar } from './Sidebar'
+export { SidebarV2 } from './SidebarV2'
+export type { SidebarV2Props, Connection } from './SidebarV2'

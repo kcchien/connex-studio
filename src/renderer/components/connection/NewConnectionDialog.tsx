@@ -18,7 +18,7 @@ export interface ConnectionFormData {
   config: ModbusTcpConfig | MqttConfig | OpcUaConfig
 }
 
-interface NewConnectionDialogProps {
+export interface NewConnectionDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSubmit: (data: ConnectionFormData) => void | Promise<void>

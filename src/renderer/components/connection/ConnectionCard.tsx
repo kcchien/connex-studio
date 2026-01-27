@@ -3,7 +3,7 @@
  * Shows connection name, protocol badge, host:port info, and connect/disconnect/delete buttons.
  */
 
-import React, { useState } from 'react'
+import React from 'react'
 import { Plug, Unplug } from 'lucide-react'
 import { cn } from '@renderer/lib/utils'
 import { useConnection } from '@renderer/hooks/useConnection'
@@ -17,6 +17,10 @@ interface ConnectionCardProps {
   selected?: boolean
   /** Callback when the card is clicked for selection */
   onClick?: () => void
+  /** Callback when edit is requested */
+  onEditRequest?: (connection: Connection) => void
+  /** Callback when delete is requested */
+  onDeleteRequest?: (connection: Connection) => void
 }
 
 /**
@@ -97,12 +101,11 @@ function getProtocolLabel(protocol: Connection['protocol']): string {
 export function ConnectionCard({
   connection,
   selected = false,
-  onClick
+  onClick,
+  onEditRequest,
+  onDeleteRequest
 }: ConnectionCardProps): React.ReactElement {
   const { connect, disconnect, isLoading } = useConnection()
-
-  const [showEditDialog, setShowEditDialog] = useState(false)
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
 
   const { id, name, protocol, status, lastError } = connection
   const isDisconnected = status === 'disconnected'
@@ -119,11 +122,11 @@ export function ConnectionCard({
   }
 
   const handleEditClick = () => {
-    setShowEditDialog(true)
+    onEditRequest?.(connection)
   }
 
   const handleDeleteClick = () => {
-    setShowDeleteDialog(true)
+    onDeleteRequest?.(connection)
   }
 
   return (

@@ -3,6 +3,9 @@ import { cn } from '@renderer/lib/utils'
 import { Wand2 } from 'lucide-react'
 import type { Protocol } from '@shared/types/connection'
 import type { Tag, ModbusAddress, DataType } from '@shared/types/tag'
+import type { ByteOrder } from '@shared/types'
+import { DataTypeSelector, getRegisterCount, getDefaultDecimals } from '@renderer/components/common'
+import { TagByteOrderSelector } from './TagByteOrderSelector'
 
 export interface GenerateTabProps {
   connectionId: string
@@ -23,10 +26,13 @@ export function GenerateTab({
   const [startIndex, setStartIndex] = useState(1)
   const [startAddress, setStartAddress] = useState(0)
   const [dataType, setDataType] = useState<DataType>('int16')
+  const [byteOrder, setByteOrder] = useState<ByteOrder | undefined>(undefined)
+  const [unitId, setUnitId] = useState<number | undefined>(undefined)
 
   // Auto-generate preview when settings change
   useEffect(() => {
     const tags: Partial<Tag>[] = []
+    const registerLength = getRegisterCount(dataType)
 
     for (let i = 0; i < quantity; i++) {
       const index = startIndex + i
@@ -39,7 +45,9 @@ export function GenerateTab({
           type: 'modbus',
           registerType: 'holding',
           address: startAddress + i,
-          length: getDataTypeLength(dataType),
+          length: registerLength,
+          ...(byteOrder && { byteOrder }),
+          ...(unitId !== undefined && { unitId }),
         } as ModbusAddress,
         dataType,
         displayFormat: { decimals: getDefaultDecimals(dataType), unit: '' },
@@ -49,7 +57,7 @@ export function GenerateTab({
     }
 
     onPreviewChange(tags)
-  }, [namingPattern, quantity, startIndex, startAddress, dataType, connectionId])
+  }, [namingPattern, quantity, startIndex, startAddress, dataType, byteOrder, unitId, connectionId, onPreviewChange])
 
   return (
     <div className="space-y-6">
@@ -137,28 +145,62 @@ export function GenerateTab({
             )}
           />
         </div>
+        <DataTypeSelector
+          value={dataType}
+          onChange={setDataType}
+          registerType="holding"
+          id="gen-data-type"
+        />
+      </div>
+
+      {/* Byte Order & Unit ID */}
+      <div className="grid grid-cols-2 gap-4">
+        {/* Byte Order - only for 32-bit types */}
+        {(dataType === 'int32' || dataType === 'uint32' || dataType === 'float32' || dataType === 'float64') && (
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Byte Order
+            </label>
+            <TagByteOrderSelector
+              value={byteOrder}
+              onChange={setByteOrder}
+            />
+          </div>
+        )}
+
+        {/* Unit ID Override */}
         <div className="space-y-2">
-          <label htmlFor="data-type" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            Data Type
+          <label htmlFor="gen-unit-id" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            Unit ID (optional)
           </label>
-          <select
-            id="data-type"
-            value={dataType}
-            onChange={(e) => setDataType(e.target.value as DataType)}
+          <input
+            id="gen-unit-id"
+            type="number"
+            min={1}
+            max={247}
+            value={unitId ?? ''}
+            onChange={(e) => {
+              const val = e.target.value
+              if (val === '') {
+                setUnitId(undefined)
+              } else {
+                const num = Number(val)
+                if (num >= 1 && num <= 247) {
+                  setUnitId(num)
+                }
+              }
+            }}
+            placeholder="Connection default"
             className={cn(
               'w-full px-4 py-2.5 rounded-lg',
               'bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700',
-              'text-gray-900 dark:text-white',
+              'text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500',
               'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
             )}
-          >
-            <option value="int16">Int16</option>
-            <option value="uint16">UInt16</option>
-            <option value="int32">Int32</option>
-            <option value="uint32">UInt32</option>
-            <option value="float32">Float32</option>
-            <option value="boolean">Boolean</option>
-          </select>
+          />
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            Override Modbus slave address (1-247)
+          </p>
         </div>
       </div>
 
@@ -177,24 +219,4 @@ export function GenerateTab({
       </div>
     </div>
   )
-}
-
-function getDataTypeLength(dataType: DataType): number {
-  switch (dataType) {
-    case 'int32':
-    case 'uint32':
-    case 'float32':
-      return 2
-    default:
-      return 1
-  }
-}
-
-function getDefaultDecimals(dataType: DataType): number {
-  switch (dataType) {
-    case 'float32':
-      return 2
-    default:
-      return 0
-  }
 }

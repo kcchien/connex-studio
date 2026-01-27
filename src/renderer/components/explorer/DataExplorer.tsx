@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useCallback } from 'react'
 import { cn } from '@renderer/lib/utils'
 import {
   Activity,
@@ -10,10 +10,11 @@ import {
   Loader2,
 } from 'lucide-react'
 import type { Tag } from '@shared/types/tag'
-import type { ConnectionMetrics } from '@shared/types'
+import type { ConnectionMetrics, FrameLog } from '@shared/types'
 import { TagRow } from './TagRow'
 import { TagDetailPanel, PollingControls } from '@renderer/components/tags'
 import { ConnectionStatusBar } from './ConnectionStatusBar'
+import { FrameDiagnostics } from '@renderer/components/diagnostics'
 import type { TagDisplayState as StoreTagDisplayState } from '@renderer/stores/tagStore'
 
 export type ConnectionStatus = 'connected' | 'connecting' | 'disconnected' | 'error'
@@ -53,6 +54,14 @@ export interface DataExplorerProps {
   onDisconnect: () => void
   onTagSelect?: (tagId: string) => void
   onRemoveTag?: (tagId: string) => void
+  /** Frame diagnostics data */
+  frameLogs?: FrameLog[]
+  /** Whether frame logging is enabled */
+  frameLoggingEnabled?: boolean
+  /** Callback to toggle frame logging */
+  onFrameLoggingToggle?: (enabled: boolean) => void
+  /** Callback to clear frame logs */
+  onFrameLogsClear?: () => void
 }
 
 const statusConfig: Record<ConnectionStatus, { icon: typeof Wifi; color: string; label: string }> = {
@@ -78,8 +87,28 @@ export function DataExplorer({
   onDisconnect,
   onTagSelect,
   onRemoveTag,
+  frameLogs = [],
+  frameLoggingEnabled = false,
+  onFrameLoggingToggle,
+  onFrameLogsClear,
 }: DataExplorerProps): React.ReactElement {
   const [selectedTagId, setSelectedTagId] = useState<string | null>(null)
+
+  // Frame logging handlers (use local state fallback if no callbacks provided)
+  const [localFrameLogging, setLocalFrameLogging] = useState(false)
+  const isFrameLoggingEnabled = onFrameLoggingToggle ? frameLoggingEnabled : localFrameLogging
+
+  const handleFrameLoggingToggle = useCallback((enabled: boolean) => {
+    if (onFrameLoggingToggle) {
+      onFrameLoggingToggle(enabled)
+    } else {
+      setLocalFrameLogging(enabled)
+    }
+  }, [onFrameLoggingToggle])
+
+  const handleFrameLogsClear = useCallback(() => {
+    onFrameLogsClear?.()
+  }, [onFrameLogsClear])
 
   const status = statusConfig[connectionStatus]
   const StatusIcon = status.icon
@@ -201,6 +230,14 @@ export function DataExplorer({
           />
         )}
       </div>
+
+      {/* Frame Diagnostics Panel */}
+      <FrameDiagnostics
+        frames={frameLogs}
+        enabled={isFrameLoggingEnabled}
+        onToggleEnabled={handleFrameLoggingToggle}
+        onClear={handleFrameLogsClear}
+      />
     </div>
   )
 }

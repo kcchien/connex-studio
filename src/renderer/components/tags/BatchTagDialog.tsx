@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useCallback } from 'react'
 import { cn } from '@renderer/lib/utils'
 import {
   X,
@@ -9,7 +9,7 @@ import {
 } from 'lucide-react'
 import * as Dialog from '@radix-ui/react-dialog'
 import * as Tabs from '@radix-ui/react-tabs'
-import type { Protocol } from '@shared/types/connection'
+import type { Protocol, ConnectionStatus } from '@shared/types/connection'
 import type { Tag } from '@shared/types/tag'
 import { ImportTab } from './ImportTab'
 import { ScanTab } from './ScanTab'
@@ -20,15 +20,17 @@ export interface BatchTagDialogProps {
   onOpenChange: (open: boolean) => void
   connectionId: string
   protocol: Protocol
+  connectionStatus?: ConnectionStatus
   onTagsCreated: (tags: Partial<Tag>[]) => void | Promise<void>
 }
 
-type TabValue = 'import' | 'scan' | 'generate'
+type TabValue = 'scan' | 'generate' | 'import'
 
+// Tab order: Scan, Generate, Import (most common use case first)
 const tabConfig: { value: TabValue; label: string; icon: typeof FileSpreadsheet }[] = [
-  { value: 'import', label: 'Import', icon: FileSpreadsheet },
   { value: 'scan', label: 'Scan', icon: Search },
   { value: 'generate', label: 'Generate', icon: Wand2 },
+  { value: 'import', label: 'Import', icon: FileSpreadsheet },
 ]
 
 /**
@@ -40,9 +42,11 @@ export function BatchTagDialog({
   onOpenChange,
   connectionId,
   protocol,
+  connectionStatus,
   onTagsCreated,
 }: BatchTagDialogProps): React.ReactElement {
-  const [activeTab, setActiveTab] = useState<TabValue>('import')
+  const [activeTab, setActiveTab] = useState<TabValue>('scan')
+  const isConnected = connectionStatus === 'connected'
   const [isCreating, setIsCreating] = useState(false)
   const [previewTags, setPreviewTags] = useState<Partial<Tag>[]>([])
 
@@ -59,9 +63,9 @@ export function BatchTagDialog({
     }
   }
 
-  const handlePreviewChange = (tags: Partial<Tag>[]) => {
+  const handlePreviewChange = useCallback((tags: Partial<Tag>[]) => {
     setPreviewTags(tags)
-  }
+  }, [])
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -119,6 +123,7 @@ export function BatchTagDialog({
                 <ScanTab
                   connectionId={connectionId}
                   protocol={protocol}
+                  isConnected={isConnected}
                   onPreviewChange={handlePreviewChange}
                 />
               </Tabs.Content>
@@ -169,7 +174,7 @@ export function BatchTagDialog({
                 )}
               >
                 {isCreating && <Loader2 className="w-4 h-4 animate-spin" />}
-                Create {previewTags.length} Tags
+                Create Tags
               </button>
             </div>
           </div>

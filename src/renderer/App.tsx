@@ -91,11 +91,21 @@ function App(): React.ReactElement {
     try {
       const result = await window.electronAPI.connection.create(data)
       if (result.success) {
-        // Refresh connection list
+        const connectionId = result.connection.id
+
+        // Connect to the newly created connection
+        try {
+          await window.electronAPI.connection.connect(connectionId)
+        } catch (connectError) {
+          console.warn('Auto-connect failed:', connectError)
+          // Continue anyway - user can manually reconnect
+        }
+
+        // Refresh connection list to get updated status
         const listResult = await window.electronAPI.connection.list()
         setConnections(listResult.connections)
         // Auto-select the new connection
-        setSelectedConnectionId(result.connection.id)
+        setSelectedConnectionId(connectionId)
         // Close dialog
         setNewConnectionDialogOpen(false)
       }
@@ -201,6 +211,7 @@ function App(): React.ReactElement {
           onOpenChange={setBatchTagDialogOpen}
           connectionId={selectedConnectionId}
           protocol={selectedConnection.protocol}
+          connectionStatus={selectedConnection.status}
           onTagsCreated={handleTagsCreated}
         />
       )}

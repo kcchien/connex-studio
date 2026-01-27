@@ -1,11 +1,13 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { cn } from '@renderer/lib/utils'
-import { Search, Loader2, Plus, AlertCircle } from 'lucide-react'
+import { Search, Plus, AlertCircle, Loader2 } from 'lucide-react'
 import type { Protocol } from '@shared/types/connection'
-import type { Tag, ModbusAddress } from '@shared/types/tag'
+import type { Tag, ModbusAddress, DataType } from '@shared/types/tag'
+import type { ByteOrder } from '@shared/types'
 import { ModbusAddressInput } from './ModbusAddressInput'
+import { TagByteOrderSelector } from './TagByteOrderSelector'
+import { DataTypeSelector, getRegisterCount, getDefaultDecimals } from '@renderer/components/common'
 import {
-  parseTraditionalAddress,
   calculateRangeCount,
   isSameRegisterType,
   type ParsedModbusAddress
@@ -35,10 +37,19 @@ export function ScanTab({
   const [startParsed, setStartParsed] = useState<ParsedModbusAddress | null>(null)
   const [endParsed, setEndParsed] = useState<ParsedModbusAddress | null>(null)
 
+  // Data type selection
+  const [dataType, setDataType] = useState<DataType>('int16')
+
+  // Byte order override (for 32-bit types)
+  const [byteOrder, setByteOrder] = useState<ByteOrder | undefined>(undefined)
+
+  // Unit ID (Modbus slave address)
+  const [unitId, setUnitId] = useState<number | undefined>(undefined)
+
   // Mode selection
   const [scanMode, setScanMode] = useState<ScanMode>('range-create')
 
-  // Scanning state
+  // Scanning state (only for live scan mode)
   const [isScanning, setIsScanning] = useState(false)
   const [scanProgress, setScanProgress] = useState(0)
   const [scanResult, setScanResult] = useState<{ found: number; scanned: number } | null>(null)
@@ -83,11 +94,17 @@ export function ScanTab({
     setScanResult(null)
   }
 
-  // Create tags from range (Range Create mode)
-  const handleRangeCreate = () => {
-    if (!startParsed || !endParsed || !validation.valid) return
+  // Auto-generate preview for Range Create mode
+  useEffect(() => {
+    if (scanMode !== 'range-create') return
+    if (!startParsed || !endParsed || !validation.valid) {
+      onPreviewChange([])
+      return
+    }
 
+    const registerLength = getRegisterCount(dataType)
     const tags: Partial<Tag>[] = []
+
     for (let i = startParsed.address; i <= endParsed.address; i++) {
       tags.push({
         connectionId,
@@ -96,18 +113,27 @@ export function ScanTab({
           type: 'modbus',
           registerType: startParsed.registerType,
           address: i,
-          length: 1,
+          length: registerLength,
+          ...(byteOrder && { byteOrder }),
+          ...(unitId !== undefined && { unitId }),
         } as ModbusAddress,
-        dataType: 'int16',
-        displayFormat: { decimals: 0, unit: '' },
+        dataType,
+        displayFormat: { decimals: getDefaultDecimals(dataType), unit: '' },
         thresholds: {},
         enabled: true,
       })
     }
 
-    setScanResult({ found: tags.length, scanned: tags.length })
     onPreviewChange(tags)
-  }
+  }, [scanMode, startParsed, endParsed, validation.valid, dataType, byteOrder, unitId, connectionId, onPreviewChange])
+
+  // Clear preview when switching to Live Scan mode
+  useEffect(() => {
+    if (scanMode === 'live-scan') {
+      onPreviewChange([])
+      setScanResult(null)
+    }
+  }, [scanMode, onPreviewChange])
 
   // Live scan for active registers
   const handleLiveScan = async () => {
@@ -120,6 +146,7 @@ export function ScanTab({
     try {
       const foundTags: Partial<Tag>[] = []
       const total = endParsed.address - startParsed.address + 1
+      const registerLength = getRegisterCount(dataType)
 
       // Scan each address
       for (let i = startParsed.address; i <= endParsed.address; i++) {
@@ -134,7 +161,7 @@ export function ScanTab({
               type: 'modbus',
               registerType: startParsed.registerType,
               address: i,
-              length: 1,
+              length: registerLength,
             } as ModbusAddress,
           })
 
@@ -147,10 +174,12 @@ export function ScanTab({
                 type: 'modbus',
                 registerType: startParsed.registerType,
                 address: i,
-                length: 1,
+                length: registerLength,
+                ...(byteOrder && { byteOrder }),
+                ...(unitId !== undefined && { unitId }),
               } as ModbusAddress,
-              dataType: 'int16',
-              displayFormat: { decimals: 0, unit: '' },
+              dataType,
+              displayFormat: { decimals: getDefaultDecimals(dataType), unit: '' },
               thresholds: {},
               enabled: true,
             })
@@ -165,14 +194,6 @@ export function ScanTab({
     } finally {
       setIsScanning(false)
       setScanProgress(0)
-    }
-  }
-
-  const handleAction = () => {
-    if (scanMode === 'live-scan') {
-      handleLiveScan()
-    } else {
-      handleRangeCreate()
     }
   }
 
@@ -252,6 +273,70 @@ export function ScanTab({
         </div>
       )}
 
+      {/* Data Type Selector */}
+      {isModbus && (
+        <DataTypeSelector
+          value={dataType}
+          onChange={setDataType}
+          registerType={startParsed?.registerType}
+          label="Data Type"
+          id="scan-data-type"
+        />
+      )}
+
+      {/* Advanced Options: Byte Order & Unit ID */}
+      {isModbus && (
+        <div className="grid grid-cols-2 gap-4">
+          {/* Byte Order - only for 32-bit types */}
+          {(dataType === 'int32' || dataType === 'uint32' || dataType === 'float32' || dataType === 'float64') && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Byte Order
+              </label>
+              <TagByteOrderSelector
+                value={byteOrder}
+                onChange={setByteOrder}
+              />
+            </div>
+          )}
+
+          {/* Unit ID Override */}
+          <div className="space-y-2">
+            <label htmlFor="scan-unit-id" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Unit ID (optional)
+            </label>
+            <input
+              id="scan-unit-id"
+              type="number"
+              min={1}
+              max={247}
+              value={unitId ?? ''}
+              onChange={(e) => {
+                const val = e.target.value
+                if (val === '') {
+                  setUnitId(undefined)
+                } else {
+                  const num = Number(val)
+                  if (num >= 1 && num <= 247) {
+                    setUnitId(num)
+                  }
+                }
+              }}
+              placeholder="Connection default"
+              className={cn(
+                'w-full px-4 py-2.5 rounded-lg',
+                'bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700',
+                'text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500',
+                'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+              )}
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              Override Modbus slave address (1-247)
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Range Validation Error */}
       {!validation.valid && startAddressStr && endAddressStr && startParsed && endParsed && (
         <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30">
@@ -268,44 +353,39 @@ export function ScanTab({
         </div>
       )}
 
-      {/* Action Button */}
-      <button
-        type="button"
-        onClick={handleAction}
-        disabled={!canScan || isScanning || tagCount === 0}
-        className={cn(
-          'w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg',
-          'bg-blue-500 hover:bg-blue-600',
-          'text-white font-medium',
-          'disabled:opacity-50 disabled:cursor-not-allowed',
-          'transition-colors'
-        )}
-      >
-        {isScanning ? (
-          <>
-            <Loader2 className="w-5 h-5 animate-spin" />
-            Scanning... {Math.round(scanProgress)}%
-          </>
-        ) : scanMode === 'live-scan' ? (
-          <>
-            <Search className="w-5 h-5" />
-            Scan {tagCount > 0 ? `(${tagCount} addresses)` : ''}
-          </>
-        ) : (
-          <>
-            <Plus className="w-5 h-5" />
-            Create {tagCount > 0 ? `${tagCount} Tags` : ''}
-          </>
-        )}
-      </button>
+      {/* Live Scan Button - only shown in Live Scan mode */}
+      {scanMode === 'live-scan' && (
+        <button
+          type="button"
+          onClick={handleLiveScan}
+          disabled={!canScan || isScanning || tagCount === 0}
+          className={cn(
+            'w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg',
+            'bg-blue-500 hover:bg-blue-600',
+            'text-white font-medium',
+            'disabled:opacity-50 disabled:cursor-not-allowed',
+            'transition-colors'
+          )}
+        >
+          {isScanning ? (
+            <>
+              <Loader2 className="w-5 h-5 animate-spin" />
+              Scanning... {Math.round(scanProgress)}%
+            </>
+          ) : (
+            <>
+              <Search className="w-5 h-5" />
+              Scan {tagCount > 0 ? `(${tagCount} addresses)` : ''}
+            </>
+          )}
+        </button>
+      )}
 
-      {/* Scan Result */}
-      {scanResult && (
+      {/* Scan Result - only shown in Live Scan mode after scanning */}
+      {scanMode === 'live-scan' && scanResult && (
         <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/30">
           <p className="text-sm text-green-600 dark:text-green-400">
-            {scanMode === 'live-scan'
-              ? `Found ${scanResult.found} active registers out of ${scanResult.scanned} scanned`
-              : `Created ${scanResult.found} tags`}
+            Found {scanResult.found} active registers out of {scanResult.scanned} scanned
           </p>
         </div>
       )}

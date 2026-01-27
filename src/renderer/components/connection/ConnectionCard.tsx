@@ -3,10 +3,11 @@
  * Shows connection name, protocol badge, host:port info, and connect/disconnect/delete buttons.
  */
 
-import React from 'react'
-import { Plug, Unplug, Trash2 } from 'lucide-react'
+import React, { useState } from 'react'
+import { Plug, Unplug } from 'lucide-react'
 import { cn } from '@renderer/lib/utils'
 import { useConnection } from '@renderer/hooks/useConnection'
+import { ConnectionMenu } from './ConnectionMenu'
 import type { Connection, ConnectionStatus, ModbusTcpConfig, MqttConfig, OpcUaConfig } from '@shared/types/connection'
 
 interface ConnectionCardProps {
@@ -98,12 +99,14 @@ export function ConnectionCard({
   selected = false,
   onClick
 }: ConnectionCardProps): React.ReactElement {
-  const { connect, disconnect, remove, isLoading } = useConnection()
+  const { connect, disconnect, isLoading } = useConnection()
+
+  const [showEditDialog, setShowEditDialog] = useState(false)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
 
   const { id, name, protocol, status, lastError } = connection
   const isDisconnected = status === 'disconnected'
   const isConnectedOrConnecting = status === 'connected' || status === 'connecting'
-  const canDelete = isDisconnected
 
   const handleConnect = async (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -115,11 +118,12 @@ export function ConnectionCard({
     await disconnect(id)
   }
 
-  const handleDelete = async (e: React.MouseEvent) => {
-    e.stopPropagation()
-    if (canDelete) {
-      await remove(id)
-    }
+  const handleEditClick = () => {
+    setShowEditDialog(true)
+  }
+
+  const handleDeleteClick = () => {
+    setShowDeleteDialog(true)
   }
 
   return (
@@ -173,60 +177,51 @@ export function ConnectionCard({
       )}
 
       {/* Action buttons */}
-      <div className="flex items-center gap-2 mt-2">
-        {/* Connect button - shown when disconnected or error */}
-        {(isDisconnected || status === 'error') && (
-          <button
-            type="button"
-            onClick={handleConnect}
-            disabled={isLoading}
-            className={cn(
-              'flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-colors',
-              'bg-primary text-primary-foreground hover:bg-primary/90',
-              'disabled:opacity-50 disabled:cursor-not-allowed'
-            )}
-            title="Connect"
-          >
-            <Plug className="w-4 h-4" />
-            Connect
-          </button>
-        )}
-
-        {/* Disconnect button - shown when connected or connecting */}
-        {isConnectedOrConnecting && (
-          <button
-            type="button"
-            onClick={handleDisconnect}
-            disabled={isLoading}
-            className={cn(
-              'flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-colors',
-              'bg-secondary text-secondary-foreground hover:bg-secondary/80',
-              'disabled:opacity-50 disabled:cursor-not-allowed'
-            )}
-            title="Disconnect"
-          >
-            <Unplug className="w-4 h-4" />
-            Disconnect
-          </button>
-        )}
-
-        {/* Delete button - only enabled when disconnected */}
-        <button
-          type="button"
-          onClick={handleDelete}
-          disabled={!canDelete || isLoading}
-          className={cn(
-            'flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-colors',
-            'hover:bg-destructive hover:text-destructive-foreground',
-            canDelete
-              ? 'text-destructive border border-destructive/30'
-              : 'text-muted-foreground border border-transparent cursor-not-allowed opacity-50'
+      <div className="flex items-center justify-between mt-2">
+        <div className="flex items-center gap-2">
+          {/* Connect button - shown when disconnected or error */}
+          {(isDisconnected || status === 'error') && (
+            <button
+              type="button"
+              onClick={handleConnect}
+              disabled={isLoading}
+              className={cn(
+                'flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-colors',
+                'bg-primary text-primary-foreground hover:bg-primary/90',
+                'disabled:opacity-50 disabled:cursor-not-allowed'
+              )}
+              title="Connect"
+            >
+              <Plug className="w-4 h-4" />
+              Connect
+            </button>
           )}
-          title={canDelete ? 'Delete connection' : 'Disconnect before deleting'}
-        >
-          <Trash2 className="w-4 h-4" />
-          Delete
-        </button>
+
+          {/* Disconnect button - shown when connected or connecting */}
+          {isConnectedOrConnecting && (
+            <button
+              type="button"
+              onClick={handleDisconnect}
+              disabled={isLoading}
+              className={cn(
+                'flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-colors',
+                'bg-secondary text-secondary-foreground hover:bg-secondary/80',
+                'disabled:opacity-50 disabled:cursor-not-allowed'
+              )}
+              title="Disconnect"
+            >
+              <Unplug className="w-4 h-4" />
+              Disconnect
+            </button>
+          )}
+        </div>
+
+        {/* More options menu */}
+        <ConnectionMenu
+          connection={connection}
+          onEdit={handleEditClick}
+          onDelete={handleDeleteClick}
+        />
       </div>
     </div>
   )

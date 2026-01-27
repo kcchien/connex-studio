@@ -14,6 +14,7 @@ export const CONNECTION_STATUS_CHANGED = 'connection:status-changed'
 export const CONNECTION_METRICS = 'connection:metrics'
 export const CONNECTION_METRICS_CHANGED = 'connection:metrics-changed'
 export const CONNECTION_TEST = 'connection:test'
+export const CONNECTION_UPDATE = 'connection:update'
 
 // Tag channels
 export const TAG_CREATE = 'tag:create'
@@ -222,7 +223,8 @@ export const IPC_CHANNELS = {
     statusChanged: CONNECTION_STATUS_CHANGED,
     metrics: CONNECTION_METRICS,
     metricsChanged: CONNECTION_METRICS_CHANGED,
-    test: CONNECTION_TEST
+    test: CONNECTION_TEST,
+    update: CONNECTION_UPDATE
   },
   tag: {
     create: TAG_CREATE,

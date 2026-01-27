@@ -106,3 +106,12 @@ export const DEFAULT_OPCUA_CONFIG: OpcUaConfig = {
   securityMode: 'None',
   securityPolicy: 'None'
 }
+
+/**
+ * Partial updates for connection editing.
+ * Protocol cannot be changed after creation.
+ */
+export interface ConnectionUpdates {
+  name?: string
+  config?: Partial<ModbusTcpConfig> | Partial<MqttConfig> | Partial<OpcUaConfig>
+}

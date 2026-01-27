@@ -14,6 +14,8 @@ import { useConnectionStore } from '@renderer/stores/connectionStore'
 import type { Tag, ModbusAddress, MqttAddress, DataType, DisplayFormat, Thresholds } from '@shared/types/tag'
 import { DEFAULT_DISPLAY_FORMAT, DEFAULT_THRESHOLDS, DEFAULT_MODBUS_ADDRESS, DEFAULT_MQTT_ADDRESS } from '@shared/types/tag'
 import type { Protocol } from '@shared/types/connection'
+import type { ByteOrder } from '@shared/types/modbus'
+import { TagByteOrderSelector } from './TagByteOrderSelector'
 
 interface TagEditorProps {
   /** Connection ID this tag belongs to */
@@ -32,6 +34,8 @@ interface ModbusAddressState {
   registerType: ModbusAddress['registerType']
   address: string
   length: string
+  byteOrder: ByteOrder | undefined
+  unitId: string
 }
 
 interface MqttAddressState {
@@ -61,6 +65,7 @@ interface ValidationErrors {
   // Modbus
   address?: string
   length?: string
+  unitId?: string
   // MQTT
   topic?: string
   // Common
@@ -95,12 +100,18 @@ function getInitialFormState(tag?: Tag, protocol?: Protocol): FormState {
         ? {
             registerType: (tag.address as ModbusAddress).registerType,
             address: String((tag.address as ModbusAddress).address),
-            length: String((tag.address as ModbusAddress).length)
+            length: String((tag.address as ModbusAddress).length),
+            byteOrder: (tag.address as ModbusAddress).byteOrder,
+            unitId: (tag.address as ModbusAddress).unitId !== undefined
+              ? String((tag.address as ModbusAddress).unitId)
+              : ''
           }
         : {
             registerType: DEFAULT_MODBUS_ADDRESS.registerType,
             address: String(DEFAULT_MODBUS_ADDRESS.address),
-            length: String(DEFAULT_MODBUS_ADDRESS.length)
+            length: String(DEFAULT_MODBUS_ADDRESS.length),
+            byteOrder: undefined,
+            unitId: ''
           }
 
     const mqttState: MqttAddressState =
@@ -134,7 +145,9 @@ function getInitialFormState(tag?: Tag, protocol?: Protocol): FormState {
     modbus: {
       registerType: DEFAULT_MODBUS_ADDRESS.registerType,
       address: String(DEFAULT_MODBUS_ADDRESS.address),
-      length: String(DEFAULT_MODBUS_ADDRESS.length)
+      length: String(DEFAULT_MODBUS_ADDRESS.length),
+      byteOrder: undefined,
+      unitId: ''
     },
     mqtt: {
       topic: DEFAULT_MQTT_ADDRESS.topic,
@@ -253,6 +266,14 @@ export function TagEditor({
       if (isNaN(length) || length < 1 || length > maxLength) {
         errors.length = `Length must be between 1 and ${maxLength}`
       }
+
+      // Unit ID validation (optional, but must be valid if provided)
+      if (formState.modbus.unitId) {
+        const unitId = parseInt(formState.modbus.unitId, 10)
+        if (isNaN(unitId) || unitId < 1 || unitId > 247) {
+          errors.unitId = 'Unit ID must be between 1 and 247'
+        }
+      }
     } else if (protocol === 'mqtt') {
       // Topic validation
       if (!formState.mqtt.topic.trim()) {
@@ -304,7 +325,9 @@ export function TagEditor({
             type: 'modbus',
             registerType: formState.modbus.registerType,
             address: parseInt(formState.modbus.address, 10),
-            length: parseInt(formState.modbus.length, 10)
+            length: parseInt(formState.modbus.length, 10),
+            ...(formState.modbus.byteOrder && { byteOrder: formState.modbus.byteOrder }),
+            ...(formState.modbus.unitId && { unitId: parseInt(formState.modbus.unitId, 10) })
           }
         } else {
           address = {
@@ -570,6 +593,40 @@ export function TagEditor({
                   )}
                 </div>
               </div>
+
+              {/* Unit ID (optional override) */}
+              <div className="space-y-1.5">
+                <Label.Root
+                  htmlFor="tag-unit-id"
+                  className="text-xs font-medium text-muted-foreground"
+                >
+                  Unit ID (optional)
+                </Label.Root>
+                <input
+                  id="tag-unit-id"
+                  type="number"
+                  value={formState.modbus.unitId}
+                  onChange={(e) => updateModbusField('unitId', e.target.value)}
+                  placeholder="Connection default"
+                  min={1}
+                  max={247}
+                  disabled={isLoading}
+                  className={cn(
+                    'w-full h-8 px-2.5 text-sm rounded-md',
+                    'bg-background border border-input',
+                    'placeholder:text-muted-foreground/60',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                    'disabled:opacity-50 disabled:cursor-not-allowed',
+                    validationErrors.unitId && 'border-destructive'
+                  )}
+                />
+                {validationErrors.unitId && (
+                  <p className="text-xs text-destructive">{validationErrors.unitId}</p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Override connection's Unit ID for this tag (1-247)
+                </p>
+              </div>
             </>
           )}
 
@@ -664,6 +721,16 @@ export function TagEditor({
               ))}
             </select>
           </div>
+
+          {/* Byte Order (only for 32-bit types in Modbus) */}
+          {protocol === 'modbus-tcp' &&
+            ['int32', 'uint32', 'float32', 'float64'].includes(formState.dataType) && (
+              <TagByteOrderSelector
+                value={formState.modbus.byteOrder}
+                onChange={(value) => updateModbusField('byteOrder', value)}
+                disabled={isLoading}
+              />
+            )}
 
           {/* Display Format */}
           <div className="grid grid-cols-2 gap-2">

@@ -22,13 +22,18 @@ import type {
   ByteOrder,
   ConnectionMetrics
 } from '@shared/types'
-import { INITIAL_METRICS } from '@shared/types'
+import { INITIAL_METRICS, DEFAULT_BATCH_READ_CONFIG } from '@shared/types'
 import {
   convertFloat32,
   convertInt32,
   convertUint32
 } from './byteOrderUtils'
 import { ProtocolAdapter, type ReadResult } from './ProtocolAdapter'
+import {
+  createReadBatches,
+  extractTagValues,
+  type ReadBatch
+} from './batchReadOptimizer'
 
 /**
  * Modbus function codes for different register types.
@@ -178,40 +183,57 @@ export class ModbusTcpAdapter extends ProtocolAdapter {
   }
 
   /**
-   * Read values from multiple tags.
+   * Read values from multiple tags using batch optimization.
    */
   async readTags(tags: Tag[]): Promise<ReadResult[]> {
-    const results: ReadResult[] = []
     const timestamp = Date.now()
     const startTime = performance.now()
     let hasErrors = false
     let lastErrorMessage: string | undefined
 
-    for (const tag of tags) {
-      if (!tag.enabled) {
-        continue
-      }
+    // Get batch configuration
+    const batchConfig = this.config.batchRead ?? DEFAULT_BATCH_READ_CONFIG
 
+    // Create optimized read batches
+    const batches = createReadBatches(tags, batchConfig, this.config.unitId)
+
+    if (batches.length === 0) {
+      return []
+    }
+
+    log.debug(
+      `[ModbusTcp] Batch read: ${tags.filter((t) => t.enabled).length} tags → ${batches.length} batches`
+    )
+
+    // Read all batches
+    const resultsMap = new Map<string, ReadResult>()
+
+    for (const batch of batches) {
       try {
-        const result = await this.readSingleTag(tag, timestamp)
-        results.push(result)
+        const batchResults = await this.readBatch(batch, timestamp)
+        for (const result of batchResults) {
+          resultsMap.set(result.tagId, result)
+        }
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
-        log.debug(`[ModbusTcp] Read failed for tag ${tag.name}: ${message}`)
+        log.debug(`[ModbusTcp] Batch read failed: ${message}`)
         hasErrors = true
         lastErrorMessage = message
 
-        results.push({
-          tagId: tag.id,
-          value: 0,
-          quality: 'bad',
-          timestamp
-        })
+        // Mark all tags in this batch as bad
+        for (const { tag } of batch.tags) {
+          resultsMap.set(tag.id, {
+            tagId: tag.id,
+            value: 0,
+            quality: 'bad',
+            timestamp
+          })
+        }
 
         // Check if this is a connection error
         if (this.isConnectionError(error)) {
           this.handleConnectionError(error as Error)
-          break // Stop reading other tags
+          break // Stop reading other batches
         }
       }
     }
@@ -220,11 +242,101 @@ export class ModbusTcpAdapter extends ProtocolAdapter {
     const latencyMs = Math.round(performance.now() - startTime)
     this.updateMetrics(latencyMs, !hasErrors, lastErrorMessage)
 
-    return results
+    // Return results in original tag order
+    return tags
+      .filter((tag) => tag.enabled && tag.address.type === 'modbus')
+      .map((tag) => resultsMap.get(tag.id)!)
+      .filter(Boolean)
+  }
+
+  /**
+   * Read a batch of registers and extract individual tag values.
+   */
+  private async readBatch(batch: ReadBatch, timestamp: number): Promise<ReadResult[]> {
+    // Set unit ID for this batch if specified
+    const originalUnitId = this.client.getID()
+    if (batch.unitId !== undefined) {
+      this.client.setID(batch.unitId)
+    }
+
+    try {
+      // Read raw data from device
+      const rawData = await this.readRegistersRange(
+        batch.registerType,
+        batch.startAddress,
+        batch.length
+      )
+
+      // Extract individual tag values
+      const tagValues = extractTagValues(batch, rawData)
+
+      // Convert each tag's value
+      const results: ReadResult[] = []
+      for (const { tag } of batch.tags) {
+        const values = tagValues.get(tag.id)
+        if (!values) {
+          results.push({
+            tagId: tag.id,
+            value: 0,
+            quality: 'bad',
+            timestamp
+          })
+          continue
+        }
+
+        const address = tag.address as ModbusAddress
+        const value = this.convertValue(values, tag.dataType, address)
+
+        results.push({
+          tagId: tag.id,
+          value,
+          quality: 'good',
+          timestamp
+        })
+      }
+
+      return results
+    } finally {
+      // Restore original unit ID
+      if (batch.unitId !== undefined) {
+        this.client.setID(originalUnitId)
+      }
+    }
+  }
+
+  /**
+   * Read a range of registers from the device.
+   */
+  private async readRegistersRange(
+    registerType: ModbusAddress['registerType'],
+    startAddress: number,
+    length: number
+  ): Promise<number[] | boolean[]> {
+    switch (registerType) {
+      case 'holding': {
+        const response = await this.client.readHoldingRegisters(startAddress, length)
+        return response.data
+      }
+      case 'input': {
+        const response = await this.client.readInputRegisters(startAddress, length)
+        return response.data
+      }
+      case 'coil': {
+        const response = await this.client.readCoils(startAddress, length)
+        return response.data
+      }
+      case 'discrete': {
+        const response = await this.client.readDiscreteInputs(startAddress, length)
+        return response.data
+      }
+      default:
+        throw new Error(`Unknown register type: ${registerType}`)
+    }
   }
 
   /**
    * Read a single tag from the device.
+   * @deprecated Use readTags with batch optimization instead.
    */
   private async readSingleTag(tag: Tag, timestamp: number): Promise<ReadResult> {
     const address = tag.address as ModbusAddress
@@ -233,47 +345,34 @@ export class ModbusTcpAdapter extends ProtocolAdapter {
       throw new Error(`Invalid address type for Modbus: ${address.type}`)
     }
 
-    // Read raw register data
-    const rawData = await this.readRegisters(address)
-
-    // Convert to the target data type
-    const value = this.convertValue(rawData, tag.dataType, address)
-
-    return {
-      tagId: tag.id,
-      value,
-      quality: 'good',
-      timestamp
+    // Handle tag-level unit ID override
+    const originalUnitId = this.client.getID()
+    if (address.unitId !== undefined) {
+      this.client.setID(address.unitId)
     }
-  }
 
-  /**
-   * Read registers from the device based on register type.
-   */
-  private async readRegisters(
-    address: ModbusAddress
-  ): Promise<number[] | boolean[]> {
-    const { registerType, address: regAddr, length } = address
+    try {
+      // Read raw register data
+      const rawData = await this.readRegistersRange(
+        address.registerType,
+        address.address,
+        address.length
+      )
 
-    switch (registerType) {
-      case 'holding': {
-        const response = await this.client.readHoldingRegisters(regAddr, length)
-        return response.data
+      // Convert to the target data type
+      const value = this.convertValue(rawData, tag.dataType, address)
+
+      return {
+        tagId: tag.id,
+        value,
+        quality: 'good',
+        timestamp
       }
-      case 'input': {
-        const response = await this.client.readInputRegisters(regAddr, length)
-        return response.data
+    } finally {
+      // Restore original unit ID
+      if (address.unitId !== undefined) {
+        this.client.setID(originalUnitId)
       }
-      case 'coil': {
-        const response = await this.client.readCoils(regAddr, length)
-        return response.data
-      }
-      case 'discrete': {
-        const response = await this.client.readDiscreteInputs(regAddr, length)
-        return response.data
-      }
-      default:
-        throw new Error(`Unknown register type: ${registerType}`)
     }
   }
 

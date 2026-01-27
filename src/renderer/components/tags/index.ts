@@ -31,3 +31,6 @@ export type { TagDetailPanelProps } from "./TagDetailPanel"
 
 export { TagStatusIcon, TagStatusBadge } from "./TagStatusIcon"
 export type { TagStatusIconProps, TagStatusBadgeProps, TagStatus } from "./TagStatusIcon"
+
+export { TagByteOrderSelector } from "./TagByteOrderSelector"
+export type { TagByteOrderSelectorProps } from "./TagByteOrderSelector"

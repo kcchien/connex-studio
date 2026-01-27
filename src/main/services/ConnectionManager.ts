@@ -29,7 +29,8 @@ import type {
   ModbusAddress,
   MqttAddress,
   OpcUaAddress,
-  DataType
+  DataType,
+  ConnectionUpdates
 } from '@shared/types'
 import { ProtocolAdapter, getProtocolRegistry, type ReadResult } from '../protocols/ProtocolAdapter'
 import type { BrowserWindow } from 'electron'
@@ -135,6 +136,53 @@ export class ConnectionManager {
     this.tags.delete(connectionId)
 
     log.info(`[ConnectionManager] Deleted connection: ${connectionId}`)
+  }
+
+  /**
+   * Update a connection's configuration.
+   * If connected, will disconnect, apply updates, then reconnect.
+   * @returns The updated connection
+   */
+  async updateConnection(
+    connectionId: string,
+    updates: ConnectionUpdates
+  ): Promise<Connection> {
+    const connection = this.connections.get(connectionId)
+    if (!connection) {
+      throw new Error(`Connection not found: ${connectionId}`)
+    }
+
+    const wasConnected = connection.status === 'connected'
+
+    // 1. Disconnect if connected
+    if (wasConnected) {
+      log.info(`[ConnectionManager] Disconnecting for update: ${connectionId}`)
+      await this.disconnect(connectionId)
+    }
+
+    // 2. Apply updates (SSOT mutation)
+    if (updates.name !== undefined) {
+      connection.name = updates.name
+    }
+    if (updates.config !== undefined) {
+      connection.config = { ...connection.config, ...updates.config } as typeof connection.config
+    }
+
+    log.info(`[ConnectionManager] Updated connection: ${connectionId}`)
+
+    // 3. Reconnect if was connected
+    if (wasConnected) {
+      log.info(`[ConnectionManager] Reconnecting after update: ${connectionId}`)
+      try {
+        await this.connect(connectionId, true)
+      } catch (error) {
+        // Connection update succeeded, but reconnect failed
+        // Status will be 'error', user can manually reconnect
+        log.warn(`[ConnectionManager] Reconnect after update failed: ${error}`)
+      }
+    }
+
+    return connection
   }
 
   /**

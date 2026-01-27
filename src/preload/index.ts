@@ -126,6 +126,13 @@ export interface ElectronAPI {
     connect: (connectionId: string) => Promise<IpcResult<void>>
     disconnect: (connectionId: string) => Promise<IpcResult<void>>
     delete: (connectionId: string) => Promise<IpcResult<void>>
+    update: (params: {
+      connectionId: string
+      updates: {
+        name?: string
+        config?: Partial<ModbusTcpConfig> | Partial<MqttConfig> | Partial<OpcUaConfig>
+      }
+    }) => Promise<IpcResult<{ connection: Connection }>>
     list: () => Promise<{ connections: Connection[] }>
     readOnce: (params: {
       connectionId: string
@@ -454,6 +461,7 @@ const electronAPI: ElectronAPI = {
     connect: (connectionId) => ipcRenderer.invoke('connection:connect', { connectionId }),
     disconnect: (connectionId) => ipcRenderer.invoke('connection:disconnect', { connectionId }),
     delete: (connectionId) => ipcRenderer.invoke('connection:delete', { connectionId }),
+    update: (params) => ipcRenderer.invoke('connection:update', params),
     list: () => ipcRenderer.invoke('connection:list'),
     readOnce: (params) => ipcRenderer.invoke('connection:read-once', params),
     onStatusChanged: (callback) => {

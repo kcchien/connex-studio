@@ -11,7 +11,8 @@ import type {
   ModbusTcpConfig,
   MqttConfig,
   OpcUaConfig,
-  ConnectionStatus
+  ConnectionStatus,
+  ConnectionUpdates
 } from '@shared/types/connection'
 import type { ModbusAddress, MqttAddress, OpcUaAddress, DataType } from '@shared/types/tag'
 
@@ -25,6 +26,10 @@ export interface UseConnectionReturn {
   connect: (connectionId: string) => Promise<boolean>
   disconnect: (connectionId: string) => Promise<boolean>
   remove: (connectionId: string) => Promise<boolean>
+  update: (
+    connectionId: string,
+    updates: ConnectionUpdates
+  ) => Promise<boolean>
   readOnce: (
     connectionId: string,
     address: ModbusAddress | MqttAddress | OpcUaAddress,
@@ -170,6 +175,34 @@ export function useConnection(): UseConnectionReturn {
   )
 
   /**
+   * Update a connection's configuration.
+   * @returns true on success, false on failure.
+   */
+  const update = useCallback(
+    async (connectionId: string, updates: ConnectionUpdates): Promise<boolean> => {
+      setIsLoading(true)
+      setError(null)
+
+      try {
+        const result = await invokeWithError(
+          connectionApi.update({ connectionId, updates })
+        )
+
+        // Update store with the returned connection from Main (SSOT)
+        updateConnection(connectionId, result.connection)
+        return true
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to update connection'
+        setError(message)
+        return false
+      } finally {
+        setIsLoading(false)
+      }
+    },
+    [updateConnection]
+  )
+
+  /**
    * Perform a single read operation.
    * @returns The read result on success, null on failure.
    */
@@ -203,6 +236,7 @@ export function useConnection(): UseConnectionReturn {
     connect,
     disconnect,
     remove,
+    update,
     readOnce,
     isLoading,
     error,

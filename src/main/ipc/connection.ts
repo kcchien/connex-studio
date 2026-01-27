@@ -16,7 +16,8 @@ import {
   CONNECTION_LIST,
   CONNECTION_READ_ONCE,
   CONNECTION_METRICS,
-  CONNECTION_TEST
+  CONNECTION_TEST,
+  CONNECTION_UPDATE
 } from '@shared/constants/ipc-channels'
 import * as net from 'net'
 import { getConnectionManager } from '../services/ConnectionManager'
@@ -49,6 +50,14 @@ interface DisconnectParams {
 
 interface DeleteParams {
   connectionId: string
+}
+
+interface UpdateConnectionParams {
+  connectionId: string
+  updates: {
+    name?: string
+    config?: Partial<ModbusTcpConfig> | Partial<MqttConfig> | Partial<OpcUaConfig>
+  }
 }
 
 interface ReadOnceParams {
@@ -125,6 +134,20 @@ export function registerConnectionHandlers(): void {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       log.error(`[IPC] ${CONNECTION_DELETE} failed: ${message}`)
+      return { success: false, error: message }
+    }
+  })
+
+  // connection:update
+  ipcMain.handle(CONNECTION_UPDATE, async (_event, params: UpdateConnectionParams) => {
+    log.debug(`[IPC] ${CONNECTION_UPDATE}`, params)
+
+    try {
+      const connection = await manager.updateConnection(params.connectionId, params.updates)
+      return { success: true, connection }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      log.error(`[IPC] ${CONNECTION_UPDATE} failed: ${message}`)
       return { success: false, error: message }
     }
   })

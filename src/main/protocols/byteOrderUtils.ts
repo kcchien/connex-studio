@@ -46,6 +46,11 @@ export function reorderRegisters(
       return [swapBytes(reg0), swapBytes(reg1)]
     case 'CDAB': // Mid-little: swap bytes and words
       return [swapBytes(reg1), swapBytes(reg0)]
+    default:
+      // Defensive: handle invalid byteOrder by defaulting to ABCD
+      // This prevents TypeError if invalid value somehow gets through validation
+      console.warn(`[byteOrderUtils] Invalid byteOrder "${byteOrder}", defaulting to ABCD`)
+      return [reg0, reg1]
   }
 }
 

@@ -149,6 +149,27 @@ function validateTagName(name: string): string | null {
 }
 
 /**
+ * Validate display format scale value.
+ */
+function validateScale(scale: number | undefined): string | null {
+  if (scale === undefined) {
+    return null  // Optional, defaults to 1
+  }
+  if (typeof scale !== 'number' || !isFinite(scale)) {
+    return 'Scale must be a finite number'
+  }
+  if (scale === 0) {
+    return 'Scale cannot be zero'
+  }
+  return null
+}
+
+/**
+ * Valid byte order values (SSOT: see @shared/types/modbus.ts)
+ */
+const VALID_BYTE_ORDERS = ['ABCD', 'DCBA', 'BADC', 'CDAB'] as const
+
+/**
  * Validate Modbus address.
  */
 function validateModbusAddress(address: ModbusAddress): string | null {
@@ -163,6 +184,13 @@ function validateModbusAddress(address: ModbusAddress): string | null {
   } else {
     if (address.length < 1 || address.length > 125) {
       return 'Length must be between 1 and 125 for holding/input registers'
+    }
+  }
+
+  // Validate byteOrder if provided (must be valid enum value)
+  if (address.byteOrder !== undefined) {
+    if (!VALID_BYTE_ORDERS.includes(address.byteOrder as typeof VALID_BYTE_ORDERS[number])) {
+      return `Invalid byteOrder "${address.byteOrder}". Must be one of: ${VALID_BYTE_ORDERS.join(', ')}`
     }
   }
 
@@ -191,6 +219,14 @@ export function registerTagHandlers(): void {
         const addressError = validateModbusAddress(params.address as ModbusAddress)
         if (addressError) {
           return { success: false, error: addressError }
+        }
+      }
+
+      // Validate scale if provided
+      if (params.displayFormat?.scale !== undefined) {
+        const scaleError = validateScale(params.displayFormat.scale)
+        if (scaleError) {
+          return { success: false, error: scaleError }
         }
       }
 
@@ -231,6 +267,14 @@ export function registerTagHandlers(): void {
         const addressError = validateModbusAddress(params.updates.address as ModbusAddress)
         if (addressError) {
           return { success: false, error: addressError }
+        }
+      }
+
+      // Validate scale if provided
+      if (params.updates.displayFormat?.scale !== undefined) {
+        const scaleError = validateScale(params.updates.displayFormat.scale)
+        if (scaleError) {
+          return { success: false, error: scaleError }
         }
       }
 

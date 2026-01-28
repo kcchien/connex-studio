@@ -11,7 +11,9 @@ import { cn } from '@renderer/lib/utils'
 import { useTagStore, type TagDisplayState } from '@renderer/stores/tagStore'
 import type { Tag, DataType, ModbusAddress } from '@shared/types/tag'
 import { DATA_TYPE_INFO } from '@shared/types/tag'
+import type { ByteOrder } from '@shared/types'
 import { ModbusAddressInput } from './ModbusAddressInput'
+import { TagByteOrderSelector } from './TagByteOrderSelector'
 import type { ParsedModbusAddress } from '@shared/utils/modbusAddress'
 import { toTraditionalAddress } from '@shared/utils/modbusAddress'
 import { getFullErrorDetails } from '@shared/utils/modbusErrors'
@@ -40,19 +42,13 @@ interface FormState {
   dataType: DataType
   decimals: number
   unit: string
+  scale: string  // Store as string for input, parse on save
   warningLow: string
   warningHigh: string
   alarmLow: string
   alarmHigh: string
 }
 
-// Byte order options for multi-register types
-const BYTE_ORDER_OPTIONS = [
-  { value: 'big-endian', label: 'Big Endian (AB CD)' },
-  { value: 'little-endian', label: 'Little Endian (CD AB)' },
-  { value: 'big-endian-swap', label: 'Big Endian Swap (BA DC)' },
-  { value: 'little-endian-swap', label: 'Little Endian Swap (DC BA)' },
-] as const
 
 /**
  * Side panel for viewing and editing tag details.
@@ -78,13 +74,14 @@ export function TagDetailPanel({
     dataType: 'int16',
     decimals: 2,
     unit: '',
+    scale: '1',
     warningLow: '',
     warningHigh: '',
     alarmLow: '',
     alarmHigh: '',
   })
   const [parsedAddress, setParsedAddress] = useState<ParsedModbusAddress | null>(null)
-  const [byteOrder, setByteOrder] = useState<string>('big-endian')
+  const [byteOrder, setByteOrder] = useState<ByteOrder | undefined>(undefined)
   const [isDirty, setIsDirty] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [showUnsavedWarning, setShowUnsavedWarning] = useState(false)
@@ -104,6 +101,7 @@ export function TagDetailPanel({
         dataType: tag.dataType,
         decimals: tag.displayFormat.decimals,
         unit: tag.displayFormat.unit,
+        scale: tag.displayFormat.scale?.toString() ?? '1',
         warningLow: tag.thresholds.warningLow?.toString() ?? '',
         warningHigh: tag.thresholds.warningHigh?.toString() ?? '',
         alarmLow: tag.thresholds.alarmLow?.toString() ?? '',
@@ -160,12 +158,13 @@ export function TagDetailPanel({
           registerType: parsedAddress.registerType,
           address: parsedAddress.address,
           length: DATA_TYPE_INFO[formState.dataType].registers,
-          byteOrder: isMultiRegisterType ? (byteOrder as ModbusAddress['byteOrder']) : undefined,
+          byteOrder: isMultiRegisterType ? byteOrder : undefined,
         } as ModbusAddress,
         dataType: formState.dataType,
         displayFormat: {
           decimals: formState.decimals,
           unit: formState.unit,
+          scale: formState.scale && formState.scale !== '1' ? parseFloat(formState.scale) : undefined,
         },
         thresholds: {
           warningLow: formState.warningLow ? parseFloat(formState.warningLow) : undefined,
@@ -252,16 +251,32 @@ export function TagDetailPanel({
     return null
   }
 
-  // Format current value
-  const formattedValue = useMemo(() => {
+  // Get scale factor (default to 1)
+  const scaleFactor = useMemo(() => {
+    const parsed = parseFloat(formState.scale)
+    return isFinite(parsed) && parsed !== 0 ? parsed : 1
+  }, [formState.scale])
+
+  // Format current value with scaling
+  const { formattedValue, rawValue, hasScaling } = useMemo(() => {
     const value = displayState?.currentValue
-    if (value === null || value === undefined) return '-'
-    if (typeof value === 'boolean') return value ? 'ON' : 'OFF'
-    if (typeof value === 'number') {
-      return value.toFixed(formState.decimals) + (formState.unit ? ` ${formState.unit}` : '')
+    if (value === null || value === undefined) {
+      return { formattedValue: '-', rawValue: null, hasScaling: false }
     }
-    return String(value)
-  }, [displayState?.currentValue, formState.decimals, formState.unit])
+    if (typeof value === 'boolean') {
+      return { formattedValue: value ? 'ON' : 'OFF', rawValue: null, hasScaling: false }
+    }
+    if (typeof value === 'number') {
+      const scaled = value * scaleFactor
+      const formatted = scaled.toFixed(formState.decimals) + (formState.unit ? ` ${formState.unit}` : '')
+      return {
+        formattedValue: formatted,
+        rawValue: value,
+        hasScaling: scaleFactor !== 1
+      }
+    }
+    return { formattedValue: String(value), rawValue: null, hasScaling: false }
+  }, [displayState?.currentValue, formState.decimals, formState.unit, scaleFactor])
 
   // Get error details (P3-7)
   const errorDetails = useMemo(() => {
@@ -323,6 +338,11 @@ export function TagDetailPanel({
             <div className="mt-1 text-2xl font-mono font-bold text-foreground">
               {formattedValue}
             </div>
+            {hasScaling && rawValue !== null && (
+              <div className="mt-1 text-xs text-muted-foreground font-mono">
+                Raw: {rawValue} × {scaleFactor}
+              </div>
+            )}
             {displayState && (
               <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
                 <span>Quality: {displayState.quality}</span>
@@ -468,74 +488,80 @@ export function TagDetailPanel({
 
             {/* Byte Order (only for multi-register types) */}
             {isMultiRegisterType && (
-              <div className="space-y-1.5">
-                <label htmlFor="tag-byteorder" className="text-sm font-medium text-foreground">
-                  Byte Order
-                </label>
-                <select
-                  id="tag-byteorder"
-                  value={byteOrder}
-                  onChange={(e) => {
-                    setByteOrder(e.target.value)
-                    setIsDirty(true)
-                  }}
-                  className={cn(
-                    'w-full px-3 py-2 rounded-md border',
-                    'bg-background text-foreground',
-                    'border-input focus:border-ring',
-                    'focus:outline-none focus:ring-2 focus:ring-ring/50'
-                  )}
-                  data-testid="tag-byteorder-select"
-                >
-                  {BYTE_ORDER_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <TagByteOrderSelector
+                value={byteOrder}
+                onChange={(value) => {
+                  setByteOrder(value)
+                  setIsDirty(true)
+                }}
+              />
             )}
 
             {/* Display Format */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <label htmlFor="tag-decimals" className="text-sm font-medium text-foreground">
-                  Decimals
-                </label>
-                <input
-                  id="tag-decimals"
-                  type="number"
-                  min="0"
-                  max="10"
-                  value={formState.decimals}
-                  onChange={(e) => handleFieldChange('decimals', e.target.value)}
-                  className={cn(
-                    'w-full px-3 py-2 rounded-md border',
-                    'bg-background text-foreground',
-                    'border-input focus:border-ring',
-                    'focus:outline-none focus:ring-2 focus:ring-ring/50'
-                  )}
-                  data-testid="tag-decimals-input"
-                />
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label htmlFor="tag-decimals" className="text-sm font-medium text-foreground">
+                    Decimals
+                  </label>
+                  <input
+                    id="tag-decimals"
+                    type="number"
+                    min="0"
+                    max="10"
+                    value={formState.decimals}
+                    onChange={(e) => handleFieldChange('decimals', e.target.value)}
+                    className={cn(
+                      'w-full px-3 py-2 rounded-md border',
+                      'bg-background text-foreground',
+                      'border-input focus:border-ring',
+                      'focus:outline-none focus:ring-2 focus:ring-ring/50'
+                    )}
+                    data-testid="tag-decimals-input"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label htmlFor="tag-unit" className="text-sm font-medium text-foreground">
+                    Unit
+                  </label>
+                  <input
+                    id="tag-unit"
+                    type="text"
+                    value={formState.unit}
+                    onChange={(e) => handleFieldChange('unit', e.target.value)}
+                    placeholder="e.g., °C, PSI"
+                    className={cn(
+                      'w-full px-3 py-2 rounded-md border',
+                      'bg-background text-foreground',
+                      'border-input focus:border-ring',
+                      'focus:outline-none focus:ring-2 focus:ring-ring/50'
+                    )}
+                    data-testid="tag-unit-input"
+                  />
+                </div>
               </div>
               <div className="space-y-1.5">
-                <label htmlFor="tag-unit" className="text-sm font-medium text-foreground">
-                  Unit
+                <label htmlFor="tag-scale" className="text-sm font-medium text-foreground">
+                  Scale Factor
                 </label>
                 <input
-                  id="tag-unit"
-                  type="text"
-                  value={formState.unit}
-                  onChange={(e) => handleFieldChange('unit', e.target.value)}
-                  placeholder="e.g., °C, PSI"
+                  id="tag-scale"
+                  type="number"
+                  step="any"
+                  value={formState.scale}
+                  onChange={(e) => handleFieldChange('scale', e.target.value)}
+                  placeholder="1"
                   className={cn(
                     'w-full px-3 py-2 rounded-md border',
                     'bg-background text-foreground',
                     'border-input focus:border-ring',
                     'focus:outline-none focus:ring-2 focus:ring-ring/50'
                   )}
-                  data-testid="tag-unit-input"
+                  data-testid="tag-scale-input"
                 />
+                <p className="text-xs text-muted-foreground">
+                  Real Value = Raw × Scale (e.g., Raw 1234 × 0.01 = 12.34)
+                </p>
               </div>
             </div>
 

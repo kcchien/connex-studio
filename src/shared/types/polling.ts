@@ -17,6 +17,14 @@ export interface PollingDataPayload {
   values: TagValue[]
 }
 
+export interface PollingStatusChangedPayload {
+  connectionId: string
+  isPolling: boolean
+  intervalMs: number
+  lastPollTimestamp: number
+  tagCount: number
+}
+
 export interface TagValue {
   tagId: string
   value: number | boolean | string

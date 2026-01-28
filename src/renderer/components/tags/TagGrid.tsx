@@ -15,22 +15,22 @@ import {
   AlertCircle,
   Trash2,
   Settings,
-  Power,
-  PowerOff,
   History,
   Radio,
   Wifi,
   Network,
   Square,
   CheckSquare,
-  MinusSquare
+  MinusSquare,
+  Circle
 } from 'lucide-react'
 import { cn } from '@renderer/lib/utils'
 import { Sparkline } from './Sparkline'
 import { useTagStore, type TagDisplayState, type AlarmState, type TrendDirection } from '@renderer/stores/tagStore'
 import { useDvrStore } from '@renderer/stores/dvrStore'
 import { useConnectionStore } from '@renderer/stores/connectionStore'
-import type { Tag, ModbusAddress, MqttAddress } from '@shared/types/tag'
+import type { Tag, ModbusAddress, MqttAddress, DataType } from '@shared/types/tag'
+import { DATA_TYPE_INFO } from '@shared/types/tag'
 import type { TagValue } from '@shared/types/polling'
 import type { Protocol } from '@shared/types/connection'
 
@@ -52,6 +52,7 @@ interface TagRowProps {
   isHistorical: boolean
   protocol?: Protocol
   isSelected: boolean
+  rowIndex: number
   onEdit?: (tag: Tag) => void
   onDelete?: (tagId: string) => void
   onToggleSelect?: (tagId: string, event: React.MouseEvent) => void
@@ -151,25 +152,28 @@ function formatAddress(address: Tag['address']): string {
  * Individual tag row with value display and controls.
  * Supports both live and historical display modes.
  */
-const TagRow = memo(function TagRow({ tag, displayState, historicalValue, isHistorical, protocol, isSelected, onEdit, onDelete, onToggleSelect }: TagRowProps) {
-  // Determine which value to display: historical or live
+const TagRow = memo(function TagRow({ tag, displayState, historicalValue, isHistorical, protocol, isSelected, rowIndex, onEdit, onDelete, onToggleSelect }: TagRowProps) {
+  // Determine which value to display: historical or live (with scaling)
   const formattedValue = useMemo(() => {
     // Use historical value if in historical mode
-    const value = isHistorical
+    const rawValue = isHistorical
       ? historicalValue?.value
       : displayState?.currentValue
 
-    if (value === null || value === undefined) return '-'
+    if (rawValue === null || rawValue === undefined) return '-'
 
-    if (typeof value === 'boolean') return value ? 'ON' : 'OFF'
-    if (typeof value === 'string') return value
-    if (typeof value === 'number') {
+    if (typeof rawValue === 'boolean') return rawValue ? 'ON' : 'OFF'
+    if (typeof rawValue === 'string') return rawValue
+    if (typeof rawValue === 'number') {
+      // Apply scale factor (default to 1)
+      const scale = tag.displayFormat.scale ?? 1
+      const scaledValue = rawValue * scale
       const decimals = tag.displayFormat.decimals
-      const formatted = value.toFixed(decimals)
+      const formatted = scaledValue.toFixed(decimals)
       const unit = tag.displayFormat.unit
       return unit ? `${formatted} ${unit}` : formatted
     }
-    return String(value)
+    return String(rawValue)
   }, [displayState?.currentValue, historicalValue?.value, isHistorical, tag.displayFormat])
 
   // Quality from historical or live
@@ -190,13 +194,18 @@ const TagRow = memo(function TagRow({ tag, displayState, historicalValue, isHist
   return (
     <div
       className={cn(
-        'flex items-center gap-3 px-3 py-2 border-b border-border',
+        'flex items-center gap-3 px-3 py-3 border-b border-border',
         'hover:bg-muted/50 transition-colors',
         ALARM_STATE_STYLES[displayState?.alarmState || 'normal'],
         isHistorical && 'bg-amber-500/5',
         isSelected && 'bg-blue-500/10 hover:bg-blue-500/15'
       )}
     >
+      {/* Row number */}
+      <div className="flex-shrink-0 w-8 text-xs text-muted-foreground text-right tabular-nums">
+        {rowIndex + 1}
+      </div>
+
       {/* Checkbox for selection */}
       <button
         type="button"
@@ -217,14 +226,17 @@ const TagRow = memo(function TagRow({ tag, displayState, historicalValue, isHist
         )}
       </button>
 
-      {/* Enabled indicator / Historical indicator */}
-      <div className="flex-shrink-0">
+      {/* Status indicator - simple dot instead of power icon to avoid confusion */}
+      <div className="flex-shrink-0" title={isHistorical ? 'Historical data' : tag.enabled ? 'Enabled' : 'Disabled'}>
         {isHistorical ? (
           <History className="h-4 w-4 text-amber-500" />
-        ) : tag.enabled ? (
-          <Power className="h-4 w-4 text-green-500" />
         ) : (
-          <PowerOff className="h-4 w-4 text-muted-foreground" />
+          <Circle
+            className={cn(
+              'h-2.5 w-2.5',
+              tag.enabled ? 'text-green-500 fill-green-500' : 'text-gray-400 fill-gray-400'
+            )}
+          />
         )}
       </div>
 
@@ -242,6 +254,13 @@ const TagRow = memo(function TagRow({ tag, displayState, historicalValue, isHist
             {formatAddress(tag.address)}
           </span>
         </div>
+      </div>
+
+      {/* Data Type */}
+      <div className="flex-shrink-0 w-20">
+        <span className="text-xs text-muted-foreground font-mono">
+          {tag.dataType.toUpperCase()}
+        </span>
       </div>
 
       {/* Sparkline - only show in live mode */}
@@ -348,21 +367,15 @@ export function TagGrid({
   const rowVirtualizer = useVirtualizer({
     count: tags.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 52, // Estimated row height
+    estimateSize: () => 56, // Estimated row height (py-3 = 12px padding + content)
     overscan: 5 // Render 5 extra rows for smooth scrolling
   })
 
-  // Handle tag deletion with confirmation
+  // Handle tag deletion - delegate to parent for confirmation dialog
   const handleDeleteTag = useCallback(
-    async (tagId: string) => {
-      try {
-        const result = await window.electronAPI.tag.delete(tagId)
-        if (result.success) {
-          onDeleteTag?.(tagId)
-        }
-      } catch (err) {
-        console.error('Failed to delete tag:', err)
-      }
+    (tagId: string) => {
+      // Just call the parent callback which should show a confirmation dialog
+      onDeleteTag?.(tagId)
     },
     [onDeleteTag]
   )
@@ -407,9 +420,11 @@ export function TagGrid({
   }
 
   return (
-    <div className={cn('border rounded-lg overflow-hidden bg-card', className)}>
+    <div className={cn('border rounded-lg overflow-hidden bg-card flex flex-col h-full', className)}>
       {/* Header */}
-      <div className="flex items-center gap-3 px-3 py-2 bg-muted/50 border-b border-border text-xs font-medium text-muted-foreground">
+      <div className="flex items-center gap-3 px-3 py-2.5 bg-muted/50 border-b border-border text-xs font-medium text-muted-foreground">
+        {/* Row number header */}
+        <div className="w-8 text-right">#</div>
         {/* Select all checkbox */}
         <button
           type="button"
@@ -431,9 +446,10 @@ export function TagGrid({
             <Square className="h-4 w-4" />
           )}
         </button>
-        <div className="w-4" /> {/* Enabled */}
+        <div className="w-2.5" /> {/* Status dot */}
         <div className="w-4" /> {/* Alarm */}
         <div className="flex-1">Name</div>
+        <div className="w-20">Type</div>
         <div className="w-[100px] text-center">Trend</div>
         <div className="w-28 text-right">Value</div>
         <div className="w-6" /> {/* Trend icon */}
@@ -441,10 +457,10 @@ export function TagGrid({
         <div className="w-16 text-center">Actions</div>
       </div>
 
-      {/* Virtualized list */}
+      {/* Virtualized list - use flex-1 to fill available space, min-h for minimum */}
       <div
         ref={parentRef}
-        className="h-[400px] overflow-auto"
+        className="flex-1 min-h-[200px] max-h-[calc(100vh-300px)] overflow-auto"
       >
         <div
           style={{
@@ -477,6 +493,7 @@ export function TagGrid({
                   isHistorical={!isLive}
                   protocol={protocol}
                   isSelected={selectedTagIds.has(tag.id)}
+                  rowIndex={virtualRow.index}
                   onEdit={onEditTag}
                   onDelete={handleDeleteTag}
                   onToggleSelect={handleToggleSelect}

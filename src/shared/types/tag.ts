@@ -61,6 +61,7 @@ export const DATA_TYPE_INFO: Record<DataType, { label: string; registers: number
 export interface DisplayFormat {
   decimals: number
   unit: string
+  scale?: number  // Scaling factor: Real Value = Raw × Scale (default: 1)
   prefix?: string
   suffix?: string
 }

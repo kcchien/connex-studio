@@ -2,7 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 import type { IpcResult } from '@shared/types/common'
 import type { Connection, ModbusTcpConfig, MqttConfig, OpcUaConfig, ConnectionMetrics } from '@shared/types/connection'
 import type { Tag, ModbusAddress, MqttAddress, OpcUaAddress, DataType } from '@shared/types/tag'
-import type { PollingStatus, PollingDataPayload } from '@shared/types/polling'
+import type { PollingStatus, PollingDataPayload, PollingStatusChangedPayload } from '@shared/types/polling'
 import type { Profile, ProfileSummary } from '@shared/types/profile'
 import type { DvrRange, DvrSnapshot, SparklineData } from '@shared/types/dvr'
 import type { ExportResult } from '@shared/types/export'
@@ -186,6 +186,7 @@ export interface ElectronAPI {
     stop: (connectionId: string) => Promise<IpcResult<void>>
     status: (connectionId: string) => Promise<PollingStatus>
     onData: (callback: (payload: PollingDataPayload) => void) => () => void
+    onStatusChanged: (callback: (payload: PollingStatusChangedPayload) => void) => () => void
   }
 
   // DVR operations
@@ -494,6 +495,11 @@ const electronAPI: ElectronAPI = {
       const handler = (_event: Electron.IpcRendererEvent, payload: any) => callback(payload)
       ipcRenderer.on('polling:data', handler)
       return () => ipcRenderer.removeListener('polling:data', handler)
+    },
+    onStatusChanged: (callback) => {
+      const handler = (_event: Electron.IpcRendererEvent, payload: any) => callback(payload)
+      ipcRenderer.on('polling:status-changed', handler)
+      return () => ipcRenderer.removeListener('polling:status-changed', handler)
     }
   },
 

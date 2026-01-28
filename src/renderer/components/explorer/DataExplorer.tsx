@@ -14,10 +14,11 @@ import {
 import type { Tag } from '@shared/types/tag'
 import type { ConnectionMetrics, FrameLog } from '@shared/types'
 import { TagRow } from './TagRow'
-import { TagDetailPanel, PollingControls } from '@renderer/components/tags'
+import { TagDetailPanel, PollingControls, TagGrid, TagBatchActions, DeleteTagsDialog } from '@renderer/components/tags'
 import { ConnectionStatusBar } from './ConnectionStatusBar'
 import { FrameDiagnostics } from '@renderer/components/diagnostics'
 import type { TagDisplayState as StoreTagDisplayState } from '@renderer/stores/tagStore'
+import { useTagStore } from '@renderer/stores/tagStore'
 
 export type ConnectionStatus = 'connected' | 'connecting' | 'disconnected' | 'error'
 
@@ -155,6 +156,12 @@ export function DataExplorer({
   onFrameLogsClear,
 }: DataExplorerProps): React.ReactElement {
   const [selectedTagId, setSelectedTagId] = useState<string | null>(null)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [tagsToDelete, setTagsToDelete] = useState<string[]>([])
+
+  // Batch selection state from store
+  const selectedTagIds = useTagStore((state) => state.selectedTagIds)
+  const clearSelection = useTagStore((state) => state.clearSelection)
 
   // Frame logging handlers (use local state fallback if no callbacks provided)
   const [localFrameLogging, setLocalFrameLogging] = useState(false)
@@ -185,6 +192,21 @@ export function DataExplorer({
   const handleCloseDetails = () => {
     setSelectedTagId(null)
   }
+
+  // Batch delete handler
+  const handleBatchDelete = useCallback((tagIds: string[]) => {
+    setTagsToDelete(tagIds)
+    setDeleteDialogOpen(true)
+  }, [])
+
+  const handleDeleteDialogClose = useCallback(() => {
+    setDeleteDialogOpen(false)
+    setTagsToDelete([])
+  }, [])
+
+  const handleTagsDeleted = useCallback(() => {
+    clearSelection()
+  }, [clearSelection])
 
   return (
     <div className="flex flex-col h-full bg-gray-50 dark:bg-[#0d1117]">
@@ -305,11 +327,21 @@ export function DataExplorer({
         <ConnectionStatusBar metrics={metrics} />
       )}
 
+      {/* Batch Actions Bar - shows when tags are selected */}
+      {selectedTagIds.size > 0 && (
+        <div className="px-6 py-2 border-b border-gray-200 dark:border-gray-800">
+          <TagBatchActions
+            connectionId={connectionId}
+            onDelete={handleBatchDelete}
+          />
+        </div>
+      )}
+
       {/* Main Content Area */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Tag List */}
+        {/* Tag List with batch selection */}
         <div className={cn(
-          'flex-1 overflow-y-auto',
+          'flex-1 overflow-y-auto p-4',
           selectedTag ? 'border-r border-gray-200 dark:border-gray-800' : ''
         )}>
           {tags.length === 0 ? (
@@ -319,22 +351,15 @@ export function DataExplorer({
               <p className="text-sm">Click "Add Tag" to start monitoring</p>
             </div>
           ) : (
-            <div className="divide-y divide-gray-200 dark:divide-gray-800">
-              {tags.map(tag => {
-                const displayState = displayStates[tag.id]
-                return (
-                  <TagRow
-                    key={tag.id}
-                    tag={tag}
-                    value={displayState?.value}
-                    alarmState={displayState?.alarmState || 'normal'}
-                    history={displayState?.history}
-                    isSelected={selectedTagId === tag.id}
-                    onClick={() => handleTagClick(tag.id)}
-                  />
-                )
-              })}
-            </div>
+            <TagGrid
+              connectionId={connectionId}
+              onEditTag={(tag) => handleTagClick(tag.id)}
+              onDeleteTag={(tagId) => {
+                // Show confirmation dialog for single tag delete
+                setTagsToDelete([tagId])
+                setDeleteDialogOpen(true)
+              }}
+            />
           )}
         </div>
 
@@ -344,7 +369,11 @@ export function DataExplorer({
             tag={selectedTag}
             displayState={selectedDisplayState ? toStoreDisplayState(selectedTag.id, selectedDisplayState) : undefined}
             onClose={handleCloseDetails}
-            onDelete={(tagId) => onRemoveTag?.(tagId)}
+            onDelete={(tagId) => {
+              // Show confirmation dialog for single tag delete
+              setTagsToDelete([tagId])
+              setDeleteDialogOpen(true)
+            }}
           />
         )}
       </div>
@@ -355,6 +384,14 @@ export function DataExplorer({
         enabled={isFrameLoggingEnabled}
         onToggleEnabled={handleFrameLoggingToggle}
         onClear={handleFrameLogsClear}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteTagsDialog
+        isOpen={deleteDialogOpen}
+        tagIds={tagsToDelete}
+        onClose={handleDeleteDialogClose}
+        onDeleted={handleTagsDeleted}
       />
     </div>
   )

@@ -183,11 +183,11 @@ export function isSameRegisterType(
 }
 
 /**
- * Calculate the number of addresses in a range (inclusive).
+ * Calculate the number of registers in a range (inclusive).
  *
  * @param start - Start address (traditional)
  * @param end - End address (traditional)
- * @returns Number of addresses, or -1 if invalid range
+ * @returns Number of registers, or -1 if invalid range
  */
 export function calculateRangeCount(start: ParsedModbusAddress, end: ParsedModbusAddress): number {
   if (!isSameRegisterType(start, end)) {
@@ -199,4 +199,68 @@ export function calculateRangeCount(start: ParsedModbusAddress, end: ParsedModbu
   }
 
   return end.address - start.address + 1
+}
+
+/**
+ * Calculate how many tags can be created in a range for a given data type.
+ * This is the SSOT function for tag count calculation across the system.
+ *
+ * For multi-register data types (INT32, FLOAT32, etc.), tags are spaced
+ * by their register length to avoid overlap.
+ *
+ * Example: 40001-40026 with FLOAT32 (2 registers):
+ * - Total registers: 26 (addresses 0-25)
+ * - Tags: floor(26 / 2) = 13
+ * - Tag addresses: 40001, 40003, 40005, ..., 40025
+ *
+ * @param start - Start address (parsed)
+ * @param end - End address (parsed)
+ * @param registerLength - Number of registers per tag (from getRegisterCount)
+ * @returns Number of tags that fit in the range, or 0 if invalid
+ */
+export function calculateTagCountInRange(
+  start: ParsedModbusAddress,
+  end: ParsedModbusAddress,
+  registerLength: number
+): number {
+  if (!isSameRegisterType(start, end)) {
+    return 0
+  }
+
+  // Auto-swap if start > end
+  const startAddr = Math.min(start.address, end.address)
+  const endAddr = Math.max(start.address, end.address)
+
+  const totalRegisters = endAddr - startAddr + 1
+  return Math.floor(totalRegisters / registerLength)
+}
+
+/**
+ * Generate tag addresses for a range with proper spacing for multi-register types.
+ * This is the SSOT function for tag address generation across the system.
+ *
+ * @param start - Start address (parsed)
+ * @param end - End address (parsed)
+ * @param registerLength - Number of registers per tag
+ * @returns Array of 0-based protocol addresses for each tag
+ */
+export function generateTagAddressesInRange(
+  start: ParsedModbusAddress,
+  end: ParsedModbusAddress,
+  registerLength: number
+): number[] {
+  if (!isSameRegisterType(start, end)) {
+    return []
+  }
+
+  // Auto-swap if start > end
+  const startAddr = Math.min(start.address, end.address)
+  const endAddr = Math.max(start.address, end.address)
+
+  const addresses: number[] = []
+  for (let addr = startAddr; addr + registerLength - 1 <= endAddr; addr += registerLength) {
+    addresses.push(addr)
+  }
+
+  return addresses
 }

@@ -2,11 +2,11 @@
  * TagBatchActions Component
  *
  * Displays batch action bar when tags are selected.
- * Provides actions like delete, export, and cancel selection.
+ * Provides actions like delete and cancel selection.
  */
 
-import React from 'react'
-import { Trash2, Download, X, CheckSquare } from 'lucide-react'
+import React, { useMemo } from 'react'
+import { Trash2, X, CheckSquare } from 'lucide-react'
 import { cn } from '@renderer/lib/utils'
 import { useTagStore } from '@renderer/stores/tagStore'
 
@@ -15,8 +15,6 @@ export interface TagBatchActionsProps {
   connectionId: string
   /** Callback when delete is requested */
   onDelete?: (tagIds: string[]) => void
-  /** Callback when export is requested */
-  onExport?: (tagIds: string[]) => void
   /** Optional additional className */
   className?: string
 }
@@ -24,31 +22,39 @@ export interface TagBatchActionsProps {
 /**
  * Batch action bar that appears when tags are selected.
  * Shows selected count and action buttons.
+ * Only counts tags that belong to the current connection.
  */
 export function TagBatchActions({
   connectionId,
   onDelete,
-  onExport,
   className
 }: TagBatchActionsProps): React.ReactElement | null {
   const selectedTagIds = useTagStore((state) => state.selectedTagIds)
+  const getTags = useTagStore((state) => state.getTags)
   const clearSelection = useTagStore((state) => state.clearSelection)
 
-  const selectedCount = selectedTagIds.size
+  // Get tags for current connection and filter selected ones
+  const connectionTags = getTags(connectionId)
+  const connectionTagIds = useMemo(
+    () => new Set(connectionTags.map(t => t.id)),
+    [connectionTags]
+  )
 
-  // Don't render if nothing is selected
+  // Only count selected tags that belong to this connection
+  const selectedInConnection = useMemo(
+    () => Array.from(selectedTagIds).filter(id => connectionTagIds.has(id)),
+    [selectedTagIds, connectionTagIds]
+  )
+
+  const selectedCount = selectedInConnection.length
+
+  // Don't render if nothing is selected in this connection
   if (selectedCount === 0) {
     return null
   }
 
-  const selectedArray = Array.from(selectedTagIds)
-
   const handleDelete = () => {
-    onDelete?.(selectedArray)
-  }
-
-  const handleExport = () => {
-    onExport?.(selectedArray)
+    onDelete?.(selectedInConnection)
   }
 
   const handleCancel = () => {
@@ -75,25 +81,6 @@ export function TagBatchActions({
 
       {/* Action buttons */}
       <div className="flex items-center gap-2">
-        {/* Export button */}
-        <button
-          type="button"
-          onClick={handleExport}
-          className={cn(
-            'flex items-center gap-1.5 px-3 py-1.5 rounded-md',
-            'text-sm font-medium',
-            'bg-muted hover:bg-muted/80',
-            'text-foreground',
-            'border border-border',
-            'transition-colors',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
-          )}
-          data-testid="batch-export-button"
-        >
-          <Download className="h-4 w-4" />
-          Export
-        </button>
-
         {/* Delete button */}
         <button
           type="button"

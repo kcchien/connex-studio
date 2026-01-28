@@ -14,7 +14,7 @@
 
 import { BrowserWindow } from 'electron'
 import log from 'electron-log/main.js'
-import { POLLING_DATA } from '@shared/constants/ipc-channels'
+import { POLLING_DATA, POLLING_STATUS_CHANGED } from '@shared/constants/ipc-channels'
 import {
   MIN_POLLING_INTERVAL_MS,
   MAX_POLLING_INTERVAL_MS,
@@ -130,6 +130,9 @@ export class PollingEngine {
 
     session.isPolling = false
     this.sessions.delete(connectionId)
+
+    // Push status change to renderer
+    this.pushStatusChanged(connectionId)
 
     log.info(`[PollingEngine] Stopped polling for ${connectionId}`)
   }
@@ -268,6 +271,16 @@ export class PollingEngine {
   private pushData(payload: PollingDataPayload): void {
     if (this.mainWindow && !this.mainWindow.isDestroyed()) {
       this.mainWindow.webContents.send(POLLING_DATA, payload)
+    }
+  }
+
+  /**
+   * Push polling status change to renderer.
+   */
+  private pushStatusChanged(connectionId: string): void {
+    if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+      const status = this.getPollingStatus(connectionId)
+      this.mainWindow.webContents.send(POLLING_STATUS_CHANGED, { connectionId, ...status })
     }
   }
 

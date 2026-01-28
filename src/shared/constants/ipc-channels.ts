@@ -28,6 +28,7 @@ export const POLLING_START = 'polling:start'
 export const POLLING_STOP = 'polling:stop'
 export const POLLING_STATUS = 'polling:status'
 export const POLLING_DATA = 'polling:data'
+export const POLLING_STATUS_CHANGED = 'polling:status-changed'
 
 // DVR channels
 export const DVR_GET_RANGE = 'dvr:get-range'

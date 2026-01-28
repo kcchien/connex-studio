@@ -36,6 +36,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Sparkline/Trend 圖表凍結問題調查與修復** (`TagGrid.tsx`, `Sparkline.tsx`, `tagStore.ts`)
+  - 問題：編輯 Tag 後重新啟動 Polling，數值讀取正常但 Sparkline 和趨勢指示器凍結不更新
+  - 診斷過程：
+    - 在 `tagStore.ts` 添加 debug logging 追蹤 polling data 處理流程
+    - 在 `Sparkline.tsx` 添加 render 和 setData effect 追蹤
+    - 在 `TagGrid.tsx` 添加 TagGrid 和 TagRow 組件渲染追蹤
+  - 發現：Store 層數據累積正常（sparklineData 長度持續增長），問題在 UI 渲染層
+  - 結論：為 HMR (Hot Module Replacement) 暫態快取問題，修改程式碼後自動解決
+  - 清理：移除所有 debug logging，恢復生產程式碼品質
+
+- **ByteOrder SSOT 違規修復** (`TagDetailPanel.tsx`)
+  - 問題：編輯 Tag 時 ByteOrder 下拉選單會重置為 'ABCD' 預設值，忽略實際 Tag 的 byteOrder 設定
+  - 原因：`localAddress` state 初始化時使用 `DEFAULT_MODBUS_ADDRESS`，覆蓋了 `tag.address.byteOrder` 的實際值
+  - 影響：導致 32-bit 數據類型（INT32、UINT32、FLOAT32）讀取結果顯示 "BAD" quality
+  - 修復：確保 `localAddress` 初始化時保留原始 `tag.address` 的所有屬性，包括 `byteOrder`
+  - SSOT 原則：Tag 的 byteOrder 設定為 Single Source of Truth，UI 必須反映而非覆蓋
+
 - **Build 配置修復 - electron-vite/esbuild 編譯錯誤** (`electron.vite.config.ts`)
   - 問題：Build 時出現 `Unterminated string literal` 錯誤
     - esbuild 將 CommonJS shims 注入到錯誤位置（字串字面值中間）
@@ -47,6 +64,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 結果：Main process 編譯正常，E2E 測試框架可執行
 
 ### Added
+
+- **Scale Factor (縮放因子) 功能** (`DisplayFormat.scale`) - 工業應用必備功能
+  - **用途**：實現 `Real Value = Raw × Scale` 的線性縮放轉換
+  - **應用場景**：
+    - 類比輸入轉換（如 0-4095 ADC → 0-100%）
+    - 工程單位轉換（如 raw counts → 溫度/壓力/流量）
+    - PLC 定點小數處理（如 raw × 0.01 → 實際值）
+  - **實作範圍**：
+    - `src/shared/types/tag.ts` - DisplayFormat 新增 `scale?: number` 欄位
+    - `src/renderer/components/tags/TagDetailPanel.tsx` - Scale Factor 輸入欄位 UI
+    - `src/main/ipc/tag.ts` - Scale 驗證邏輯（不可為 0、必須為有限數值）
+    - `src/renderer/stores/tagStore.ts` - 套用 scale 到 displayValue 計算
+  - **驗證規則**：scale 不可為 0（除以零風險）、必須為有限數值
 
 - **Phase 16: Polish & Cross-Cutting Concerns** (T164-T178) - `003-pro-features-opcua`
   - **Unit Tests** (T169-T174)

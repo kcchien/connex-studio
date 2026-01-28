@@ -348,7 +348,9 @@ export const useTagStore = create<TagState>((set, get) => ({
 
       for (const value of payload.values) {
         const tag = tags.find((t) => t.id === value.tagId)
-        if (!tag) continue
+        if (!tag) {
+          continue
+        }
 
         const existing = newDisplayMap.get(value.tagId)
         const numericValue = typeof value.value === 'number' ? value.value : 0

@@ -4,7 +4,7 @@
  */
 
 import { useState, useCallback, useEffect } from 'react'
-import type { PollingStatus, PollingDataPayload } from '@shared/types/polling'
+import type { PollingStatus, PollingDataPayload, PollingStatusChangedPayload } from '@shared/types/polling'
 import { useTagStore } from '../stores/tagStore'
 
 export interface UsePollingReturn {
@@ -141,6 +141,25 @@ export function usePolling(connectionId?: string): UsePollingReturn {
       unsubscribe()
     }
   }, [connectionId, handlePollingData])
+
+  // Subscribe to polling status change events (handles passive stops like disconnect)
+  useEffect(() => {
+    const unsubscribe = window.electronAPI.polling.onStatusChanged((payload: PollingStatusChangedPayload) => {
+      // Only handle status for our connection
+      if (!connectionId || payload.connectionId === connectionId) {
+        setStatus({
+          isPolling: payload.isPolling,
+          intervalMs: payload.intervalMs,
+          lastPollTimestamp: payload.lastPollTimestamp,
+          tagCount: payload.tagCount
+        })
+      }
+    })
+
+    return () => {
+      unsubscribe()
+    }
+  }, [connectionId])
 
   // Fetch initial status when connectionId changes
   useEffect(() => {

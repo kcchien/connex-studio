@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { cn } from '@renderer/lib/utils'
 import { Wand2 } from 'lucide-react'
 import type { Protocol } from '@shared/types/connection'
@@ -6,6 +6,9 @@ import type { Tag, ModbusAddress, DataType } from '@shared/types/tag'
 import type { ByteOrder } from '@shared/types'
 import { DataTypeSelector, getRegisterCount, getDefaultDecimals } from '@renderer/components/common'
 import { TagByteOrderSelector } from './TagByteOrderSelector'
+import { ModbusAddressInput } from './ModbusAddressInput'
+import type { ParsedModbusAddress } from '@shared/utils/modbusAddress'
+import { toTraditionalAddress } from '@shared/utils/modbusAddress'
 
 export interface GenerateTabProps {
   connectionId: string
@@ -24,15 +27,29 @@ export function GenerateTab({
   const [namingPattern, setNamingPattern] = useState('Tag_{n}')
   const [quantity, setQuantity] = useState(10)
   const [startIndex, setStartIndex] = useState(1)
-  const [startAddress, setStartAddress] = useState(0)
+  const [baseAddressInput, setBaseAddressInput] = useState('40001')
+  const [parsedBaseAddress, setParsedBaseAddress] = useState<ParsedModbusAddress | null>({
+    registerType: 'holding',
+    address: 0,
+    traditional: 40001
+  })
   const [dataType, setDataType] = useState<DataType>('int16')
   const [byteOrder, setByteOrder] = useState<ByteOrder | undefined>(undefined)
   const [unitId, setUnitId] = useState<number | undefined>(undefined)
 
+  // Memoize register length for use in preview and tag generation
+  const registerLength = useMemo(() => getRegisterCount(dataType), [dataType])
+
   // Auto-generate preview when settings change
   useEffect(() => {
+    // Only generate tags if we have a valid parsed address
+    if (!parsedBaseAddress) {
+      onPreviewChange([])
+      return
+    }
+
     const tags: Partial<Tag>[] = []
-    const registerLength = getRegisterCount(dataType)
+    const baseProtocolAddress = parsedBaseAddress.address // 0-based protocol address
 
     for (let i = 0; i < quantity; i++) {
       const index = startIndex + i
@@ -43,8 +60,8 @@ export function GenerateTab({
         name,
         address: {
           type: 'modbus',
-          registerType: 'holding',
-          address: startAddress + i,
+          registerType: parsedBaseAddress.registerType,
+          address: baseProtocolAddress + (i * registerLength),
           length: registerLength,
           ...(byteOrder && { byteOrder }),
           ...(unitId !== undefined && { unitId }),
@@ -57,7 +74,7 @@ export function GenerateTab({
     }
 
     onPreviewChange(tags)
-  }, [namingPattern, quantity, startIndex, startAddress, dataType, byteOrder, unitId, connectionId, onPreviewChange])
+  }, [namingPattern, quantity, startIndex, parsedBaseAddress, dataType, byteOrder, unitId, connectionId, onPreviewChange, registerLength])
 
   return (
     <div className="space-y-6">
@@ -127,28 +144,20 @@ export function GenerateTab({
 
       {/* Address & Data Type */}
       <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <label htmlFor="gen-start-address" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            Base Address
-          </label>
-          <input
-            id="gen-start-address"
-            type="number"
-            min={0}
-            value={startAddress}
-            onChange={(e) => setStartAddress(Number(e.target.value))}
-            className={cn(
-              'w-full px-4 py-2.5 rounded-lg',
-              'bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700',
-              'text-gray-900 dark:text-white',
-              'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
-            )}
-          />
-        </div>
+        <ModbusAddressInput
+          value={baseAddressInput}
+          onChange={(value, parsed) => {
+            setBaseAddressInput(value)
+            setParsedBaseAddress(parsed)
+          }}
+          label="Base Address"
+          id="gen-start-address"
+          placeholder="e.g., 40001"
+        />
         <DataTypeSelector
           value={dataType}
           onChange={setDataType}
-          registerType="holding"
+          registerType={parsedBaseAddress?.registerType ?? 'holding'}
           id="gen-data-type"
         />
       </div>
@@ -205,17 +214,57 @@ export function GenerateTab({
       </div>
 
       {/* Preview */}
-      <div className="p-4 rounded-lg bg-gray-100 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700">
-        <div className="flex items-center gap-2 mb-3">
+      <div className="rounded-lg bg-gray-100 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
           <Wand2 className="w-4 h-4 text-purple-500 dark:text-purple-400" />
           <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Preview</span>
+          <span className="text-xs text-gray-500 dark:text-gray-400 ml-auto">
+            {quantity} tags
+          </span>
         </div>
-        <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-          <p>{namingPattern.replace('{n}', String(startIndex).padStart(2, '0'))} → Address {startAddress}</p>
-          <p>{namingPattern.replace('{n}', String(startIndex + 1).padStart(2, '0'))} → Address {startAddress + 1}</p>
-          <p className="text-gray-400 dark:text-gray-600">...</p>
-          <p>{namingPattern.replace('{n}', String(startIndex + quantity - 1).padStart(2, '0'))} → Address {startAddress + quantity - 1}</p>
-        </div>
+        {parsedBaseAddress ? (
+          <div className="max-h-48 overflow-y-auto">
+            <table className="w-full text-sm">
+              <thead className="sticky top-0 bg-gray-200 dark:bg-gray-700/80 backdrop-blur-sm">
+                <tr className="text-left text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                  <th className="px-4 py-2 font-medium w-10">#</th>
+                  <th className="px-4 py-2 font-medium">Name</th>
+                  <th className="px-4 py-2 font-medium text-right">Address</th>
+                  <th className="px-4 py-2 font-medium text-right">Range</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-700/50">
+                {Array.from({ length: quantity }, (_, i) => {
+                  const index = startIndex + i
+                  const name = namingPattern.replace('{n}', String(index).padStart(2, '0'))
+                  const protocolAddr = parsedBaseAddress.address + (i * registerLength)
+                  const tradAddr = toTraditionalAddress(parsedBaseAddress.registerType, protocolAddr)
+                  const endAddr = toTraditionalAddress(parsedBaseAddress.registerType, protocolAddr + registerLength - 1)
+                  return (
+                    <tr
+                      key={i}
+                      className={cn(
+                        'text-gray-700 dark:text-gray-300',
+                        i % 2 === 0 ? 'bg-white/50 dark:bg-gray-800/30' : 'bg-transparent'
+                      )}
+                    >
+                      <td className="px-4 py-1.5 text-gray-400 dark:text-gray-500 tabular-nums">{i + 1}</td>
+                      <td className="px-4 py-1.5 font-mono text-xs">{name}</td>
+                      <td className="px-4 py-1.5 text-right font-mono text-xs tabular-nums">{tradAddr}</td>
+                      <td className="px-4 py-1.5 text-right font-mono text-xs tabular-nums text-gray-500 dark:text-gray-400">
+                        {registerLength > 1 ? `${tradAddr}–${endAddr}` : tradAddr}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="px-4 py-6 text-sm text-gray-400 dark:text-gray-500 text-center">
+            Enter a valid base address to see preview
+          </p>
+        )}
       </div>
     </div>
   )

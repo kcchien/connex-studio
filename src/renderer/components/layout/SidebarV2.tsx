@@ -16,8 +16,9 @@ import {
   Monitor
 } from 'lucide-react'
 import { Logo } from '@renderer/components/common'
+import { ConnectionMenu } from '@renderer/components/connection'
 import { useUIStore, type Theme } from '@renderer/stores/uiStore'
-import type { Protocol, ConnectionStatus } from '@shared/types/connection'
+import type { Protocol, ConnectionStatus, Connection as FullConnection } from '@shared/types/connection'
 
 export interface Connection {
   id: string
@@ -28,9 +29,13 @@ export interface Connection {
 
 export interface SidebarV2Props {
   connections: Connection[]
+  /** Full connection objects for edit/delete operations */
+  fullConnections?: FullConnection[]
   selectedConnectionId?: string | null
   onNewConnection: () => void
   onSelectConnection: (id: string) => void
+  onEditConnection?: (connection: FullConnection) => void
+  onDeleteConnection?: (connection: FullConnection) => void
   userName?: string
 }
 
@@ -71,9 +76,12 @@ const themeLabels: Record<Theme, string> = {
 
 export function SidebarV2({
   connections,
+  fullConnections = [],
   selectedConnectionId,
   onNewConnection,
   onSelectConnection,
+  onEditConnection,
+  onDeleteConnection,
   userName = 'User',
 }: SidebarV2Props): React.ReactElement {
   const [toolsExpanded, setToolsExpanded] = useState(false)
@@ -139,19 +147,20 @@ export function SidebarV2({
               const protocol = protocolConfig[conn.protocol]
               const Icon = protocol.icon
               const isSelected = selectedConnectionId === conn.id
+              const fullConn = fullConnections.find(fc => fc.id === conn.id)
 
               return (
-                <button
+                <div
                   key={conn.id}
-                  onClick={() => onSelectConnection(conn.id)}
                   className={cn(
-                    'w-full px-3 py-2 rounded-lg',
+                    'group w-full px-3 py-2 rounded-lg',
                     'flex items-center gap-3',
-                    'text-left transition-colors',
+                    'text-left transition-colors cursor-pointer',
                     isSelected
                       ? 'bg-blue-500/15 text-white'
                       : 'hover:bg-gray-800 text-gray-300'
                   )}
+                  onClick={() => onSelectConnection(conn.id)}
                 >
                   {/* Status Indicator */}
                   <div
@@ -165,9 +174,27 @@ export function SidebarV2({
                     <div className={cn('text-xs', protocol.color)}>{protocol.label}</div>
                   </div>
 
-                  {/* Protocol Icon */}
-                  <Icon className={cn('w-4 h-4', protocol.color)} />
-                </button>
+                  {/* Connection Menu (Edit/Delete) - show on hover or when selected */}
+                  {fullConn && (onEditConnection || onDeleteConnection) && (
+                    <div className={cn(
+                      'opacity-0 group-hover:opacity-100 transition-opacity',
+                      isSelected && 'opacity-100'
+                    )}>
+                      <ConnectionMenu
+                        connection={fullConn}
+                        onEdit={() => onEditConnection?.(fullConn)}
+                        onDelete={() => onDeleteConnection?.(fullConn)}
+                      />
+                    </div>
+                  )}
+
+                  {/* Protocol Icon - hide when menu is visible */}
+                  <Icon className={cn(
+                    'w-4 h-4 transition-opacity',
+                    protocol.color,
+                    fullConn && (onEditConnection || onDeleteConnection) && 'group-hover:hidden'
+                  )} />
+                </div>
               )
             })}
           </div>

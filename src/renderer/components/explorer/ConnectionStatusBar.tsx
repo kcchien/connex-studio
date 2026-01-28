@@ -62,15 +62,16 @@ export function ConnectionStatusBar({
       )}
       data-testid="connection-status-bar"
     >
-      {/* Current Latency */}
+      {/* Response Time - Current */}
       <div className="flex items-center gap-1.5" data-testid="latency-display">
         <Clock className={cn('w-4 h-4', latencyColorClass)} />
+        <span className="text-gray-500 dark:text-gray-400">Response:</span>
         <span className={latencyColorClass}>
           {metrics.latencyMs}ms
         </span>
       </div>
 
-      {/* Average Latency */}
+      {/* Response Time - Average */}
       <div className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400">
         <Activity className="w-4 h-4" />
         <span>Avg: {metrics.latencyAvgMs}ms</span>

@@ -140,7 +140,7 @@ export class ConnectionManager {
 
   /**
    * Update a connection's configuration.
-   * If connected, will disconnect, apply updates, then reconnect.
+   * If connected or in error state, will disconnect, dispose adapter, apply updates, then reconnect.
    * @returns The updated connection
    */
   async updateConnection(
@@ -153,14 +153,31 @@ export class ConnectionManager {
     }
 
     const wasConnected = connection.status === 'connected'
+    const wasInError = connection.status === 'error'
+    const shouldReconnect = wasConnected || wasInError
 
-    // 1. Disconnect if connected
+    // 1. Cancel any pending reconnection attempts
+    this.cancelReconnect(connectionId)
+
+    // 2. Disconnect if connected
     if (wasConnected) {
       log.info(`[ConnectionManager] Disconnecting for update: ${connectionId}`)
       await this.disconnect(connectionId)
     }
 
-    // 2. Apply updates (SSOT mutation)
+    // 3. Dispose old adapter so new one is created with updated config
+    const oldAdapter = this.adapters.get(connectionId)
+    if (oldAdapter) {
+      log.info(`[ConnectionManager] Disposing old adapter for config update: ${connectionId}`)
+      try {
+        await oldAdapter.dispose()
+      } catch (error) {
+        log.warn(`[ConnectionManager] Error disposing adapter: ${error}`)
+      }
+      this.adapters.delete(connectionId)
+    }
+
+    // 4. Apply updates (SSOT mutation)
     if (updates.name !== undefined) {
       connection.name = updates.name
     }
@@ -170,9 +187,9 @@ export class ConnectionManager {
 
     log.info(`[ConnectionManager] Updated connection: ${connectionId}`)
 
-    // 3. Reconnect if was connected
-    if (wasConnected) {
-      log.info(`[ConnectionManager] Reconnecting after update: ${connectionId}`)
+    // 5. Auto-reconnect if was connected or in error state
+    if (shouldReconnect) {
+      log.info(`[ConnectionManager] Auto-reconnecting after update: ${connectionId}`)
       try {
         await this.connect(connectionId, true)
       } catch (error) {

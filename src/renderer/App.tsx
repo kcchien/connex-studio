@@ -1,6 +1,11 @@
 import React, { useEffect, useCallback, useState, useMemo } from 'react'
 import { SidebarV2 } from '@renderer/components/layout/SidebarV2'
-import { NewConnectionDialog, ConnectionFormData } from '@renderer/components/connection'
+import {
+  NewConnectionDialog,
+  ConnectionFormData,
+  EditConnectionDialog,
+  DeleteConfirmDialog
+} from '@renderer/components/connection'
 import { DataExplorer, TagDisplayState } from '@renderer/components/explorer'
 import { BatchTagDialog } from '@renderer/components/tags'
 import { LogViewer, Logo } from '@renderer/components/common'
@@ -9,7 +14,12 @@ import { useTagStore } from '@renderer/stores/tagStore'
 import { useUIStore } from '@renderer/stores/uiStore'
 import { usePolling } from '@renderer/hooks/usePolling'
 import { useKeyboardShortcuts } from '@renderer/hooks/useKeyboardShortcuts'
-import type { ConnectionStatus as ConnStatus, ConnectionMetrics } from '@shared/types/connection'
+import type {
+  Connection,
+  ConnectionStatus as ConnStatus,
+  ConnectionMetrics,
+  ConnectionUpdates
+} from '@shared/types/connection'
 import type { Tag } from '@shared/types/tag'
 
 /**
@@ -41,6 +51,12 @@ function App(): React.ReactElement {
 
   // Keyboard shortcuts
   useKeyboardShortcuts()
+
+  // Edit/Delete dialog state
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [connectionToEdit, setConnectionToEdit] = useState<Connection | null>(null)
+  const [connectionToDelete, setConnectionToDelete] = useState<Connection | null>(null)
 
   // Get selected connection
   const selectedConnection = connections.find((c) => c.id === selectedConnectionId)
@@ -114,6 +130,16 @@ function App(): React.ReactElement {
     }
   }, [setConnections, setSelectedConnectionId, setNewConnectionDialogOpen])
 
+  // Handle connect
+  const handleConnect = useCallback(async () => {
+    if (!selectedConnectionId) return
+    try {
+      await window.electronAPI.connection.connect(selectedConnectionId)
+    } catch (error) {
+      console.error('Failed to connect:', error)
+    }
+  }, [selectedConnectionId])
+
   // Handle disconnect
   const handleDisconnect = useCallback(async () => {
     if (!selectedConnectionId) return
@@ -123,6 +149,51 @@ function App(): React.ReactElement {
       console.error('Failed to disconnect:', error)
     }
   }, [selectedConnectionId])
+
+  // Handle edit connection
+  const handleEditConnection = useCallback((connection: Connection) => {
+    setConnectionToEdit(connection)
+    setEditDialogOpen(true)
+  }, [])
+
+  // Handle save connection edits
+  const handleSaveConnection = useCallback(async (connectionId: string, updates: ConnectionUpdates) => {
+    try {
+      await window.electronAPI.connection.update({ connectionId, updates })
+      // Refresh connection list
+      const listResult = await window.electronAPI.connection.list()
+      setConnections(listResult.connections)
+      setEditDialogOpen(false)
+      setConnectionToEdit(null)
+    } catch (error) {
+      console.error('Failed to update connection:', error)
+    }
+  }, [setConnections])
+
+  // Handle delete connection
+  const handleDeleteConnection = useCallback((connection: Connection) => {
+    setConnectionToDelete(connection)
+    setDeleteDialogOpen(true)
+  }, [])
+
+  // Handle confirm delete
+  const handleConfirmDelete = useCallback(async () => {
+    if (!connectionToDelete) return
+    try {
+      await window.electronAPI.connection.delete(connectionToDelete.id)
+      // Refresh connection list
+      const listResult = await window.electronAPI.connection.list()
+      setConnections(listResult.connections)
+      // Clear selection if deleted connection was selected
+      if (selectedConnectionId === connectionToDelete.id) {
+        setSelectedConnectionId(null)
+      }
+      setDeleteDialogOpen(false)
+      setConnectionToDelete(null)
+    } catch (error) {
+      console.error('Failed to delete connection:', error)
+    }
+  }, [connectionToDelete, selectedConnectionId, setConnections, setSelectedConnectionId])
 
   // Handle batch tag creation
   const handleTagsCreated = useCallback(async (newTags: Partial<Tag>[]) => {
@@ -216,12 +287,35 @@ function App(): React.ReactElement {
         />
       )}
 
+      {/* Edit Connection Dialog */}
+      {connectionToEdit && (
+        <EditConnectionDialog
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          connection={connectionToEdit}
+          onSave={handleSaveConnection}
+        />
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      {connectionToDelete && (
+        <DeleteConfirmDialog
+          open={deleteDialogOpen}
+          onOpenChange={setDeleteDialogOpen}
+          connectionName={connectionToDelete.name}
+          onConfirm={handleConfirmDelete}
+        />
+      )}
+
       {/* Sidebar */}
       <SidebarV2
         connections={sidebarConnections}
+        fullConnections={connections}
         selectedConnectionId={selectedConnectionId}
         onNewConnection={() => setNewConnectionDialogOpen(true)}
         onSelectConnection={setSelectedConnectionId}
+        onEditConnection={handleEditConnection}
+        onDeleteConnection={handleDeleteConnection}
         userName="Operator"
       />
 
@@ -232,12 +326,14 @@ function App(): React.ReactElement {
             connectionId={selectedConnectionId}
             connectionName={selectedConnection.name}
             connectionStatus={selectedConnection.status}
-            latency={connectionMetrics?.latencyMs}
+            lastError={selectedConnection.lastError}
             metrics={connectionMetrics}
             tags={connectionTags}
             displayStates={tagDisplayStates}
             onAddTag={() => setBatchTagDialogOpen(true)}
+            onConnect={handleConnect}
             onDisconnect={handleDisconnect}
+            onEditConnection={() => handleEditConnection(selectedConnection)}
           />
         ) : (
           <div className="flex-1 flex items-center justify-center bg-white dark:bg-transparent">

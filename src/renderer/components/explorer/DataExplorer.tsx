@@ -3,11 +3,13 @@ import { cn } from '@renderer/lib/utils'
 import {
   Activity,
   Plus,
-  Power,
+  PowerOff,
+  Plug,
   Wifi,
   WifiOff,
   AlertCircle,
   Loader2,
+  Settings,
 } from 'lucide-react'
 import type { Tag } from '@shared/types/tag'
 import type { ConnectionMetrics, FrameLog } from '@shared/types'
@@ -46,12 +48,16 @@ export interface DataExplorerProps {
   connectionId: string
   connectionName: string
   connectionStatus: ConnectionStatus
-  latency?: number
+  /** Last error message when status is 'error' */
+  lastError?: string
   metrics?: ConnectionMetrics
   tags: Tag[]
   displayStates: Record<string, TagDisplayState>
   onAddTag: () => void
+  onConnect: () => void
   onDisconnect: () => void
+  /** Callback to edit connection settings */
+  onEditConnection?: () => void
   onTagSelect?: (tagId: string) => void
   onRemoveTag?: (tagId: string) => void
   /** Frame diagnostics data */
@@ -75,16 +81,72 @@ const statusConfig: Record<ConnectionStatus, { icon: typeof Wifi; color: string;
  * DataExplorer - Main data exploration view for a connection
  * Shows connection status, tag list with live values, and tag details panel
  */
+/**
+ * Get user-friendly error message with actionable guidance
+ */
+function getErrorGuidance(error?: string): { message: string; suggestion: string } {
+  if (!error) {
+    return { message: 'Unknown error', suggestion: 'Check connection settings' }
+  }
+
+  // Connection refused - server not running or wrong port
+  if (error.includes('ECONNREFUSED')) {
+    const match = error.match(/ECONNREFUSED\s+([\d.]+):(\d+)/)
+    if (match) {
+      return {
+        message: `Connection refused at ${match[1]}:${match[2]}`,
+        suggestion: 'Check if server is running or verify host/port in settings'
+      }
+    }
+    return {
+      message: 'Connection refused',
+      suggestion: 'Check if server is running or verify host/port in settings'
+    }
+  }
+
+  // Timeout
+  if (error.includes('timeout') || error.includes('ETIMEDOUT')) {
+    return {
+      message: 'Connection timed out',
+      suggestion: 'Server may be unreachable or blocked by firewall'
+    }
+  }
+
+  // DNS resolution failed
+  if (error.includes('ENOTFOUND') || error.includes('getaddrinfo')) {
+    return {
+      message: 'Host not found',
+      suggestion: 'Check hostname spelling or use IP address'
+    }
+  }
+
+  // Network unreachable
+  if (error.includes('ENETUNREACH')) {
+    return {
+      message: 'Network unreachable',
+      suggestion: 'Check network connection'
+    }
+  }
+
+  // Default
+  return {
+    message: error.length > 50 ? error.substring(0, 50) + '...' : error,
+    suggestion: 'Check connection settings'
+  }
+}
+
 export function DataExplorer({
   connectionId,
   connectionName,
   connectionStatus,
-  latency,
+  lastError,
   metrics,
   tags,
   displayStates,
   onAddTag,
+  onConnect,
   onDisconnect,
+  onEditConnection,
   onTagSelect,
   onRemoveTag,
   frameLogs = [],
@@ -134,12 +196,6 @@ export function DataExplorer({
             <StatusIcon className={cn('w-4 h-4', status.color)} />
             <span className={cn('text-sm', status.color)}>{status.label}</span>
           </div>
-          {latency !== undefined && connectionStatus === 'connected' && (
-            <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400">
-              <Activity className="w-4 h-4" />
-              <span className="text-sm">{latency}ms</span>
-            </div>
-          )}
         </div>
         <div className="flex items-center gap-3">
           <button
@@ -155,21 +211,83 @@ export function DataExplorer({
             <Plus className="w-4 h-4" />
             Add Tag
           </button>
-          <button
-            onClick={onDisconnect}
-            className={cn(
-              'flex items-center gap-2 px-3 py-1.5 rounded-lg',
-              'bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700',
-              'text-gray-700 dark:text-gray-300 text-sm',
-              'hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white',
-              'transition-colors'
-            )}
-          >
-            <Power className="w-4 h-4" />
-            Disconnect
-          </button>
+          {/* Connection Toggle Button */}
+          {connectionStatus === 'connecting' ? (
+            <button
+              disabled
+              className={cn(
+                'flex items-center gap-2 px-3 py-1.5 rounded-lg',
+                'bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700',
+                'text-yellow-700 dark:text-yellow-400 text-sm',
+                'cursor-not-allowed opacity-75'
+              )}
+            >
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Connecting...
+            </button>
+          ) : connectionStatus === 'connected' ? (
+            <button
+              onClick={onDisconnect}
+              className={cn(
+                'flex items-center gap-2 px-3 py-1.5 rounded-lg',
+                'bg-red-50 dark:bg-red-900/20 border border-red-300 dark:border-red-800',
+                'text-red-600 dark:text-red-400 text-sm',
+                'hover:bg-red-100 dark:hover:bg-red-900/40 hover:border-red-400 dark:hover:border-red-700',
+                'transition-colors'
+              )}
+            >
+              <PowerOff className="w-4 h-4" />
+              Disconnect
+            </button>
+          ) : (
+            <button
+              onClick={onConnect}
+              className={cn(
+                'flex items-center gap-2 px-3 py-1.5 rounded-lg',
+                'bg-green-50 dark:bg-green-900/20 border border-green-300 dark:border-green-800',
+                'text-green-600 dark:text-green-400 text-sm',
+                'hover:bg-green-100 dark:hover:bg-green-900/40 hover:border-green-400 dark:hover:border-green-700',
+                'transition-colors'
+              )}
+            >
+              <Plug className="w-4 h-4" />
+              Connect
+            </button>
+          )}
         </div>
       </div>
+
+      {/* Error Message Bar - show when in error state */}
+      {connectionStatus === 'error' && lastError && (
+        <div className="flex items-center justify-between px-6 py-3 bg-red-50 dark:bg-red-900/20 border-b border-red-200 dark:border-red-800">
+          <div className="flex items-center gap-3">
+            <AlertCircle className="w-5 h-5 text-red-500 dark:text-red-400 flex-shrink-0" />
+            <div className="flex flex-col">
+              <span className="text-sm font-medium text-red-700 dark:text-red-300">
+                {getErrorGuidance(lastError).message}
+              </span>
+              <span className="text-xs text-red-600 dark:text-red-400">
+                {getErrorGuidance(lastError).suggestion}
+              </span>
+            </div>
+          </div>
+          {onEditConnection && (
+            <button
+              onClick={onEditConnection}
+              className={cn(
+                'flex items-center gap-2 px-3 py-1.5 rounded-lg',
+                'bg-red-100 dark:bg-red-900/40 border border-red-300 dark:border-red-700',
+                'text-red-700 dark:text-red-300 text-sm font-medium',
+                'hover:bg-red-200 dark:hover:bg-red-900/60 hover:border-red-400 dark:hover:border-red-600',
+                'transition-colors'
+              )}
+            >
+              <Settings className="w-4 h-4" />
+              Edit Settings
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Polling Controls - show when tags exist, disabled when not connected */}
       {tags.length > 0 && (

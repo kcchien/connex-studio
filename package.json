@@ -5,6 +5,9 @@
   "main": "out/main/index.js",
   "type": "module",
   "pnpm": {
+    "overrides": {
+      "env-paths": "2.2.1"
+    },
     "onlyBuiltDependencies": [
       " ",
       "-",

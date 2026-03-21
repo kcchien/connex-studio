@@ -32,7 +32,7 @@ import type {
   DataType,
   ConnectionUpdates
 } from '@shared/types'
-import { ProtocolAdapter, getProtocolRegistry, type ReadResult } from '../protocols/ProtocolAdapter'
+import { ProtocolAdapter, getProtocolRegistry, type ReadResult, type WriteResult } from '../protocols/ProtocolAdapter'
 import type { BrowserWindow } from 'electron'
 import { CONNECTION_STATUS_CHANGED, CONNECTION_METRICS_CHANGED } from '@shared/constants/ipc-channels'
 import type { ConnectionMetrics } from '@shared/types'
@@ -455,6 +455,44 @@ export class ConnectionManager {
 
     const results = await adapter.readTags([tempTag])
     return results[0]
+  }
+
+  /**
+   * Perform a single write operation.
+   */
+  async writeOnce(
+    connectionId: string,
+    address: ModbusAddress,
+    dataType: DataType,
+    value: number | boolean | string
+  ): Promise<WriteResult> {
+    const connection = this.connections.get(connectionId)
+    if (!connection) {
+      throw new Error(`Connection not found: ${connectionId}`)
+    }
+
+    const adapter = this.adapters.get(connectionId)
+    if (!adapter || !adapter.isConnected()) {
+      throw new Error('Not connected. Connect first.')
+    }
+
+    if (!adapter.supportsWrite()) {
+      return { success: false, error: 'Write not supported by this protocol', timestamp: Date.now() }
+    }
+
+    // Create a temporary tag for the write
+    const tempTag: Tag = {
+      id: 'temp-write',
+      connectionId,
+      name: 'Quick Write',
+      address,
+      dataType,
+      displayFormat: { decimals: 2, unit: '' },
+      thresholds: {},
+      enabled: true
+    }
+
+    return adapter.writeTag(tempTag, value)
   }
 
   /**

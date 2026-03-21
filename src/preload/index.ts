@@ -156,6 +156,16 @@ export interface ElectronAPI {
     }) => Promise<{ success: boolean; error?: string }>
   }
 
+  // Modbus operations
+  modbus: {
+    write: (params: {
+      connectionId: string
+      address: ModbusAddress
+      dataType: DataType
+      value: number | boolean | string
+    }) => Promise<IpcResult<void>>
+  }
+
   // Tag operations
   tag: {
     create: (params: {
@@ -477,6 +487,10 @@ const electronAPI: ElectronAPI = {
       return () => ipcRenderer.removeListener('connection:metrics-changed', handler)
     },
     testConnection: (params) => ipcRenderer.invoke('connection:test', params)
+  },
+
+  modbus: {
+    write: (params) => ipcRenderer.invoke('modbus:write-single', params)
   },
 
   tag: {

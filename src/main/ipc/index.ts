@@ -21,6 +21,7 @@ import { registerAlertHandlers } from './alert'
 import { registerOpcUaHandlers } from './opcua'
 import { registerCalculatorHandlers } from './calculator'
 import { registerWorkspaceHandlers } from './workspace'
+import { registerModbusWriteHandlers } from './modbus-write'
 
 /**
  * Register all IPC handlers.
@@ -43,6 +44,7 @@ export function registerAllHandlers(): void {
   registerOpcUaHandlers()
   registerCalculatorHandlers()
   registerWorkspaceHandlers()
+  registerModbusWriteHandlers()
 }
 
 export { registerLogHandlers } from './log'
@@ -62,3 +64,4 @@ export { registerAlertHandlers, setAlertMainWindow } from './alert'
 export { registerOpcUaHandlers, setOpcUaMainWindow } from './opcua'
 export { registerCalculatorHandlers } from './calculator'
 export { registerWorkspaceHandlers } from './workspace'
+export { registerModbusWriteHandlers } from './modbus-write'

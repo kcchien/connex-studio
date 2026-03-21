@@ -3,6 +3,9 @@
  * Channel naming convention: {domain}:{action}
  */
 
+// Modbus channels
+export const MODBUS_WRITE_SINGLE = 'modbus:write-single'
+
 // Connection channels
 export const CONNECTION_CREATE = 'connection:create'
 export const CONNECTION_CONNECT = 'connection:connect'
@@ -214,6 +217,9 @@ export const OPCUA_FIND_SERVERS = 'opcua:find-servers'
 
 // All channels grouped by domain
 export const IPC_CHANNELS = {
+  modbus: {
+    writeSingle: MODBUS_WRITE_SINGLE
+  },
   connection: {
     create: CONNECTION_CREATE,
     connect: CONNECTION_CONNECT,

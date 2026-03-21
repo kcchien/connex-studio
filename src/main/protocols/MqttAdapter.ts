@@ -153,6 +153,9 @@ export class MqttAdapter extends ProtocolAdapter {
   // Map of tagId to topic for reverse lookup
   private tagTopicMap = new Map<string, string>()
 
+  // Track QoS level per topic for resubscription
+  private topicQosMap = new Map<string, 0 | 1 | 2>()
+
   constructor(connection: Connection) {
     super(connection)
 
@@ -449,11 +452,12 @@ export class MqttAdapter extends ProtocolAdapter {
 
   /**
    * Ensure all tags have active subscriptions.
+   * For topics shared by multiple tags, the highest QoS among them is used.
    */
   private async ensureSubscriptions(tags: Tag[]): Promise<void> {
     if (!this.client || !this.client.connected) return
 
-    const newTopics: string[] = []
+    const newSubscriptions = new Map<string, 0 | 1 | 2>()
 
     for (const tag of tags) {
       if (!tag.enabled) continue
@@ -462,33 +466,34 @@ export class MqttAdapter extends ProtocolAdapter {
       if (address.type !== 'mqtt') continue
 
       const topic = address.topic
-
-      // Track tag -> topic mapping
       this.tagTopicMap.set(tag.id, topic)
 
-      // Check if already subscribed
       if (!this.subscribedTopics.has(topic)) {
-        newTopics.push(topic)
-        this.subscribedTopics.add(topic)
+        const existingQos = newSubscriptions.get(topic) ?? 0
+        const tagQos = address.qos ?? 1
+        newSubscriptions.set(topic, Math.max(existingQos, tagQos) as 0 | 1 | 2)
       }
     }
 
-    // Subscribe to new topics
-    if (newTopics.length > 0) {
-      await this.subscribeToTopics(newTopics)
+    if (newSubscriptions.size > 0) {
+      await this.subscribeToTopicsWithQos(newSubscriptions)
+      for (const [topic, qos] of newSubscriptions) {
+        this.subscribedTopics.add(topic)
+        this.topicQosMap.set(topic, qos)
+      }
     }
   }
 
   /**
-   * Subscribe to a list of topics.
+   * Subscribe to topics with per-topic QoS levels.
    */
-  private async subscribeToTopics(topics: string[]): Promise<void> {
+  private async subscribeToTopicsWithQos(subscriptions: Map<string, 0 | 1 | 2>): Promise<void> {
     if (!this.client || !this.client.connected) return
 
     return new Promise((resolve, reject) => {
       const topicObj: Record<string, { qos: 0 | 1 | 2 }> = {}
-      for (const topic of topics) {
-        topicObj[topic] = { qos: 1 }
+      for (const [topic, qos] of subscriptions) {
+        topicObj[topic] = { qos }
       }
 
       this.client!.subscribe(topicObj, (error, granted) => {
@@ -496,7 +501,7 @@ export class MqttAdapter extends ProtocolAdapter {
           log.error(`[Mqtt] Subscribe error: ${error.message}`)
           reject(error)
         } else {
-          const topicList = granted?.map((g) => g.topic).join(', ') || topics.join(', ')
+          const topicList = granted?.map((g) => `${g.topic}(QoS${g.qos})`).join(', ')
           log.info(`[Mqtt] Subscribed to: ${topicList}`)
           resolve()
         }
@@ -505,12 +510,15 @@ export class MqttAdapter extends ProtocolAdapter {
   }
 
   /**
-   * Resubscribe to all tracked topics after reconnection.
+   * Resubscribe to all tracked topics after reconnection, preserving QoS levels.
    */
   private resubscribeAll(): void {
     if (this.subscribedTopics.size > 0) {
-      const topics = Array.from(this.subscribedTopics)
-      this.subscribeToTopics(topics).catch((error) => {
+      const subscriptions = new Map<string, 0 | 1 | 2>()
+      for (const topic of this.subscribedTopics) {
+        subscriptions.set(topic, this.topicQosMap.get(topic) ?? 1)
+      }
+      this.subscribeToTopicsWithQos(subscriptions).catch((error) => {
         log.error(`[Mqtt] Resubscribe failed: ${error}`)
       })
     }
@@ -536,6 +544,7 @@ export class MqttAdapter extends ProtocolAdapter {
     this.topicCache.clear()
     this.subscribedTopics.clear()
     this.tagTopicMap.clear()
+    this.topicQosMap.clear()
     this.removeAllListeners()
     log.info('[Mqtt] Adapter disposed')
   }

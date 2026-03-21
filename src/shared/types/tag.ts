@@ -36,6 +36,7 @@ export interface MqttAddress {
   type: 'mqtt'
   topic: string
   jsonPath?: string
+  qos?: 0 | 1 | 2  // Per-tag QoS level, defaults to 1 if omitted
 }
 
 export interface OpcUaAddress {

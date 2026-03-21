@@ -28,7 +28,7 @@ import {
   convertInt32,
   convertUint32
 } from './byteOrderUtils'
-import { ProtocolAdapter, type ReadResult } from './ProtocolAdapter'
+import { ProtocolAdapter, type ReadResult, type WriteResult } from './ProtocolAdapter'
 import {
   createReadBatches,
   extractTagValues,
@@ -247,6 +247,169 @@ export class ModbusTcpAdapter extends ProtocolAdapter {
       .filter((tag) => tag.enabled && tag.address.type === 'modbus')
       .map((tag) => resultsMap.get(tag.id)!)
       .filter(Boolean)
+  }
+
+  /**
+   * Check if this adapter supports write operations.
+   */
+  override supportsWrite(): boolean {
+    return true
+  }
+
+  /**
+   * Write a value to a Modbus device.
+   * Supports coils (FC05) and holding registers (FC06/FC16).
+   * Input registers and discrete inputs are read-only.
+   */
+  override async writeTag(tag: Tag, value: number | boolean | string): Promise<WriteResult> {
+    const address = tag.address as ModbusAddress
+
+    if (address.type !== 'modbus') {
+      return { success: false, error: `Invalid address type for Modbus: ${address.type}`, timestamp: Date.now() }
+    }
+
+    // Reject read-only register types
+    if (address.registerType === 'input' || address.registerType === 'discrete') {
+      return { success: false, error: `Cannot write to ${address.registerType} registers (read-only)`, timestamp: Date.now() }
+    }
+
+    // Handle unit ID override
+    const originalUnitId = this.client.getID()
+    if (address.unitId !== undefined) {
+      this.client.setID(address.unitId)
+    }
+
+    try {
+      if (address.registerType === 'coil') {
+        await this.writeCoilValue(address, value)
+      } else {
+        // holding register
+        await this.writeHoldingValue(address, tag.dataType, value)
+      }
+
+      return { success: true, timestamp: Date.now() }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      return { success: false, error: message, timestamp: Date.now() }
+    } finally {
+      if (address.unitId !== undefined) {
+        this.client.setID(originalUnitId)
+      }
+    }
+  }
+
+  /**
+   * Write a value to a coil address.
+   * Single coil uses FC05, multiple coils use FC15.
+   */
+  private async writeCoilValue(address: ModbusAddress, value: number | boolean | string): Promise<void> {
+    if (address.length > 1 && Array.isArray(value)) {
+      await this.client.writeCoils(address.address, value as boolean[])
+    } else {
+      await this.client.writeCoil(address.address, Boolean(value))
+    }
+  }
+
+  /**
+   * Write a value to a holding register address.
+   * Single register uses FC06, multi-register (32-bit) uses FC16.
+   */
+  private async writeHoldingValue(
+    address: ModbusAddress,
+    dataType: DataType,
+    value: number | boolean | string
+  ): Promise<void> {
+    const numValue = typeof value === 'boolean' ? (value ? 1 : 0) : Number(value)
+    const byteOrder = this.getEffectiveByteOrder(address)
+
+    switch (dataType) {
+      case 'boolean':
+      case 'uint16':
+        await this.client.writeRegister(address.address, numValue & 0xFFFF)
+        break
+
+      case 'int16': {
+        // Convert signed to unsigned 16-bit
+        const unsigned = numValue < 0 ? numValue + 0x10000 : numValue
+        await this.client.writeRegister(address.address, unsigned & 0xFFFF)
+        break
+      }
+
+      case 'float32': {
+        const regs = this.encodeFloat32(numValue, byteOrder)
+        await this.client.writeRegisters(address.address, regs)
+        break
+      }
+
+      case 'int32': {
+        const regs = this.encodeInt32(numValue, byteOrder)
+        await this.client.writeRegisters(address.address, regs)
+        break
+      }
+
+      case 'uint32': {
+        const regs = this.encodeUint32(numValue, byteOrder)
+        await this.client.writeRegisters(address.address, regs)
+        break
+      }
+
+      default:
+        throw new Error(`Unsupported data type for write: ${dataType}`)
+    }
+  }
+
+  /**
+   * Encode a float32 value into two 16-bit registers respecting byte order.
+   */
+  private encodeFloat32(value: number, byteOrder: ByteOrder): [number, number] {
+    const buf = Buffer.alloc(4)
+    buf.writeFloatBE(value, 0)
+    return this.encodeBufferToRegisters(buf, byteOrder)
+  }
+
+  /**
+   * Encode a signed int32 value into two 16-bit registers respecting byte order.
+   */
+  private encodeInt32(value: number, byteOrder: ByteOrder): [number, number] {
+    const buf = Buffer.alloc(4)
+    buf.writeInt32BE(value, 0)
+    return this.encodeBufferToRegisters(buf, byteOrder)
+  }
+
+  /**
+   * Encode an unsigned uint32 value into two 16-bit registers respecting byte order.
+   */
+  private encodeUint32(value: number, byteOrder: ByteOrder): [number, number] {
+    const buf = Buffer.alloc(4)
+    buf.writeUInt32BE(value >>> 0, 0)
+    return this.encodeBufferToRegisters(buf, byteOrder)
+  }
+
+  /**
+   * Convert a 4-byte buffer (big-endian) to two 16-bit register values
+   * according to the specified byte order.
+   *
+   * Buffer bytes are labeled [b0, b1, b2, b3] (big-endian: b0=MSB).
+   * ABCD: [(b0<<8)|b1, (b2<<8)|b3]  — big-endian
+   * DCBA: [(b3<<8)|b2, (b1<<8)|b0]  — little-endian
+   * BADC: [(b1<<8)|b0, (b3<<8)|b2]  — mid-big (word swap)
+   * CDAB: [(b2<<8)|b3, (b0<<8)|b1]  — mid-little (byte swap)
+   */
+  private encodeBufferToRegisters(buf: Buffer, byteOrder: ByteOrder): [number, number] {
+    const b0 = buf[0], b1 = buf[1], b2 = buf[2], b3 = buf[3]
+
+    switch (byteOrder) {
+      case 'ABCD':
+        return [(b0 << 8) | b1, (b2 << 8) | b3]
+      case 'DCBA':
+        return [(b3 << 8) | b2, (b1 << 8) | b0]
+      case 'BADC':
+        return [(b1 << 8) | b0, (b3 << 8) | b2]
+      case 'CDAB':
+        return [(b2 << 8) | b3, (b0 << 8) | b1]
+      default:
+        return [(b0 << 8) | b1, (b2 << 8) | b3]
+    }
   }
 
   /**

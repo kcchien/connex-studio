@@ -80,7 +80,6 @@ asar: true
 asarUnpack:
   - '**/*.node'
   - '**/better-sqlite3/**'
-  - '**/keytar/**'
 
 # Rebuild native modules
 npmRebuild: true

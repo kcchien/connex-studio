@@ -13,7 +13,7 @@ importers:
     dependencies:
       '@electron-toolkit/utils':
         specifier: ^3.0.0
-        version: 3.0.0(electron@33.4.11)
+        version: 3.0.0(electron@39.8.3)
       '@radix-ui/react-alert-dialog':
         specifier: ^1.1.15
         version: 1.1.15(@types/react-dom@19.2.3(@types/react@19.2.9))(@types/react@19.2.9)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -57,8 +57,8 @@ importers:
         specifier: ^3.13.18
         version: 3.13.18(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       better-sqlite3:
-        specifier: ^11.6.0
-        version: 11.10.0
+        specifier: ^12.8.0
+        version: 12.8.0
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -163,8 +163,8 @@ importers:
         specifier: ^10.4.20
         version: 10.4.23(postcss@8.5.6)
       electron:
-        specifier: ^33.4.11
-        version: 33.4.11
+        specifier: ^39.8.3
+        version: 39.8.3
       electron-builder:
         specifier: ^26.8.1
         version: 26.8.1(electron-builder-squirrel-windows@25.1.8)
@@ -2055,9 +2055,6 @@ packages:
   '@types/multicast-dns@7.2.4':
     resolution: {integrity: sha512-ib5K4cIDR4Ro5SR3Sx/LROkMDa0BHz0OPaCBL/OSPDsAXEGZ3/KQeS6poBKYVN7BfjXDL9lWNwzyHVgt/wkyCw==}
 
-  '@types/node@20.19.30':
-    resolution: {integrity: sha512-WJtwWJu7UdlvzEAUm484QNg5eAoq5QR08KDNx7g45Usrs2NtOPiX8ugDqmKdXkyL03rBqU5dYNYVQetEpBHq2g==}
-
   '@types/node@22.19.7':
     resolution: {integrity: sha512-MciR4AKGHWl7xwxkBa6xUGxQJ4VBOmPTF7sL+iGzuahOFaO0jHCsuEfS80pan1ef4gWId1oWOweIhrDEYLuaOw==}
 
@@ -2488,8 +2485,9 @@ packages:
   bcrypt-pbkdf@1.0.2:
     resolution: {integrity: sha512-qeFIXtP4MSoi6NLqO12WfqARWWuCKi2Rn/9hJLEmtB5yTNr9DqFWkJRCf2qShWzPeAMRnOgCrq0sg/KLv5ES9w==}
 
-  better-sqlite3@11.10.0:
-    resolution: {integrity: sha512-EwhOpyXiOEL/lKzHz9AW1msWFNzGc/z+LzeB3/jnFJpxu+th2yqvzsSWas1v9jgs9+xiXJcD5A8CJxAG2TaghQ==}
+  better-sqlite3@12.8.0:
+    resolution: {integrity: sha512-RxD2Vd96sQDjQr20kdP+F+dK/1OUNiVOl200vKBZY8u0vTwysfolF6Hq+3ZK2+h8My9YvZhHsF+RSGZW2VYrPQ==}
+    engines: {node: 20.x || 22.x || 23.x || 24.x || 25.x}
 
   bidi-js@1.0.3:
     resolution: {integrity: sha512-RKshQI1R3YQ+n9YJz2QQ147P66ELpa1FQEg20Dk8oW9t2KgLbpDLLp9aGZ7y8WHSshDknG0bknqGw5/tyCs5tw==}
@@ -3037,8 +3035,8 @@ packages:
       '@swc/core':
         optional: true
 
-  electron@33.4.11:
-    resolution: {integrity: sha512-xmdAs5QWRkInC7TpXGNvzo/7exojubk+72jn1oJL7keNeIlw7xNglf8TGtJtkR4rWC5FJq0oXiIXPS9BcK2Irg==}
+  electron@39.8.3:
+    resolution: {integrity: sha512-ZhetvWz2qbI2WbBHdK/utR8I5bi1pYWJdit9tP0sGzs42CpsAFyu/FirXE88NWSh+3U8X6Wuf9jjDEYvAyrxNw==}
     engines: {node: '>= 12.20.55'}
     hasBin: true
 
@@ -6347,9 +6345,9 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@electron-toolkit/utils@3.0.0(electron@33.4.11)':
+  '@electron-toolkit/utils@3.0.0(electron@39.8.3)':
     dependencies:
-      electron: 33.4.11
+      electron: 39.8.3
 
   '@electron/asar@3.4.1':
     dependencies:
@@ -7909,10 +7907,6 @@ snapshots:
       '@types/dns-packet': 5.6.5
       '@types/node': 22.19.7
 
-  '@types/node@20.19.30':
-    dependencies:
-      undici-types: 6.21.0
-
   '@types/node@22.19.7':
     dependencies:
       undici-types: 6.21.0
@@ -8533,7 +8527,7 @@ snapshots:
     dependencies:
       tweetnacl: 0.14.5
 
-  better-sqlite3@11.10.0:
+  better-sqlite3@12.8.0:
     dependencies:
       bindings: 1.5.0
       prebuild-install: 7.1.3
@@ -9200,10 +9194,10 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  electron@33.4.11:
+  electron@39.8.3:
     dependencies:
       '@electron/get': 2.0.3
-      '@types/node': 20.19.30
+      '@types/node': 22.19.7
       extract-zip: 2.0.1
     transitivePeerDependencies:
       - supports-color

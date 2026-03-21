@@ -25,6 +25,15 @@ export interface ReadResult {
 }
 
 /**
+ * Result of a write operation to a device.
+ */
+export interface WriteResult {
+  success: boolean
+  error?: string
+  timestamp: number
+}
+
+/**
  * Events emitted by protocol adapters.
  */
 export interface ProtocolAdapterEvents {
@@ -101,6 +110,20 @@ export abstract class ProtocolAdapter extends EventEmitter {
   async readTag(tag: Tag): Promise<ReadResult> {
     const results = await this.readTags([tag])
     return results[0]
+  }
+
+  /**
+   * Write a value to a device. Not all protocols support writing.
+   */
+  async writeTag(_tag: Tag, _value: number | boolean | string): Promise<WriteResult> {
+    return { success: false, error: 'Write not supported by this protocol', timestamp: Date.now() }
+  }
+
+  /**
+   * Check if this adapter supports write operations.
+   */
+  supportsWrite(): boolean {
+    return false
   }
 
   /**

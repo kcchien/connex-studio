@@ -25,6 +25,13 @@ export interface ModbusAddress {
   unitId?: number
 }
 
+export interface ModbusWriteRequest {
+  connectionId: string
+  address: ModbusAddress
+  dataType: DataType
+  value: number | boolean | string
+}
+
 export interface MqttAddress {
   type: 'mqtt'
   topic: string

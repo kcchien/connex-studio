@@ -117,6 +117,9 @@ importers:
       '@electron-toolkit/eslint-config-ts':
         specifier: ^3.0.0
         version: 3.1.0(eslint@9.39.2(jiti@1.21.7))(typescript@5.9.3)
+      '@electron/rebuild':
+        specifier: ^4.0.3
+        version: 4.0.3
       '@playwright/test':
         specifier: ^1.48.0
         version: 1.58.0
@@ -165,9 +168,6 @@ importers:
       electron-builder:
         specifier: ^26.8.1
         version: 26.8.1(electron-builder-squirrel-windows@25.1.8)
-      electron-rebuild:
-        specifier: ^3.2.9
-        version: 3.2.9
       electron-vite:
         specifier: ^5.0.0
         version: 5.0.0(vite@7.3.1(@types/node@22.19.7)(jiti@1.21.7))
@@ -3019,12 +3019,6 @@ packages:
   electron-publish@26.8.1:
     resolution: {integrity: sha512-q+jrSTIh/Cv4eGZa7oVR+grEJo/FoLMYBAnSL5GCtqwUpr1T+VgKB/dn1pnzxIxqD8S/jP1yilT9VrwCqINR4w==}
 
-  electron-rebuild@3.2.9:
-    resolution: {integrity: sha512-FkEZNFViUem3P0RLYbZkUjC8LUFIK+wKq09GHoOITSJjfDAVQv964hwaNseTTWt58sITQX3/5fHNYcTefqaCWw==}
-    engines: {node: '>=12.13.0'}
-    deprecated: Please use @electron/rebuild moving forward.  There is no API change, just a package name change
-    hasBin: true
-
   electron-store@10.1.0:
     resolution: {integrity: sha512-oL8bRy7pVCLpwhmXy05Rh/L6O93+k9t6dqSw0+MckIc3OmCTZm6Mp04Q4f/J0rtu84Ky6ywkR8ivtGOmrq+16w==}
     engines: {node: '>=20'}
@@ -3445,7 +3439,7 @@ packages:
   glob@8.1.0:
     resolution: {integrity: sha512-r8hpEjiQEYlF2QU0df3dS+nxxSIreXQS1qRhMJM0Q5NDdR386C7jb7Hwwod8Fgiuex+k0GFjgft18yvxm5XoCQ==}
     engines: {node: '>=12'}
-    deprecated: Glob versions prior to v9 are no longer supported
+    deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
 
   glob@9.3.5:
     resolution: {integrity: sha512-e1LleDykUz2Iu+MTYdkSsuWX8lvAjAcs0Xef0lNIu0S2wOAzuTxCJtcd9S3cijlwYF18EsU3rzb8jPVobxDh9Q==}
@@ -4144,11 +4138,6 @@ packages:
     resolution: {integrity: sha512-h5bgJWpxJNswbU7qCrV0tIKQCaS3blPDrqKWx+QxzuzL1zGUzij9XCWLrSLsJPu5t+eWA/ycetzYAO5IOMcWAQ==}
     hasBin: true
 
-  lzma-native@8.0.6:
-    resolution: {integrity: sha512-09xfg67mkL2Lz20PrrDeNYZxzeW7ADtpYFbwSQh9U8+76RIzx5QsJBMy8qikv3hbUPfpy6hqwxt6FcGK81g9AA==}
-    engines: {node: '>=10.0.0'}
-    hasBin: true
-
   magic-string@0.30.21:
     resolution: {integrity: sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ==}
 
@@ -4367,27 +4356,17 @@ packages:
   node-addon-api@1.7.2:
     resolution: {integrity: sha512-ibPK3iA+vaY1eEjESkQkM0BbCqFOaZMiXRTtdB0u7b4djtY6JnsjvPdUHVMg6xQt3B8fpTTWHI9A+ADjM9frzg==}
 
-  node-addon-api@3.2.1:
-    resolution: {integrity: sha512-mmcei9JghVNDYydghQmeDX8KoAm0FAiYyIcUt/N4nhyAipB17pllZQDOJD2fotxABnt4Mdz+dKTO7eftLg4d0A==}
-
   node-addon-api@4.3.0:
     resolution: {integrity: sha512-73sE9+3UaLYYFmDsFZnqCInzPyh3MqIwZO9cw58yIqAZhONrrabrYyYe3TuIqtIiOuTXVhsGau8hcrhhwSsDIQ==}
 
   node-addon-api@7.0.0:
     resolution: {integrity: sha512-vgbBJTS4m5/KkE16t5Ly0WW9hz46swAstv0hYYwMtbG7AznRhNyfLRe8HZAiWIpcHzoO7HxhLuBQj9rJ/Ho0ZA==}
 
-  node-api-version@0.1.4:
-    resolution: {integrity: sha512-KGXihXdUChwJAOHO53bv9/vXcLmdUsZ6jIptbvYvkpKfth+r7jw44JkVxQFA3kX5nQjzjmGu1uAu/xNNLNlI5g==}
-
   node-api-version@0.2.1:
     resolution: {integrity: sha512-2xP/IGGMmmSQpI1+O/k72jF/ykvZ89JeuKX3TLJAYPDVLUalrshrLHkeVcCCZqG/eEa635cr8IBYzgnDvM2O8Q==}
 
   node-gyp-build@4.6.0:
     resolution: {integrity: sha512-NTZVKn9IylLwUzaKjkas1e4u2DLNcV4rdYagA4PWdPwW87Bi7z+BznyKSRwS/761tV/lzCGXplWsiaMjLqP2zQ==}
-    hasBin: true
-
-  node-gyp-build@4.8.4:
-    resolution: {integrity: sha512-LA4ZjwlnUblHVgq0oBF3Jl/6h/Nvs5fzBLwdEF4nuxnFdsfajde4WfxtJr3CaiH+F6ewcIB/q4jQ4UzPyid+CQ==}
     hasBin: true
 
   node-gyp@11.5.0:
@@ -5455,7 +5434,7 @@ packages:
   tar@6.2.1:
     resolution: {integrity: sha512-DZ4yORTwrbTj/7MZYq2w+/ZFdI6OZ/f9SFHR+71gIVUZhOQPHzVCLpvRnPgyaMpfWxxk/4ONva3GQSyNIKRv6A==}
     engines: {node: '>=10'}
-    deprecated: Old versions of tar are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exhorbitant rates) by contacting i@izs.me
+    deprecated: Old versions of tar are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
 
   tar@7.5.12:
     resolution: {integrity: sha512-9TsuLcdhOn4XztcQqhNyq1KOwOOED/3k58JAvtULiYqbO8B/0IBAAIE1hj0Svmm58k27TmcigyDI0deMlgG3uw==}
@@ -7802,7 +7781,7 @@ snapshots:
 
   '@testing-library/dom@10.4.1':
     dependencies:
-      '@babel/code-frame': 7.28.6
+      '@babel/code-frame': 7.29.0
       '@babel/runtime': 7.28.6
       '@types/aria-query': 5.0.4
       aria-query: 5.3.0
@@ -9200,26 +9179,6 @@ snapshots:
       lazy-val: 1.0.5
       mime: 2.6.0
     transitivePeerDependencies:
-      - supports-color
-
-  electron-rebuild@3.2.9:
-    dependencies:
-      '@malept/cross-spawn-promise': 2.0.0
-      chalk: 4.1.2
-      debug: 4.4.3
-      detect-libc: 2.1.2
-      fs-extra: 10.1.0
-      got: 11.8.6
-      lzma-native: 8.0.6
-      node-abi: 3.87.0
-      node-api-version: 0.1.4
-      node-gyp: 9.4.1
-      ora: 5.4.1
-      semver: 7.7.3
-      tar: 6.2.1
-      yargs: 17.7.2
-    transitivePeerDependencies:
-      - bluebird
       - supports-color
 
   electron-store@10.1.0:
@@ -10731,12 +10690,6 @@ snapshots:
 
   lz-string@1.5.0: {}
 
-  lzma-native@8.0.6:
-    dependencies:
-      node-addon-api: 3.2.1
-      node-gyp-build: 4.8.4
-      readable-stream: 3.6.2
-
   magic-string@0.30.21:
     dependencies:
       '@jridgewell/sourcemap-codec': 1.5.5
@@ -10984,23 +10937,15 @@ snapshots:
   node-addon-api@1.7.2:
     optional: true
 
-  node-addon-api@3.2.1: {}
-
   node-addon-api@4.3.0: {}
 
   node-addon-api@7.0.0: {}
-
-  node-api-version@0.1.4:
-    dependencies:
-      semver: 7.7.3
 
   node-api-version@0.2.1:
     dependencies:
       semver: 7.7.3
 
   node-gyp-build@4.6.0: {}
-
-  node-gyp-build@4.8.4: {}
 
   node-gyp@11.5.0:
     dependencies:

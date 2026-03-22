@@ -1,4 +1,5 @@
 import React, { useState, useCallback, type FormEvent } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Play, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react'
 import * as Label from '@radix-ui/react-label'
 import { cn } from '@renderer/lib/utils'
@@ -148,6 +149,7 @@ function formatReadValue(value: number | boolean | string, dataType: DataType): 
  * Displays address input, data type selection, and read results with quality indicators.
  */
 export function QuickReadPanel({ className }: QuickReadPanelProps): React.ReactElement {
+  const { t } = useTranslation('connection')
   const [address, setAddress] = useState('')
   const [dataType, setDataType] = useState<DataType>('uint16')
   const [result, setResult] = useState<ReadResult | null>(null)
@@ -229,7 +231,7 @@ export function QuickReadPanel({ className }: QuickReadPanelProps): React.ReactE
       <div className={cn('border rounded-lg bg-card p-4', className)}>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <AlertCircle className="h-4 w-4" />
-          <span>No connection selected</span>
+          <span>{t('quickRead.noConnection')}</span>
         </div>
       </div>
     )
@@ -241,10 +243,10 @@ export function QuickReadPanel({ className }: QuickReadPanelProps): React.ReactE
       <div className={cn('border rounded-lg bg-card p-4', className)}>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <AlertCircle className="h-4 w-4" />
-          <span>Connection not connected</span>
+          <span>{t('quickRead.notConnected')}</span>
         </div>
         <p className="mt-2 text-xs text-muted-foreground/70">
-          Connect to &quot;{selectedConnection.name}&quot; to perform read operations.
+          {t('quickRead.connectPrompt', { name: selectedConnection.name })}
         </p>
       </div>
     )
@@ -254,9 +256,9 @@ export function QuickReadPanel({ className }: QuickReadPanelProps): React.ReactE
     <div className={cn('border rounded-lg bg-card', className)}>
       {/* Header */}
       <div className="px-3 py-2.5 border-b border-border">
-        <h3 className="text-sm font-medium text-foreground">Quick Read</h3>
+        <h3 className="text-sm font-medium text-foreground">{t('quickRead.title')}</h3>
         <p className="text-xs text-muted-foreground mt-0.5">
-          Read a single value from {selectedConnection.name}
+          {t('quickRead.description', { name: selectedConnection.name })}
         </p>
       </div>
 
@@ -265,7 +267,7 @@ export function QuickReadPanel({ className }: QuickReadPanelProps): React.ReactE
         {/* Address Input */}
         <div className="space-y-1.5">
           <Label.Root htmlFor="read-address" className="text-xs font-medium text-muted-foreground">
-            Address
+            {t('quickRead.address')}
           </Label.Root>
           <input
             id="read-address"
@@ -289,7 +291,7 @@ export function QuickReadPanel({ className }: QuickReadPanelProps): React.ReactE
         {/* Data Type Select */}
         <div className="space-y-1.5">
           <Label.Root htmlFor="read-data-type" className="text-xs font-medium text-muted-foreground">
-            Data Type
+            {t('quickRead.dataType')}
           </Label.Root>
           <select
             id="read-data-type"
@@ -327,12 +329,12 @@ export function QuickReadPanel({ className }: QuickReadPanelProps): React.ReactE
           {isLoading ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
-              <span>Reading...</span>
+              <span>{t('quickRead.reading')}</span>
             </>
           ) : (
             <>
               <Play className="h-4 w-4" />
-              <span>Read</span>
+              <span>{t('quickRead.read')}</span>
             </>
           )}
         </button>
@@ -350,7 +352,7 @@ export function QuickReadPanel({ className }: QuickReadPanelProps): React.ReactE
           <div className="p-3 bg-muted/50 rounded-md space-y-2">
             {/* Value */}
             <div className="flex items-baseline justify-between">
-              <span className="text-xs text-muted-foreground">Value</span>
+              <span className="text-xs text-muted-foreground">{t('quickRead.value')}</span>
               <span className="text-lg font-mono font-medium text-foreground">
                 {formatReadValue(result.value, dataType)}
               </span>
@@ -358,7 +360,7 @@ export function QuickReadPanel({ className }: QuickReadPanelProps): React.ReactE
 
             {/* Quality */}
             <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">Quality</span>
+              <span className="text-xs text-muted-foreground">{t('quickRead.quality')}</span>
               <div className={cn('flex items-center gap-1.5', getQualityColor(result.quality))}>
                 {result.quality.toLowerCase() === 'good' ? (
                   <CheckCircle2 className="h-3.5 w-3.5" />
@@ -371,7 +373,7 @@ export function QuickReadPanel({ className }: QuickReadPanelProps): React.ReactE
 
             {/* Timestamp */}
             <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">Read at</span>
+              <span className="text-xs text-muted-foreground">{t('quickRead.readAt')}</span>
               <span className="text-xs text-muted-foreground">
                 {new Date(result.timestamp).toLocaleTimeString('en-US', {
                   hour12: false,

@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@renderer/lib/utils'
 import { ListChecks } from 'lucide-react'
 import type { Protocol } from '@shared/types/connection'
@@ -34,6 +35,7 @@ export function ScanTab({
   protocol,
   onPreviewChange,
 }: ScanTabProps): React.ReactElement {
+  const { t } = useTranslation('modbus')
   // Address inputs using traditional addressing (e.g., 40001)
   const [startAddressStr, setStartAddressStr] = useState('')
   const [endAddressStr, setEndAddressStr] = useState('')
@@ -220,7 +222,7 @@ export function ScanTab({
       <div className="rounded-lg bg-gray-100 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 overflow-hidden">
           <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
             <ListChecks className="w-4 h-4 text-blue-500 dark:text-blue-400" />
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Preview</span>
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('scan.preview')}</span>
             <span className="text-xs text-gray-500 dark:text-gray-400 ml-auto">
               {tagCount} tags
             </span>
@@ -262,7 +264,7 @@ export function ScanTab({
             </div>
           ) : (
             <p className="px-4 py-6 text-sm text-gray-400 dark:text-gray-500 text-center">
-              Enter valid start and end addresses to see preview
+              {t('scan.enterAddresses')}
             </p>
           )}
       </div>

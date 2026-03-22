@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@renderer/lib/utils'
 import { Wand2 } from 'lucide-react'
 import type { Protocol } from '@shared/types/connection'
@@ -24,6 +25,7 @@ export function GenerateTab({
   protocol,
   onPreviewChange,
 }: GenerateTabProps): React.ReactElement {
+  const { t } = useTranslation('modbus')
   const [namingPattern, setNamingPattern] = useState('Tag_{n}')
   const [quantity, setQuantity] = useState(10)
   const [startIndex, setStartIndex] = useState(1)
@@ -81,7 +83,7 @@ export function GenerateTab({
       {/* Naming Pattern */}
       <div className="space-y-2">
         <label htmlFor="naming-pattern" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-          Naming Pattern
+          {t('generate.namingPattern')}
         </label>
         <input
           id="naming-pattern"
@@ -105,7 +107,7 @@ export function GenerateTab({
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <label htmlFor="quantity" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            Quantity
+            {t('generate.quantity')}
           </label>
           <input
             id="quantity"
@@ -124,7 +126,7 @@ export function GenerateTab({
         </div>
         <div className="space-y-2">
           <label htmlFor="start-index" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            Start Index
+            {t('generate.startIndex')}
           </label>
           <input
             id="start-index"
@@ -217,7 +219,7 @@ export function GenerateTab({
       <div className="rounded-lg bg-gray-100 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
           <Wand2 className="w-4 h-4 text-purple-500 dark:text-purple-400" />
-          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Preview</span>
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('generate.preview')}</span>
           <span className="text-xs text-gray-500 dark:text-gray-400 ml-auto">
             {quantity} tags
           </span>
@@ -262,7 +264,7 @@ export function GenerateTab({
           </div>
         ) : (
           <p className="px-4 py-6 text-sm text-gray-400 dark:text-gray-500 text-center">
-            Enter a valid base address to see preview
+            {t('generate.enterAddress')}
           </p>
         )}
       </div>

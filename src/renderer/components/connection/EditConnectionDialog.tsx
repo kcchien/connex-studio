@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@renderer/lib/utils'
 import {
   Server,
@@ -72,6 +73,7 @@ export function EditConnectionDialog({
   onSave,
   onTestConnection,
 }: EditConnectionDialogProps): React.ReactElement {
+  const { t } = useTranslation(['connection', 'common'])
   const protocol = connection.protocol
 
   // Form state initialized from connection
@@ -212,7 +214,7 @@ export function EditConnectionDialog({
         })
         setTestResult({
           success,
-          message: success ? 'Connection successful' : 'Connection failed',
+          message: success ? t('test.success') : t('test.failed'),
         })
       } else if (protocol === 'modbus-tcp') {
         // Use IPC for actual test connection
@@ -223,19 +225,19 @@ export function EditConnectionDialog({
         })
         setTestResult({
           success: result.success,
-          message: result.success ? 'Connection successful' : result.error || 'Connection failed',
+          message: result.success ? t('test.success') : result.error || t('test.failed'),
         })
       } else {
         // Other protocols not yet implemented
         setTestResult({
           success: false,
-          message: `Test connection not implemented for ${protocol}`,
+          message: t('test.notImplemented', { protocol }),
         })
       }
     } catch (error) {
       setTestResult({
         success: false,
-        message: error instanceof Error ? error.message : 'Connection failed',
+        message: error instanceof Error ? error.message : t('test.failed'),
       })
     } finally {
       setIsTesting(false)
@@ -284,7 +286,7 @@ export function EditConnectionDialog({
           {/* Header */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
             <Dialog.Title className="text-lg font-semibold text-gray-900 dark:text-white">
-              Edit Connection
+              {t('title.edit')}
             </Dialog.Title>
             <Dialog.Close className="p-1 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white transition-colors">
               <X className="w-5 h-5" />
@@ -295,14 +297,14 @@ export function EditConnectionDialog({
           <form onSubmit={handleSubmit} className="p-6 space-y-6">
             {/* Protocol Display (readonly) */}
             <div className="space-y-3">
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Protocol</label>
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('form.protocol')}</label>
               <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
                 <Icon className={cn('w-5 h-5', protocolDisplay.color)} />
                 <span className="text-sm font-medium text-gray-900 dark:text-white">
                   {protocolDisplay.label}
                 </span>
                 <span className="ml-auto text-xs text-gray-400 dark:text-gray-500">
-                  Cannot be changed
+                  {t('form.protocol.cannotChange')}
                 </span>
               </div>
             </div>
@@ -310,7 +312,7 @@ export function EditConnectionDialog({
             {/* Connection Name */}
             <div className="space-y-2">
               <label htmlFor="edit-connection-name" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Connection Name
+                {t('form.connectionName')}
               </label>
               <input
                 id="edit-connection-name"
@@ -334,7 +336,7 @@ export function EditConnectionDialog({
                 {/* Host */}
                 <div className="col-span-2 space-y-2">
                   <label htmlFor="edit-connection-host" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Host
+                    {t('form.host')}
                   </label>
                   <input
                     id="edit-connection-host"
@@ -361,7 +363,7 @@ export function EditConnectionDialog({
                 {/* Port */}
                 <div className="space-y-2">
                   <label htmlFor="edit-connection-port" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Port
+                    {t('form.port')}
                   </label>
                   <input
                     id="edit-connection-port"
@@ -390,7 +392,7 @@ export function EditConnectionDialog({
             ) : (
               <div className="space-y-2">
                 <label htmlFor="edit-connection-address" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Address
+                  {t('form.address')}
                 </label>
                 <input
                   id="edit-connection-address"
@@ -442,14 +444,14 @@ export function EditConnectionDialog({
                   ) : (
                     <ChevronRight className="w-4 h-4" />
                   )}
-                  Advanced Options
+                  {t('form.advancedOptions')}
                 </button>
 
                 {advancedOpen && (
                   <div className="mt-4 p-4 rounded-lg bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 space-y-4">
                     <div className="space-y-2">
                       <label htmlFor="edit-unit-id" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Unit ID
+                        {t('form.unitId')}
                       </label>
                       <input
                         id="edit-unit-id"
@@ -468,7 +470,7 @@ export function EditConnectionDialog({
                     </div>
                     <div className="space-y-2">
                       <label htmlFor="edit-timeout" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Timeout (ms)
+                        {t('form.timeout')}
                       </label>
                       <input
                         id="edit-timeout"
@@ -507,7 +509,7 @@ export function EditConnectionDialog({
                   'transition-colors'
                 )}
               >
-                Cancel
+                {t('common:action.cancel')}
               </button>
               <button
                 type="button"
@@ -522,7 +524,7 @@ export function EditConnectionDialog({
                 )}
               >
                 {isTesting && <Loader2 className="w-4 h-4 animate-spin" />}
-                Test
+                {t('action.test')}
               </button>
               <button
                 type="submit"
@@ -537,7 +539,7 @@ export function EditConnectionDialog({
                 )}
               >
                 {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-                Save
+                {t('common:action.save')}
               </button>
             </div>
           </form>

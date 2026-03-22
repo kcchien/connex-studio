@@ -1,0 +1,16 @@
+{
+  "form.endpointUrl": "Endpoint URL",
+  "form.securityMode": "Security Mode",
+  "form.securityPolicy": "Security Policy",
+  "form.authentication": "Authentication",
+  "form.username": "Username",
+  "form.password": "Password",
+  "form.certificatePath": "Certificate Path (.pem)",
+  "form.privateKeyPath": "Private Key Path (.pem)",
+  "securityMode.none": "None",
+  "securityMode.sign": "Sign",
+  "securityMode.signAndEncrypt": "Sign & Encrypt",
+  "authMode.anonymous": "Anonymous",
+  "authMode.username": "Username / Password",
+  "authMode.certificate": "Certificate"
+}

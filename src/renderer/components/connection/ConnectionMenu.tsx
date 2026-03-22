@@ -3,6 +3,7 @@
  */
 
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { MoreVertical, Pencil, Trash2 } from 'lucide-react'
 import { cn } from '@renderer/lib/utils'
@@ -19,6 +20,7 @@ export function ConnectionMenu({
   onEdit,
   onDelete
 }: ConnectionMenuProps): React.ReactElement {
+  const { t } = useTranslation('common')
   const isConnected = connection.status === 'connected' || connection.status === 'connecting'
   const canDelete = !isConnected
 
@@ -64,7 +66,7 @@ export function ConnectionMenu({
             onSelect={onEdit}
           >
             <Pencil className="w-4 h-4" />
-            Edit
+            {t('action.edit')}
           </DropdownMenu.Item>
 
           <DropdownMenu.Separator className="h-px my-1 bg-gray-200 dark:bg-gray-700" />
@@ -81,7 +83,7 @@ export function ConnectionMenu({
             disabled={!canDelete}
           >
             <Trash2 className="w-4 h-4" />
-            Delete
+            {t('action.delete')}
           </DropdownMenu.Item>
         </DropdownMenu.Content>
       </DropdownMenu.Portal>

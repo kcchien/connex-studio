@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@renderer/lib/utils'
 import { Upload, FileSpreadsheet, AlertCircle, CheckCircle } from 'lucide-react'
 import type { Protocol } from '@shared/types/connection'
@@ -20,6 +21,7 @@ export function ImportTab({
   protocol,
   onPreviewChange,
 }: ImportTabProps): React.ReactElement {
+  const { t } = useTranslation('modbus')
   const [state, setState] = useState<ImportState>('idle')
   const [fileName, setFileName] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -124,18 +126,18 @@ export function ImportTab({
         {state === 'parsing' ? (
           <div className="flex flex-col items-center gap-2">
             <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-            <p className="text-sm text-gray-600 dark:text-gray-400">Parsing {fileName}...</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">{t('import.parsing', { name: fileName })}</p>
           </div>
         ) : state === 'success' ? (
           <div className="flex flex-col items-center gap-2">
             <CheckCircle className="w-10 h-10 text-green-500" />
-            <p className="text-sm text-green-600 dark:text-green-400">{parsedCount} tags found in {fileName}</p>
+            <p className="text-sm text-green-600 dark:text-green-400">{t('import.tagsFound', { count: parsedCount, name: fileName })}</p>
           </div>
         ) : state === 'error' ? (
           <div className="flex flex-col items-center gap-2">
             <AlertCircle className="w-10 h-10 text-red-500" />
             <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
-            <p className="text-xs text-gray-500">Click or drop to try again</p>
+            <p className="text-xs text-gray-500">{t('import.tryAgain')}</p>
           </div>
         ) : (
           <div className="flex flex-col items-center gap-2">
@@ -144,9 +146,9 @@ export function ImportTab({
               state === 'dragging' ? 'text-blue-400' : 'text-gray-400 dark:text-gray-500'
             )} />
             <p className="text-sm text-gray-700 dark:text-gray-300">
-              Drag & drop CSV or Excel file here
+              {t('import.dragDrop')}
             </p>
-            <p className="text-xs text-gray-500">or click to browse</p>
+            <p className="text-xs text-gray-500">{t('import.browse')}</p>
           </div>
         )}
       </div>
@@ -155,11 +157,11 @@ export function ImportTab({
       <div className="flex items-start gap-3 p-3 rounded-lg bg-gray-100 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700">
         <FileSpreadsheet className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0 mt-0.5" />
         <div>
-          <p className="text-sm text-gray-700 dark:text-gray-300">Supported formats</p>
+          <p className="text-sm text-gray-700 dark:text-gray-300">{t('import.supportedFormats')}</p>
           <p className="text-xs text-gray-500 mt-1">
-            CSV with columns: name, address, dataType, unit (optional)
+            {t('import.formatHelp')}
             <br />
-            Excel with same column structure
+            {t('import.formatHelpExcel')}
           </p>
         </div>
       </div>

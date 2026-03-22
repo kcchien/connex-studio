@@ -6,6 +6,7 @@
  */
 
 import React, { useState, useCallback, memo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Play, Pause, Settings, Loader2, RefreshCw } from 'lucide-react'
 import * as Label from '@radix-ui/react-label'
 import { cn } from '@renderer/lib/utils'
@@ -63,6 +64,7 @@ export const PollingControls = memo(function PollingControls({
   disabled = false,
   disabledMessage = 'Connect to enable polling'
 }: PollingControlsProps): React.ReactElement {
+  const { t } = useTranslation('modbus')
   const [showSettings, setShowSettings] = useState(false)
   const [intervalMs, setIntervalMs] = useState(DEFAULT_POLLING_INTERVAL_MS)
 
@@ -122,7 +124,7 @@ export const PollingControls = memo(function PollingControls({
           ) : (
             <Play className="h-4 w-4" />
           )}
-          <span>{isPolling ? 'Stop' : 'Start'}</span>
+          <span>{isPolling ? t('polling.stop') : t('polling.start')}</span>
         </button>
 
         {/* Status display */}
@@ -132,17 +134,17 @@ export const PollingControls = memo(function PollingControls({
               {/* Polling indicator */}
               <div className="flex items-center gap-2">
                 <RefreshCw className="h-4 w-4 text-green-500 animate-spin" />
-                <span className="text-muted-foreground">Polling</span>
+                <span className="text-muted-foreground">{t('polling.polling')}</span>
               </div>
 
               {/* Interval */}
               <div className="text-muted-foreground">
-                <span className="font-medium text-foreground">{currentInterval}ms</span> interval
+                <span className="font-medium text-foreground">{currentInterval}ms</span> {t('polling.interval')}
               </div>
 
               {/* Tag count */}
               <div className="text-muted-foreground">
-                <span className="font-medium text-foreground">{tagCount}</span> tags
+                <span className="font-medium text-foreground">{tagCount}</span> {t('polling.tags')}
               </div>
 
               {/* Last poll */}
@@ -153,7 +155,7 @@ export const PollingControls = memo(function PollingControls({
           )}
 
           {!isPolling && !disabled && (
-            <span className="text-muted-foreground">Polling stopped</span>
+            <span className="text-muted-foreground">{t('polling.stopped')}</span>
           )}
 
           {disabled && (
@@ -195,7 +197,7 @@ export const PollingControls = memo(function PollingControls({
             {/* Interval selection */}
             <div className="space-y-1.5">
               <Label.Root className="text-xs font-medium text-muted-foreground">
-                Polling Interval
+                {t('polling.pollingInterval')}
               </Label.Root>
 
               {/* Preset buttons */}
@@ -247,7 +249,7 @@ export const PollingControls = memo(function PollingControls({
       {showSettings && isPolling && (
         <div className="px-3 pb-3 pt-1 border-t border-border">
           <p className="text-xs text-muted-foreground">
-            Stop polling to change settings
+            {t('polling.stopToChange')}
           </p>
         </div>
       )}

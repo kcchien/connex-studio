@@ -6,6 +6,7 @@
  */
 
 import React, { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Trash2, X, CheckSquare } from 'lucide-react'
 import { cn } from '@renderer/lib/utils'
 import { useTagStore } from '@renderer/stores/tagStore'
@@ -29,6 +30,7 @@ export function TagBatchActions({
   onDelete,
   className
 }: TagBatchActionsProps): React.ReactElement | null {
+  const { t } = useTranslation(['modbus', 'common'])
   const selectedTagIds = useTagStore((state) => state.selectedTagIds)
   const getTags = useTagStore((state) => state.getTags)
   const clearSelection = useTagStore((state) => state.clearSelection)
@@ -75,7 +77,7 @@ export function TagBatchActions({
       <div className="flex items-center gap-2 text-sm font-medium text-blue-600 dark:text-blue-400">
         <CheckSquare className="h-4 w-4" />
         <span data-testid="selected-count">
-          {selectedCount} selected
+          {t('tag.selected', { count: selectedCount })}
         </span>
       </div>
 
@@ -97,7 +99,7 @@ export function TagBatchActions({
           data-testid="batch-delete-button"
         >
           <Trash2 className="h-4 w-4" />
-          Delete
+          {t('common:action.delete')}
         </button>
 
         {/* Cancel button */}
@@ -115,7 +117,7 @@ export function TagBatchActions({
           data-testid="batch-cancel-button"
         >
           <X className="h-4 w-4" />
-          Cancel
+          {t('common:action.cancel')}
         </button>
       </div>
     </div>

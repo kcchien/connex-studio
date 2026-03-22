@@ -5,6 +5,7 @@
  */
 
 import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useConnectionStore } from '@renderer/stores/connectionStore'
 import { useConnection } from '@renderer/hooks/useConnection'
 import { ConnectionCard } from './ConnectionCard'
@@ -18,6 +19,7 @@ import type { Connection, ConnectionUpdates } from '@shared/types/connection'
  * Handles connection selection via store.
  */
 export function ConnectionList(): React.ReactElement {
+  const { t } = useTranslation('connection')
   const connections = useConnectionStore((state) => state.connections)
   const selectedConnectionId = useConnectionStore((state) => state.selectedConnectionId)
   const setSelected = useConnectionStore((state) => state.setSelected)
@@ -44,7 +46,7 @@ export function ConnectionList(): React.ReactElement {
   if (connections.length === 0) {
     return (
       <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">
-        No connections yet
+        {t('empty')}
       </div>
     )
   }

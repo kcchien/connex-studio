@@ -1,4 +1,5 @@
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@renderer/lib/utils'
 import { Loader2 } from 'lucide-react'
 
@@ -14,29 +15,29 @@ export interface ConnectionStatusIndicatorProps {
 const statusConfig: Record<ConnectionStatus, {
   color: string
   bgColor: string
-  label: string
+  labelKey: string
   pulseColor?: string
 }> = {
   connected: {
     color: 'text-green-500',
     bgColor: 'bg-green-500',
-    label: 'Connected',
+    labelKey: 'connection:status.connected',
   },
   connecting: {
     color: 'text-yellow-500',
     bgColor: 'bg-yellow-500',
-    label: 'Connecting',
+    labelKey: 'connection:status.connecting',
     pulseColor: 'animate-pulse',
   },
   disconnected: {
     color: 'text-gray-400',
     bgColor: 'bg-gray-400',
-    label: 'Disconnected',
+    labelKey: 'connection:status.disconnected',
   },
   error: {
     color: 'text-red-500',
     bgColor: 'bg-red-500',
-    label: 'Error',
+    labelKey: 'connection:status.error',
   },
 }
 
@@ -73,6 +74,7 @@ export function ConnectionStatusIndicator({
   size = 'md',
   className,
 }: ConnectionStatusIndicatorProps): React.ReactElement {
+  const { t } = useTranslation('connection')
   const config = statusConfig[status]
   const sizeStyles = sizeConfig[size]
 
@@ -112,7 +114,7 @@ export function ConnectionStatusIndicator({
             config.color
           )}
         >
-          {config.label}
+          {t(config.labelKey)}
         </span>
       )}
     </div>

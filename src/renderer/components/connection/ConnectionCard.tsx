@@ -4,6 +4,7 @@
  */
 
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 import { Plug, Unplug } from 'lucide-react'
 import { cn } from '@renderer/lib/utils'
 import { useConnection } from '@renderer/hooks/useConnection'
@@ -37,16 +38,16 @@ function getStatusColorClass(status: ConnectionStatus): string {
 }
 
 /**
- * Maps connection status to human-readable label.
+ * Maps connection status to i18n key.
  */
-function getStatusLabel(status: ConnectionStatus): string {
-  const labels: Record<ConnectionStatus, string> = {
-    connected: 'Connected',
-    connecting: 'Connecting...',
-    disconnected: 'Disconnected',
-    error: 'Error'
+function getStatusKey(status: ConnectionStatus): string {
+  const keys: Record<ConnectionStatus, string> = {
+    connected: 'connection:status.connected',
+    connecting: 'connection:status.connecting',
+    disconnected: 'connection:status.disconnected',
+    error: 'connection:status.error'
   }
-  return labels[status]
+  return keys[status]
 }
 
 /**
@@ -105,6 +106,7 @@ export function ConnectionCard({
   onEditRequest,
   onDeleteRequest
 }: ConnectionCardProps): React.ReactElement {
+  const { t } = useTranslation(['connection', 'common'])
   const { connect, disconnect, isLoading } = useConnection()
 
   const { id, name, protocol, status, lastError } = connection
@@ -157,7 +159,7 @@ export function ConnectionCard({
               getStatusColorClass(status),
               status === 'connecting' && 'animate-pulse'
             )}
-            title={getStatusLabel(status)}
+            title={t(getStatusKey(status))}
           />
         </div>
       </div>
@@ -193,10 +195,10 @@ export function ConnectionCard({
                 'bg-primary text-primary-foreground hover:bg-primary/90',
                 'disabled:opacity-50 disabled:cursor-not-allowed'
               )}
-              title="Connect"
+              title={t('common:action.connect')}
             >
               <Plug className="w-4 h-4" />
-              Connect
+              {t('common:action.connect')}
             </button>
           )}
 
@@ -211,10 +213,10 @@ export function ConnectionCard({
                 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
                 'disabled:opacity-50 disabled:cursor-not-allowed'
               )}
-              title="Disconnect"
+              title={t('common:action.disconnect')}
             >
               <Unplug className="w-4 h-4" />
-              Disconnect
+              {t('common:action.disconnect')}
             </button>
           )}
         </div>

@@ -1,0 +1,20 @@
+{
+  "form.brokerUrl": "Broker URL",
+  "form.clientId": "Client ID",
+  "form.username": "Username (optional)",
+  "form.password": "Password (optional)",
+  "form.useTls": "Use TLS (mqtts://)",
+  "form.cleanSession": "Clean Session",
+  "form.willMessage": "Will Message (optional)",
+  "form.willTopic": "Topic",
+  "form.willPayload": "Payload",
+  "form.willQos": "QoS",
+  "form.willRetain": "Retain",
+  "form.topic": "Topic",
+  "form.topicHint": "Supports MQTT wildcards: + (single level), # (multi-level)",
+  "form.jsonPath": "JSON Path (optional)",
+  "form.jsonPathHint": "Extract value from JSON payload, e.g., data.values[0].temp",
+  "qos.0": "0 - At most once",
+  "qos.1": "1 - At least once",
+  "qos.2": "2 - Exactly once"
+}

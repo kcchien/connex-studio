@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@renderer/lib/utils'
 import {
   Server,
@@ -91,6 +92,7 @@ export function NewConnectionDialog({
   onSubmit,
   onTestConnection,
 }: NewConnectionDialogProps): React.ReactElement {
+  const { t } = useTranslation(['connection', 'common'])
   const [protocol, setProtocol] = useState<Protocol>('modbus-tcp')
   const [name, setName] = useState('')
   // Separate host and port fields for Modbus TCP
@@ -224,7 +226,7 @@ export function NewConnectionDialog({
         const success = await onTestConnection(formData)
         setTestResult({
           success,
-          message: success ? 'Connection successful' : 'Connection failed',
+          message: success ? t('test.success') : t('test.failed'),
         })
       } else if (protocol === 'modbus-tcp') {
         // Use IPC for actual test connection
@@ -235,19 +237,19 @@ export function NewConnectionDialog({
         })
         setTestResult({
           success: result.success,
-          message: result.success ? 'Connection successful' : result.error || 'Connection failed',
+          message: result.success ? t('test.success') : result.error || t('test.failed'),
         })
       } else {
         // Other protocols not yet implemented
         setTestResult({
           success: false,
-          message: `Test connection not implemented for ${protocol}`,
+          message: t('test.notImplemented', { protocol }),
         })
       }
     } catch (error) {
       setTestResult({
         success: false,
-        message: error instanceof Error ? error.message : 'Connection failed',
+        message: error instanceof Error ? error.message : t('test.failed'),
       })
     } finally {
       setIsTesting(false)
@@ -300,7 +302,7 @@ export function NewConnectionDialog({
           {/* Header */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
             <Dialog.Title className="text-lg font-semibold text-gray-900 dark:text-white">
-              New Connection
+              {t('title.new')}
             </Dialog.Title>
             <Dialog.Close className="p-1 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white transition-colors">
               <X className="w-5 h-5" />
@@ -311,7 +313,7 @@ export function NewConnectionDialog({
           <form onSubmit={handleSubmit} className="p-6 space-y-6">
             {/* Protocol Selection */}
             <div className="space-y-3">
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Protocol</label>
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('form.protocol')}</label>
               <div className="grid grid-cols-3 gap-3">
                 {protocolOptions.map((opt) => {
                   const Icon = opt.icon
@@ -343,7 +345,7 @@ export function NewConnectionDialog({
             {/* Connection Name */}
             <div className="space-y-2">
               <label htmlFor="connection-name" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Connection Name
+                {t('form.connectionName')}
               </label>
               <input
                 id="connection-name"
@@ -367,7 +369,7 @@ export function NewConnectionDialog({
                 {/* Host */}
                 <div className="col-span-2 space-y-2">
                   <label htmlFor="connection-host" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Host
+                    {t('form.host')}
                   </label>
                   <input
                     id="connection-host"
@@ -394,7 +396,7 @@ export function NewConnectionDialog({
                 {/* Port */}
                 <div className="space-y-2">
                   <label htmlFor="connection-port" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Port
+                    {t('form.port')}
                   </label>
                   <input
                     id="connection-port"
@@ -423,7 +425,7 @@ export function NewConnectionDialog({
             ) : (
               <div className="space-y-2">
                 <label htmlFor="connection-address" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Address
+                  {t('form.address')}
                 </label>
                 <input
                   id="connection-address"
@@ -474,7 +476,7 @@ export function NewConnectionDialog({
                 ) : (
                   <ChevronRight className="w-4 h-4" />
                 )}
-                Advanced Options
+                {t('form.advancedOptions')}
               </button>
 
               {advancedOpen && (
@@ -483,7 +485,7 @@ export function NewConnectionDialog({
                     <>
                       <div className="space-y-2">
                         <label htmlFor="unit-id" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                          Unit ID
+                          {t('form.unitId')}
                         </label>
                         <input
                           id="unit-id"
@@ -502,7 +504,7 @@ export function NewConnectionDialog({
                       </div>
                       <div className="space-y-2">
                         <label htmlFor="timeout" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                          Timeout (ms)
+                          {t('form.timeout')}
                         </label>
                         <input
                           id="timeout"
@@ -542,7 +544,7 @@ export function NewConnectionDialog({
                   'transition-colors'
                 )}
               >
-                Cancel
+                {t('common:action.cancel')}
               </button>
               <button
                 type="button"
@@ -557,7 +559,7 @@ export function NewConnectionDialog({
                 )}
               >
                 {isTesting && <Loader2 className="w-4 h-4 animate-spin" />}
-                Test
+                {t('action.test')}
               </button>
               <button
                 type="submit"
@@ -572,7 +574,7 @@ export function NewConnectionDialog({
                 )}
               >
                 {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-                Connect
+                {t('common:action.connect')}
               </button>
             </div>
           </form>

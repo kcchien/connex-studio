@@ -11,6 +11,7 @@
  */
 
 import React, { useState, useCallback, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   AlertTriangle,
   X,
@@ -234,6 +235,7 @@ export function ModbusWriteDialog({
   currentValue,
   className
 }: ModbusWriteDialogProps): React.ReactElement | null {
+  const { t } = useTranslation(['modbus', 'common'])
   const [skipConfirmation, setSkipConfirmation] = useState(false)
 
   // Determine initial value based on data type
@@ -312,10 +314,10 @@ export function ModbusWriteDialog({
           <Pencil className="h-6 w-6 text-blue-500 flex-shrink-0" />
           <div className="flex-1">
             <h2 id="modbus-write-title" className="text-lg font-semibold">
-              Write Modbus Value
+              {t('write.title')}
             </h2>
             <p className="text-sm text-muted-foreground mt-1">
-              Write a new value to the selected register.
+              {t('write.description')}
             </p>
           </div>
           <button
@@ -331,24 +333,24 @@ export function ModbusWriteDialog({
         <div className="space-y-3 mb-4">
           <div className="bg-muted/50 rounded-md p-3 space-y-2">
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Tag</span>
+              <span className="text-muted-foreground">{t('write.tag')}</span>
               <span className="font-medium truncate max-w-[200px]" title={tagName}>
                 {tagName}
               </span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Address</span>
+              <span className="text-muted-foreground">{t('write.address')}</span>
               <span className="font-mono text-xs">
                 {formatAddress(address)}
               </span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Data Type</span>
+              <span className="text-muted-foreground">{t('write.dataType')}</span>
               <span className="font-medium">{DATA_TYPE_INFO[dataType].label}</span>
             </div>
             {showByteOrder && (
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Byte Order</span>
+                <span className="text-muted-foreground">{t('write.byteOrder')}</span>
                 <span className="font-mono text-xs">{address.byteOrder}</span>
               </div>
             )}
@@ -356,7 +358,7 @@ export function ModbusWriteDialog({
 
           {/* Current Value */}
           <div>
-            <span className="text-sm text-muted-foreground">Current Value</span>
+            <span className="text-sm text-muted-foreground">{t('write.currentValue')}</span>
             <div className="mt-1 p-2 bg-muted/30 rounded text-sm font-mono">
               {formatValue(currentValue)}
             </div>
@@ -364,7 +366,7 @@ export function ModbusWriteDialog({
 
           {/* New Value Input */}
           <div>
-            <span className="text-sm text-muted-foreground">New Value</span>
+            <span className="text-sm text-muted-foreground">{t('write.newValue')}</span>
             <div className="mt-1">
               {isMultiCoil(address) ? (
                 <MultiCoilInput
@@ -396,7 +398,7 @@ export function ModbusWriteDialog({
           {valueChanged && (
             <div className="flex items-center gap-2 text-xs text-amber-500">
               <AlertTriangle className="h-3.5 w-3.5" />
-              <span>Value will be changed</span>
+              <span>{t('write.valueChanged')}</span>
             </div>
           )}
         </div>
@@ -410,7 +412,7 @@ export function ModbusWriteDialog({
             className="rounded border-muted-foreground"
           />
           <span className="text-muted-foreground">
-            Don&apos;t ask again for this session
+            {t('write.skipConfirmation')}
           </span>
         </label>
 
@@ -420,7 +422,7 @@ export function ModbusWriteDialog({
             onClick={onClose}
             className="px-4 py-2 text-sm rounded-md hover:bg-muted"
           >
-            Cancel
+            {t('common:action.cancel')}
           </button>
           <button
             onClick={handleConfirm}
@@ -430,7 +432,7 @@ export function ModbusWriteDialog({
             )}
           >
             <Check className="h-4 w-4" />
-            Write Value
+            {t('write.confirm')}
           </button>
         </div>
       </div>

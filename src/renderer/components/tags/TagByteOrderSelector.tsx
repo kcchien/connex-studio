@@ -6,6 +6,7 @@
  */
 
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 import * as Label from '@radix-ui/react-label'
 import { cn } from '@renderer/lib/utils'
 import type { ByteOrder } from '@shared/types'
@@ -30,6 +31,7 @@ export function TagByteOrderSelector({
   disabled = false,
   className
 }: TagByteOrderSelectorProps): React.ReactElement {
+  const { t } = useTranslation('modbus')
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>): void => {
     const selected = e.target.value
     if (selected === '') {
@@ -45,7 +47,7 @@ export function TagByteOrderSelector({
         htmlFor="tag-byte-order"
         className="text-xs font-medium text-muted-foreground"
       >
-        Byte Order
+        {t('tag.byteOrder')}
       </Label.Root>
       <select
         id="tag-byte-order"
@@ -59,7 +61,7 @@ export function TagByteOrderSelector({
           'disabled:opacity-50 disabled:cursor-not-allowed'
         )}
       >
-        <option value="">Connection Default</option>
+        <option value="">{t('tag.byteOrderDefault')}</option>
         {BYTE_ORDERS.map((order) => {
           const info = BYTE_ORDER_INFO[order]
           return (
@@ -70,7 +72,7 @@ export function TagByteOrderSelector({
         })}
       </select>
       <p className="text-xs text-muted-foreground">
-        Override connection's byte order for this tag
+        {t('tag.byteOrderHint')}
       </p>
     </div>
   )

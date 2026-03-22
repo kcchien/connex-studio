@@ -6,6 +6,7 @@
  */
 
 import React, { useState, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { AlertTriangle, Loader2 } from 'lucide-react'
 import { cn } from '@renderer/lib/utils'
 import { useTagStore } from '@renderer/stores/tagStore'
@@ -31,6 +32,7 @@ export function DeleteTagsDialog({
   onClose,
   onDeleted
 }: DeleteTagsDialogProps): React.ReactElement | null {
+  const { t } = useTranslation(['modbus', 'common'])
   const [isDeleting, setIsDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -132,13 +134,13 @@ export function DeleteTagsDialog({
               id="delete-dialog-title"
               className="text-lg font-semibold text-foreground"
             >
-              Delete {count} {count === 1 ? 'tag' : 'tags'}?
+              {t('tag.deleteTags.title', { count })}
             </h2>
             <p
               id="delete-dialog-description"
               className="mt-2 text-sm text-muted-foreground"
             >
-              This action cannot be undone. The selected {count === 1 ? 'tag' : 'tags'} will be permanently deleted.
+              {t('tag.deleteTags.message', { count })}
             </p>
           </div>
         </div>
@@ -168,7 +170,7 @@ export function DeleteTagsDialog({
             )}
             data-testid="delete-dialog-cancel"
           >
-            Cancel
+            {t('common:action.cancel')}
           </button>
           <button
             type="button"
@@ -188,10 +190,10 @@ export function DeleteTagsDialog({
             {isDeleting ? (
               <span className="flex items-center gap-2">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Deleting...
+                {t('tag.deleteTags.deleting')}
               </span>
             ) : (
-              'Delete'
+              t('common:action.delete')
             )}
           </button>
         </div>

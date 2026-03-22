@@ -6,6 +6,7 @@
  */
 
 import React, { useMemo, useCallback, useState, memo, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useVirtualizer, type VirtualItem } from '@tanstack/react-virtual'
 import {
   TrendingUp,
@@ -373,6 +374,7 @@ export function TagGrid({
   onWriteTag,
   className
 }: TagGridProps): React.ReactElement {
+  const { t } = useTranslation('modbus')
   const getTags = useTagStore((state) => state.getTags)
   const displayStates = useTagStore((state) => state.displayStates)
   const connections = useConnectionStore((state) => state.connections)
@@ -509,8 +511,8 @@ export function TagGrid({
     return (
       <div className={cn('flex items-center justify-center h-48 text-muted-foreground', className)}>
         <div className="text-center">
-          <p className="text-sm">No tags configured</p>
-          <p className="text-xs mt-1">Add a tag to start monitoring</p>
+          <p className="text-sm">{t('tag.noTags')}</p>
+          <p className="text-xs mt-1">{t('tag.addTagHint')}</p>
         </div>
       </div>
     )
@@ -545,13 +547,13 @@ export function TagGrid({
         </button>
         <div className="w-2.5" /> {/* Status dot */}
         <div className="w-4" /> {/* Alarm */}
-        <div className="flex-1">Name</div>
-        <div className="w-20">Type</div>
-        <div className="w-[100px] text-center">Trend</div>
-        <div className="w-28 text-right">Value</div>
+        <div className="flex-1">{t('tag.gridName')}</div>
+        <div className="w-20">{t('tag.gridType')}</div>
+        <div className="w-[100px] text-center">{t('tag.gridTrend')}</div>
+        <div className="w-28 text-right">{t('tag.gridValue')}</div>
         <div className="w-6" /> {/* Trend icon */}
-        <div className="w-16 text-center">Quality</div>
-        <div className="w-16 text-center">Actions</div>
+        <div className="w-16 text-center">{t('tag.gridQuality')}</div>
+        <div className="w-16 text-center">{t('tag.gridActions')}</div>
       </div>
 
       {/* Virtualized list - use flex-1 to fill available space, min-h for minimum */}

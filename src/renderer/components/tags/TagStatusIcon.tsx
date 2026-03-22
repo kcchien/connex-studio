@@ -6,6 +6,7 @@
  */
 
 import React, { memo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Circle, AlertTriangle, XCircle, Clock, Loader2 } from 'lucide-react'
 import { cn } from '@renderer/lib/utils'
 
@@ -29,50 +30,50 @@ const STATUS_CONFIG: Record<TagStatus, {
   icon: React.ComponentType<{ className?: string }>
   color: string
   bgColor: string
-  label: string
-  description: string
+  labelKey: string
+  descriptionKey: string
 }> = {
   normal: {
     icon: Circle,
     color: 'text-green-500',
     bgColor: 'bg-green-500',
-    label: 'Normal',
-    description: 'Tag is reading successfully',
+    labelKey: 'tag.status.normal',
+    descriptionKey: 'tag.status.normal.desc',
   },
   timeout: {
     icon: Clock,
     color: 'text-amber-500',
     bgColor: 'bg-amber-500',
-    label: 'Timeout',
-    description: 'Tag read timed out',
+    labelKey: 'tag.status.timeout',
+    descriptionKey: 'tag.status.timeout.desc',
   },
   error: {
     icon: XCircle,
     color: 'text-red-500',
     bgColor: 'bg-red-500',
-    label: 'Error',
-    description: 'Tag read failed',
+    labelKey: 'tag.status.error',
+    descriptionKey: 'tag.status.error.desc',
   },
   stale: {
     icon: Circle,
     color: 'text-gray-400',
     bgColor: 'bg-gray-400',
-    label: 'Stale',
-    description: 'No recent data',
+    labelKey: 'tag.status.stale',
+    descriptionKey: 'tag.status.stale.desc',
   },
   loading: {
     icon: Loader2,
     color: 'text-blue-500',
     bgColor: 'bg-blue-500',
-    label: 'Loading',
-    description: 'Reading tag value...',
+    labelKey: 'tag.status.loading',
+    descriptionKey: 'tag.status.loading.desc',
   },
   disabled: {
     icon: Circle,
     color: 'text-gray-300',
     bgColor: 'bg-gray-300',
-    label: 'Disabled',
-    description: 'Tag is disabled',
+    labelKey: 'tag.status.disabled',
+    descriptionKey: 'tag.status.disabled.desc',
   },
 }
 
@@ -94,11 +95,12 @@ export const TagStatusIcon = memo(function TagStatusIcon({
   showTooltip = true,
   className,
 }: TagStatusIconProps): React.ReactElement {
+  const { t } = useTranslation('modbus')
   const config = STATUS_CONFIG[status]
   const Icon = config.icon
   const sizeClass = SIZE_CLASSES[size]
 
-  const tooltipContent = message || config.description
+  const tooltipContent = message || t(config.descriptionKey)
 
   // For loading status, use animated spinner
   const isLoading = status === 'loading'
@@ -117,7 +119,7 @@ export const TagStatusIcon = memo(function TagStatusIcon({
             config.bgColor,
             size === 'sm' ? 'h-2 w-2' : size === 'md' ? 'h-2.5 w-2.5' : 'h-3 w-3'
           )}
-          aria-label={config.label}
+          aria-label={t(config.labelKey)}
         />
       ) : (
         <Icon
@@ -126,7 +128,7 @@ export const TagStatusIcon = memo(function TagStatusIcon({
             config.color,
             isLoading && 'animate-spin'
           )}
-          aria-label={config.label}
+          aria-label={t(config.labelKey)}
         />
       )}
     </div>
@@ -148,6 +150,7 @@ export const TagStatusBadge = memo(function TagStatusBadge({
   showLabel = true,
   className,
 }: TagStatusBadgeProps): React.ReactElement {
+  const { t } = useTranslation('modbus')
   const config = STATUS_CONFIG[status]
 
   return (
@@ -163,11 +166,11 @@ export const TagStatusBadge = memo(function TagStatusBadge({
         status === 'disabled' && 'bg-gray-500/10 text-gray-500',
         className
       )}
-      title={message || config.description}
+      title={message || t(config.descriptionKey)}
       data-testid={`tag-status-badge-${status}`}
     >
       <TagStatusIcon status={status} size={size} showTooltip={false} />
-      {showLabel && <span>{config.label}</span>}
+      {showLabel && <span>{t(config.labelKey)}</span>}
     </div>
   )
 })

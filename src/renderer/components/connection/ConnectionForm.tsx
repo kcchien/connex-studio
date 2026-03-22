@@ -1,4 +1,5 @@
 import React, { useState, useCallback, type FormEvent } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ChevronDown, ChevronRight, Plus, Loader2, Radio, Wifi, Network } from 'lucide-react'
 import * as Label from '@radix-ui/react-label'
 import { cn } from '@renderer/lib/utils'
@@ -129,6 +130,7 @@ export function ConnectionForm({
   onCreated,
   className
 }: ConnectionFormProps): React.ReactElement {
+  const { t } = useTranslation(['connection', 'common', 'mqtt', 'opcua'])
   const [isExpanded, setIsExpanded] = useState(false)
   const [formState, setFormState] = useState<FormState>(initialFormState)
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({})
@@ -339,7 +341,7 @@ export function ConnectionForm({
           <ChevronRight className="h-4 w-4 text-muted-foreground" />
         )}
         <Plus className="h-4 w-4 text-muted-foreground" />
-        <span>New Connection</span>
+        <span>{t('title.new')}</span>
       </button>
 
       {/* Form Content */}
@@ -351,7 +353,7 @@ export function ConnectionForm({
               htmlFor="connection-name"
               className="text-xs font-medium text-muted-foreground"
             >
-              Connection Name
+              {t('form.connectionName')}
             </Label.Root>
             <input
               id="connection-name"
@@ -377,7 +379,7 @@ export function ConnectionForm({
           {/* Protocol Selector */}
           <div className="space-y-1.5">
             <Label.Root className="text-xs font-medium text-muted-foreground">
-              Protocol
+              {t('form.protocol')}
             </Label.Root>
             <div className="grid grid-cols-3 gap-2">
               {PROTOCOL_OPTIONS.map((option) => {
@@ -417,7 +419,7 @@ export function ConnectionForm({
                     htmlFor="connection-host"
                     className="text-xs font-medium text-muted-foreground"
                   >
-                    Host
+                    {t('form.host')}
                   </Label.Root>
                   <input
                     id="connection-host"
@@ -445,7 +447,7 @@ export function ConnectionForm({
                     htmlFor="connection-port"
                     className="text-xs font-medium text-muted-foreground"
                   >
-                    Port
+                    {t('form.port')}
                   </Label.Root>
                   <input
                     id="connection-port"
@@ -478,7 +480,7 @@ export function ConnectionForm({
                     htmlFor="connection-unit-id"
                     className="text-xs font-medium text-muted-foreground"
                   >
-                    Unit ID
+                    {t('form.unitId')}
                   </Label.Root>
                   <input
                     id="connection-unit-id"
@@ -508,7 +510,7 @@ export function ConnectionForm({
                     htmlFor="connection-timeout"
                     className="text-xs font-medium text-muted-foreground"
                   >
-                    Timeout (ms)
+                    {t('form.timeout')}
                   </Label.Root>
                   <input
                     id="connection-timeout"
@@ -544,7 +546,7 @@ export function ConnectionForm({
                   htmlFor="connection-broker-url"
                   className="text-xs font-medium text-muted-foreground"
                 >
-                  Broker URL
+                  {t('mqtt:form.brokerUrl')}
                 </Label.Root>
                 <input
                   id="connection-broker-url"
@@ -573,7 +575,7 @@ export function ConnectionForm({
                   htmlFor="connection-client-id"
                   className="text-xs font-medium text-muted-foreground"
                 >
-                  Client ID
+                  {t('mqtt:form.clientId')}
                 </Label.Root>
                 <input
                   id="connection-client-id"
@@ -603,7 +605,7 @@ export function ConnectionForm({
                     htmlFor="connection-username"
                     className="text-xs font-medium text-muted-foreground"
                   >
-                    Username (optional)
+                    {t('mqtt:form.username')}
                   </Label.Root>
                   <input
                     id="connection-username"
@@ -627,7 +629,7 @@ export function ConnectionForm({
                     htmlFor="connection-password"
                     className="text-xs font-medium text-muted-foreground"
                   >
-                    Password (optional)
+                    {t('mqtt:form.password')}
                   </Label.Root>
                   <input
                     id="connection-password"
@@ -658,7 +660,7 @@ export function ConnectionForm({
                   className="h-4 w-4 rounded border-input"
                 />
                 <Label.Root htmlFor="connection-use-tls" className="text-sm text-foreground">
-                  Use TLS (mqtts://)
+                  {t('mqtt:form.useTls')}
                 </Label.Root>
               </div>
 
@@ -673,7 +675,7 @@ export function ConnectionForm({
                   className="h-4 w-4 rounded border-input"
                 />
                 <Label.Root htmlFor="connection-clean-session" className="text-sm text-foreground">
-                  Clean Session
+                  {t('mqtt:form.cleanSession')}
                 </Label.Root>
               </div>
 
@@ -685,7 +687,7 @@ export function ConnectionForm({
                   'flex items-center gap-1'
                 )}>
                   <ChevronRight className="h-3 w-3 group-open:rotate-90 transition-transform" />
-                  Will Message (optional)
+                  {t('mqtt:form.willMessage')}
                 </summary>
                 <div className="mt-2 space-y-2 pl-4">
                   {/* Will Topic */}
@@ -792,7 +794,7 @@ export function ConnectionForm({
                   htmlFor="connection-endpoint-url"
                   className="text-xs font-medium text-muted-foreground"
                 >
-                  Endpoint URL
+                  {t('opcua:form.endpointUrl')}
                 </Label.Root>
                 <input
                   id="connection-endpoint-url"
@@ -822,7 +824,7 @@ export function ConnectionForm({
                     htmlFor="connection-security-mode"
                     className="text-xs font-medium text-muted-foreground"
                   >
-                    Security Mode
+                    {t('opcua:form.securityMode')}
                   </Label.Root>
                   <select
                     id="connection-security-mode"
@@ -854,7 +856,7 @@ export function ConnectionForm({
                     htmlFor="connection-security-policy"
                     className="text-xs font-medium text-muted-foreground"
                   >
-                    Security Policy
+                    {t('opcua:form.securityPolicy')}
                   </Label.Root>
                   <select
                     id="connection-security-policy"
@@ -883,7 +885,7 @@ export function ConnectionForm({
                   htmlFor="connection-opcua-auth-mode"
                   className="text-xs font-medium text-muted-foreground"
                 >
-                  Authentication
+                  {t('opcua:form.authentication')}
                 </Label.Root>
                 <select
                   id="connection-opcua-auth-mode"
@@ -1034,12 +1036,12 @@ export function ConnectionForm({
             {isLoading ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Creating...</span>
+                <span>{t('action.creating')}</span>
               </>
             ) : (
               <>
                 <SelectedProtocolIcon className="h-4 w-4" />
-                <span>Create Connection</span>
+                <span>{t('action.createConnection')}</span>
               </>
             )}
           </button>

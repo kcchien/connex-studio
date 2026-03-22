@@ -6,6 +6,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { X, Save, Trash2, AlertTriangle, RefreshCw, Loader2, Clock, XCircle } from 'lucide-react'
 import { cn } from '@renderer/lib/utils'
 import { useTagStore, type TagDisplayState } from '@renderer/stores/tagStore'
@@ -63,6 +64,7 @@ export function TagDetailPanel({
   onRetry,
   className
 }: TagDetailPanelProps): React.ReactElement | null {
+  const { t } = useTranslation(['modbus', 'common'])
   const updateTag = useTagStore((state) => state.updateTag)
   const clearTagError = useTagStore((state) => state.clearTagError)
   const [isRetrying, setIsRetrying] = useState(false)
@@ -308,7 +310,7 @@ export function TagDetailPanel({
       >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-          <h2 className="text-lg font-semibold text-foreground">Tag Details</h2>
+          <h2 className="text-lg font-semibold text-foreground">{t('tag.details')}</h2>
           <button
             type="button"
             onClick={handleClose}
@@ -330,7 +332,7 @@ export function TagDetailPanel({
           {/* Current value display */}
           <div className="p-4 rounded-lg bg-muted/50 border border-border">
             <div className="flex items-center justify-between">
-              <div className="text-sm text-muted-foreground">Current Value</div>
+              <div className="text-sm text-muted-foreground">{t('tag.currentValue')}</div>
               {displayState?.status && (
                 <TagStatusBadge status={displayState.status} size="sm" />
               )}
@@ -418,7 +420,7 @@ export function TagDetailPanel({
                     data-testid="tag-retry-button"
                   >
                     <RefreshCw className={cn('h-3 w-3', isRetrying && 'animate-spin')} />
-                    {isRetrying ? 'Retrying...' : 'Retry Now'}
+                    {isRetrying ? t('tag.retrying') : t('tag.retryNow')}
                   </button>
                 </div>
               </div>
@@ -430,7 +432,7 @@ export function TagDetailPanel({
             {/* Name */}
             <div className="space-y-1.5">
               <label htmlFor="tag-name" className="text-sm font-medium text-foreground">
-                Name
+                {t('tag.name')}
               </label>
               <input
                 id="tag-name"
@@ -459,7 +461,7 @@ export function TagDetailPanel({
             {/* Data Type */}
             <div className="space-y-1.5">
               <label htmlFor="tag-datatype" className="text-sm font-medium text-foreground">
-                Data Type
+                {t('tag.dataType')}
               </label>
               <select
                 id="tag-datatype"
@@ -481,7 +483,7 @@ export function TagDetailPanel({
               </select>
               {isMultiRegisterType && (
                 <p className="text-xs text-muted-foreground">
-                  Will read {DATA_TYPE_INFO[formState.dataType].registers} registers
+                  {t('tag.willRead', { count: DATA_TYPE_INFO[formState.dataType].registers })}
                 </p>
               )}
             </div>
@@ -502,7 +504,7 @@ export function TagDetailPanel({
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <label htmlFor="tag-decimals" className="text-sm font-medium text-foreground">
-                    Decimals
+                    {t('tag.decimals')}
                   </label>
                   <input
                     id="tag-decimals"
@@ -522,7 +524,7 @@ export function TagDetailPanel({
                 </div>
                 <div className="space-y-1.5">
                   <label htmlFor="tag-unit" className="text-sm font-medium text-foreground">
-                    Unit
+                    {t('tag.unit')}
                   </label>
                   <input
                     id="tag-unit"
@@ -542,7 +544,7 @@ export function TagDetailPanel({
               </div>
               <div className="space-y-1.5">
                 <label htmlFor="tag-scale" className="text-sm font-medium text-foreground">
-                  Scale Factor
+                  {t('tag.scaleFactor')}
                 </label>
                 <input
                   id="tag-scale"
@@ -560,14 +562,14 @@ export function TagDetailPanel({
                   data-testid="tag-scale-input"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Real Value = Raw × Scale (e.g., Raw 1234 × 0.01 = 12.34)
+                  {t('tag.scaleHint')}
                 </p>
               </div>
             </div>
 
             {/* Thresholds */}
             <div className="space-y-3">
-              <div className="text-sm font-medium text-foreground">Thresholds</div>
+              <div className="text-sm font-medium text-foreground">{t('tag.thresholds.title')}</div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <label htmlFor="tag-warning-low" className="text-xs text-muted-foreground">
@@ -662,7 +664,7 @@ export function TagDetailPanel({
             data-testid="tag-delete-button"
           >
             <Trash2 className="h-4 w-4" />
-            Delete
+            {t('common:action.delete')}
           </button>
           <button
             type="button"
@@ -684,7 +686,7 @@ export function TagDetailPanel({
             ) : (
               <Save className="h-4 w-4" />
             )}
-            {isSaving ? 'Saving...' : 'Save'}
+            {isSaving ? t('tag.saving') : t('common:action.save')}
           </button>
         </div>
       </div>
@@ -696,9 +698,9 @@ export function TagDetailPanel({
           data-testid="unsaved-warning-dialog"
         >
           <div className="w-full max-w-sm p-6 rounded-lg bg-card border border-border shadow-lg">
-            <h3 className="text-lg font-semibold text-foreground">Unsaved Changes</h3>
+            <h3 className="text-lg font-semibold text-foreground">{t('tag.unsavedChanges')}</h3>
             <p className="mt-2 text-sm text-muted-foreground">
-              You have unsaved changes. Are you sure you want to close without saving?
+              {t('tag.unsavedMessage')}
             </p>
             <div className="mt-4 flex justify-end gap-3">
               <button
@@ -713,7 +715,7 @@ export function TagDetailPanel({
                 )}
                 data-testid="unsaved-warning-cancel"
               >
-                Cancel
+                {t('common:action.cancel')}
               </button>
               <button
                 type="button"
@@ -727,7 +729,7 @@ export function TagDetailPanel({
                 )}
                 data-testid="unsaved-warning-discard"
               >
-                Discard
+                {t('tag.discard')}
               </button>
             </div>
           </div>

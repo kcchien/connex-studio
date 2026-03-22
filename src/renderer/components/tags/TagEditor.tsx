@@ -6,6 +6,7 @@
  */
 
 import React, { useState, useCallback, useEffect, type FormEvent } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ChevronDown, ChevronRight, Plus, Loader2, Save, X, Radio, Wifi } from 'lucide-react'
 import * as Label from '@radix-ui/react-label'
 import { cn } from '@renderer/lib/utils'
@@ -175,6 +176,7 @@ export function TagEditor({
   onCancel,
   className
 }: TagEditorProps): React.ReactElement {
+  const { t } = useTranslation(['modbus', 'common', 'mqtt'])
   const [isExpanded, setIsExpanded] = useState(!!tag) // Expanded if editing
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({})
   const [isLoading, setIsLoading] = useState(false)
@@ -453,7 +455,7 @@ export function TagEditor({
             <ChevronRight className="h-4 w-4 text-muted-foreground" />
           )}
           <Plus className="h-4 w-4 text-muted-foreground" />
-          <span>New Tag</span>
+          <span>{t('tag.new')}</span>
           <span className="ml-auto flex items-center gap-1 text-xs text-muted-foreground">
             <ProtocolIndicator className="h-3 w-3" />
             {protocolLabel}
@@ -475,7 +477,7 @@ export function TagEditor({
           {/* Tag Name */}
           <div className="space-y-1.5">
             <Label.Root htmlFor="tag-name" className="text-xs font-medium text-muted-foreground">
-              Tag Name
+              {t('tag.tagName')}
             </Label.Root>
             <input
               id="tag-name"
@@ -507,7 +509,7 @@ export function TagEditor({
                   htmlFor="tag-register-type"
                   className="text-xs font-medium text-muted-foreground"
                 >
-                  Register Type
+                  {t('tag.registerType')}
                 </Label.Root>
                 <select
                   id="tag-register-type"
@@ -538,7 +540,7 @@ export function TagEditor({
                     htmlFor="tag-address"
                     className="text-xs font-medium text-muted-foreground"
                   >
-                    Address
+                    {t('tag.address')}
                   </Label.Root>
                   <input
                     id="tag-address"
@@ -568,7 +570,7 @@ export function TagEditor({
                     htmlFor="tag-length"
                     className="text-xs font-medium text-muted-foreground"
                   >
-                    Length
+                    {t('tag.length')}
                   </Label.Root>
                   <input
                     id="tag-length"
@@ -600,7 +602,7 @@ export function TagEditor({
                   htmlFor="tag-unit-id"
                   className="text-xs font-medium text-muted-foreground"
                 >
-                  Unit ID (optional)
+                  {t('tag.unitId')}
                 </Label.Root>
                 <input
                   id="tag-unit-id"
@@ -624,7 +626,7 @@ export function TagEditor({
                   <p className="text-xs text-destructive">{validationErrors.unitId}</p>
                 )}
                 <p className="text-xs text-muted-foreground">
-                  Override connection's Unit ID for this tag (1-247)
+                  {t('tag.unitIdHint')}
                 </p>
               </div>
             </>
@@ -638,7 +640,7 @@ export function TagEditor({
                   htmlFor="tag-topic"
                   className="text-xs font-medium text-muted-foreground"
                 >
-                  Topic
+                  {t('mqtt:form.topic')}
                 </Label.Root>
                 <input
                   id="tag-topic"
@@ -660,7 +662,7 @@ export function TagEditor({
                   <p className="text-xs text-destructive">{validationErrors.topic}</p>
                 )}
                 <p className="text-xs text-muted-foreground">
-                  Supports MQTT wildcards: + (single level), # (multi-level)
+                  {t('mqtt:form.topicHint')}
                 </p>
               </div>
 
@@ -670,7 +672,7 @@ export function TagEditor({
                   htmlFor="tag-json-path"
                   className="text-xs font-medium text-muted-foreground"
                 >
-                  JSON Path (optional)
+                  {t('mqtt:form.jsonPath')}
                 </Label.Root>
                 <input
                   id="tag-json-path"
@@ -688,7 +690,7 @@ export function TagEditor({
                   )}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Extract value from JSON payload, e.g., data.values[0].temp
+                  {t('mqtt:form.jsonPathHint')}
                 </p>
               </div>
             </>
@@ -700,7 +702,7 @@ export function TagEditor({
               htmlFor="tag-data-type"
               className="text-xs font-medium text-muted-foreground"
             >
-              Data Type
+              {t('tag.dataType')}
             </Label.Root>
             <select
               id="tag-data-type"
@@ -739,7 +741,7 @@ export function TagEditor({
                 htmlFor="tag-decimals"
                 className="text-xs font-medium text-muted-foreground"
               >
-                Decimal Places
+                {t('tag.decimalPlaces')}
               </Label.Root>
               <input
                 id="tag-decimals"
@@ -764,7 +766,7 @@ export function TagEditor({
 
             <div className="space-y-1.5">
               <Label.Root htmlFor="tag-unit" className="text-xs font-medium text-muted-foreground">
-                Unit
+                {t('tag.unit')}
               </Label.Root>
               <input
                 id="tag-unit"
@@ -787,7 +789,7 @@ export function TagEditor({
           {/* Thresholds */}
           <div className="space-y-2">
             <Label.Root className="text-xs font-medium text-muted-foreground">
-              Thresholds (Optional)
+              {t('tag.thresholds')}
             </Label.Root>
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1.5">
@@ -880,7 +882,7 @@ export function TagEditor({
               className="h-4 w-4 rounded border-input"
             />
             <Label.Root htmlFor="tag-enabled" className="text-sm text-foreground">
-              Enabled (include in polling)
+              {t('tag.enabled')}
             </Label.Root>
           </div>
 
@@ -906,17 +908,17 @@ export function TagEditor({
               {isLoading ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Saving...</span>
+                  <span>{t('tag.saving')}</span>
                 </>
               ) : isEditing ? (
                 <>
                   <Save className="h-4 w-4" />
-                  <span>Save Changes</span>
+                  <span>{t('tag.saveChanges')}</span>
                 </>
               ) : (
                 <>
                   <Plus className="h-4 w-4" />
-                  <span>Create Tag</span>
+                  <span>{t('tag.createTag')}</span>
                 </>
               )}
             </button>
@@ -936,7 +938,7 @@ export function TagEditor({
                 )}
               >
                 <X className="h-4 w-4" />
-                <span>Cancel</span>
+                <span>{t('common:action.cancel')}</span>
               </button>
             )}
           </div>

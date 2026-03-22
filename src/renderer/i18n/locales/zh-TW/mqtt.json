@@ -1,0 +1,20 @@
+{
+  "form.brokerUrl": "代理伺服器網址",
+  "form.clientId": "用戶端識別碼",
+  "form.username": "使用者名稱（選填）",
+  "form.password": "密碼（選填）",
+  "form.useTls": "使用 TLS (mqtts://)",
+  "form.cleanSession": "清除會話",
+  "form.willMessage": "遺囑訊息（選填）",
+  "form.willTopic": "主題",
+  "form.willPayload": "內容",
+  "form.willQos": "服務品質",
+  "form.willRetain": "保留",
+  "form.topic": "主題",
+  "form.topicHint": "支援 MQTT 萬用字元：+（單層）、#（多層）",
+  "form.jsonPath": "JSON 路徑（選填）",
+  "form.jsonPathHint": "從 JSON 內容擷取數值，例如 data.values[0].temp",
+  "qos.0": "0 - 最多一次",
+  "qos.1": "1 - 至少一次",
+  "qos.2": "2 - 恰好一次"
+}

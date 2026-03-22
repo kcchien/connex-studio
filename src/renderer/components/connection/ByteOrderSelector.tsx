@@ -9,6 +9,7 @@
  */
 
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@renderer/lib/utils'
 import type { ByteOrder } from '@shared/types'
 import { BYTE_ORDER_INFO } from '@shared/types'
@@ -25,7 +26,7 @@ const BYTE_ORDERS: ByteOrder[] = ['ABCD', 'DCBA', 'BADC', 'CDAB']
  * Visual representation of how registers map to bytes for a FLOAT32 value.
  * Uses 123.456 (0x42F6E979) as an example.
  */
-function ByteOrderVisual({ byteOrder }: { byteOrder: ByteOrder }): React.ReactElement {
+function ByteOrderVisual({ byteOrder, t }: { byteOrder: ByteOrder; t: (key: string) => string }): React.ReactElement {
   // 123.456 as IEEE 754 = 0x42F6E979
   // Bytes: 42, F6, E9, 79
   const getRegisterLayout = (): { reg0: string; reg1: string } => {
@@ -46,7 +47,7 @@ function ByteOrderVisual({ byteOrder }: { byteOrder: ByteOrder }): React.ReactEl
   return (
     <div className="mt-3 p-3 rounded-lg bg-gray-100 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700">
       <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-        Example: 123.456 (FLOAT32)
+        {t('byteOrder.example')}
       </div>
       <div className="flex items-center gap-2 font-mono text-sm">
         <div className="flex flex-col items-center">
@@ -71,12 +72,12 @@ function ByteOrderVisual({ byteOrder }: { byteOrder: ByteOrder }): React.ReactEl
 /**
  * Display common vendors using this byte order.
  */
-function VendorInfo({ byteOrder }: { byteOrder: ByteOrder }): React.ReactElement {
+function VendorInfo({ byteOrder, t }: { byteOrder: ByteOrder; t: (key: string) => string }): React.ReactElement {
   const info = BYTE_ORDER_INFO[byteOrder]
 
   return (
     <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-      <span className="font-medium">Common: </span>
+      <span className="font-medium">{t('byteOrder.common')}</span>
       {info.vendors.slice(0, 3).join(', ')}
       {info.vendors.length > 3 && '...'}
     </div>
@@ -88,10 +89,12 @@ export function ByteOrderSelector({
   onChange,
   className
 }: ByteOrderSelectorProps): React.ReactElement {
+  const { t } = useTranslation('connection')
+
   return (
     <div className={cn('space-y-2', className)} data-testid="byte-order-selector">
       <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-        Byte Order (32-bit)
+        {t('form.byteOrder')}
       </label>
       <select
         value={value}
@@ -113,11 +116,11 @@ export function ByteOrderSelector({
         })}
       </select>
 
-      <ByteOrderVisual byteOrder={value} />
-      <VendorInfo byteOrder={value} />
+      <ByteOrderVisual byteOrder={value} t={t} />
+      <VendorInfo byteOrder={value} t={t} />
 
       <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
-        Not sure? Use Tools → Float Decoder to test with your PLC.
+        {t('byteOrder.hint')}
       </p>
     </div>
   )

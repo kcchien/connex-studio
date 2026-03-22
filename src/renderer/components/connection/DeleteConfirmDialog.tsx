@@ -3,6 +3,7 @@
  */
 
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 import * as AlertDialog from '@radix-ui/react-alert-dialog'
 import { cn } from '@renderer/lib/utils'
 import { AlertTriangle } from 'lucide-react'
@@ -20,6 +21,8 @@ export function DeleteConfirmDialog({
   connectionName,
   onConfirm
 }: DeleteConfirmDialogProps): React.ReactElement {
+  const { t } = useTranslation(['connection', 'common'])
+
   const handleConfirm = () => {
     onConfirm()
     onOpenChange(false)
@@ -36,10 +39,10 @@ export function DeleteConfirmDialog({
             </div>
             <div className="flex-1">
               <AlertDialog.Title className="text-lg font-semibold text-gray-900 dark:text-white">
-                Delete Connection
+                {t('delete.title')}
               </AlertDialog.Title>
               <AlertDialog.Description className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                Are you sure you want to delete <span className="font-medium text-gray-900 dark:text-white">"{connectionName}"</span>? This action cannot be undone.
+                {t('delete.messageText', { name: connectionName })}
               </AlertDialog.Description>
             </div>
           </div>
@@ -55,7 +58,7 @@ export function DeleteConfirmDialog({
                   'transition-colors'
                 )}
               >
-                Cancel
+                {t('common:action.cancel')}
               </button>
             </AlertDialog.Cancel>
             <AlertDialog.Action asChild>
@@ -69,7 +72,7 @@ export function DeleteConfirmDialog({
                   'transition-colors'
                 )}
               >
-                Delete
+                {t('common:action.delete')}
               </button>
             </AlertDialog.Action>
           </div>

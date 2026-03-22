@@ -2,11 +2,31 @@ import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
 
 import enCommon from './locales/en/common.json'
+import enConnection from './locales/en/connection.json'
+import enModbus from './locales/en/modbus.json'
+import enMqtt from './locales/en/mqtt.json'
+import enOpcua from './locales/en/opcua.json'
 import zhTWCommon from './locales/zh-TW/common.json'
+import zhTWConnection from './locales/zh-TW/connection.json'
+import zhTWModbus from './locales/zh-TW/modbus.json'
+import zhTWMqtt from './locales/zh-TW/mqtt.json'
+import zhTWOpcua from './locales/zh-TW/opcua.json'
 
 const resources = {
-  en: { common: enCommon },
-  'zh-TW': { common: zhTWCommon },
+  en: {
+    common: enCommon,
+    connection: enConnection,
+    modbus: enModbus,
+    mqtt: enMqtt,
+    opcua: enOpcua,
+  },
+  'zh-TW': {
+    common: zhTWCommon,
+    connection: zhTWConnection,
+    modbus: zhTWModbus,
+    mqtt: zhTWMqtt,
+    opcua: zhTWOpcua,
+  },
 }
 
 function getStoredLanguage(): string {

@@ -1,0 +1,16 @@
+{
+  "form.endpointUrl": "端點網址",
+  "form.securityMode": "安全模式",
+  "form.securityPolicy": "安全原則",
+  "form.authentication": "身分驗證",
+  "form.username": "使用者名稱",
+  "form.password": "密碼",
+  "form.certificatePath": "憑證路徑 (.pem)",
+  "form.privateKeyPath": "私密金鑰路徑 (.pem)",
+  "securityMode.none": "無",
+  "securityMode.sign": "簽章",
+  "securityMode.signAndEncrypt": "簽章與加密",
+  "authMode.anonymous": "匿名",
+  "authMode.username": "帳號密碼",
+  "authMode.certificate": "憑證"
+}

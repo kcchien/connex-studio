@@ -7,6 +7,78 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-03-22
+
+### Added
+
+- **Modbus 寫入 UI 整合** — 完成從後端到前端的完整寫入流程
+  - `ModbusWriteDialog` 對話框元件，支援所有資料型別的值輸入
+  - FC05 單線圈寫入：ON/OFF 切換按鈕
+  - FC06 單暫存器寫入：帶範圍限制的數值輸入
+  - FC15 多線圈寫入（新增）：布林陣列 checkbox 輸入介面
+  - FC16 多暫存器寫入：支援 INT32/UINT32/FLOAT32/FLOAT64
+  - `useModbusWriteConfirm` hook：管理對話框狀態，支援「不再詢問」選項
+  - `modbusApi` 匯出至渲染行程 IPC 封裝
+  - TagGrid 整合：可寫入的 Modbus 標籤（holding/coil）顯示鉛筆圖示寫入按鈕
+  - 寫入成功/失敗的狀態回饋列
+  - 新增檔案：`src/renderer/components/modbus/ModbusWriteDialog.tsx`、`index.ts`
+
+- **浸泡測試（Soak Test）** — 長時間穩定度驗證框架
+  - 可設定的持續時間（預設 60 分鐘，最長 72 小時）
+  - 每 N 秒取樣記憶體（Heap/RSS/External）與 UI 回應狀態
+  - 記憶體上限自動中止（預設 500 MB）
+  - UI 連續無回應 3 次自動中止
+  - JSONL 格式記憶體日誌輸出
+  - 記憶體報告產生器（`memory-report.ts`）含洩漏信心分析
+  - 2 分鐘快速驗證結果：峰值 RSS 208 MB、零 UI 無回應、零主控台錯誤
+  - 新增檔案：`tests/stability/soak-test.spec.ts`、`memory-report.ts`
+
+- **協定合規測試** — 245 個測試案例驗證協定規範實作
+  - Modbus 合規測試：`tests/conformance/modbus-conformance.test.ts`
+  - OPC UA 合規測試：`tests/conformance/opcua-conformance.test.ts`
+
+- **IPC 整合測試** — 81 個測試驗證跨行程通訊安全性
+  - 路徑穿越防護、輸入驗證、檔案大小限制
+  - 新增：`tests/integration/`
+
+- **程式碼簽章計畫** — `docs/plans/code-signing-plan.md`
+  - macOS：Apple Developer + notarytool 公證流程
+  - Windows：EV 憑證 + SmartScreen 信譽機制
+  - Linux：選用 GPG 簽署
+  - 預估成本 $400–600/年
+
+### Changed
+
+- **合規矩陣全面更新** — `docs/protocol-conformance-matrix.md`
+  - Modbus FC05/06/07/08：N/A → Implemented（寫入功能已實作）
+  - MQTT QoS 0/2：Partial/N/A → Implemented（按標籤 QoS 已支援）
+  - 總實作數從 72 → 78（85 項中），合規率從 85% → 92%
+  - Key Gaps 從 5 項縮減為 4 項
+
+- **Electron 升級計畫更新** — `docs/plans/electron-upgrade-plan.md`
+  - 標記 Electron 33 → 39 為已完成（2026-03-21）
+  - 新增 39 → 40+ 路線圖：需 Node.js 24（建議等 2026-10 LTS）
+
+### Fixed
+
+- **應用關閉流程修復** — `src/main/index.ts`
+  - 問題：`electronApp.close()` 觸發確認對話框，在無 UI 互動環境（測試/CI）永遠掛住
+  - 原因：`before-quit` 處理器未設定 `shouldForceQuit`，導致 `handleWindowClose` 呼叫 `event.preventDefault()` 並彈出 `dialog.showMessageBox()`
+  - 修復：在 `before-quit` 事件中呼叫 `setForceQuit(true)`，讓視窗關閉跳過確認對話框
+  - 效果：浸泡測試 exit code 從 1（worker teardown timeout）變為 0
+
+- **Preload 沙箱 ESM 載入錯誤** — `electron.vite.config.ts`、`src/main/index.ts`
+  - 問題：啟用 `sandbox: true` 後，preload 腳本以 `.mjs` 載入觸發 `SyntaxError: Cannot use import statement outside a module`
+  - 原因：Electron sandbox 環境僅支援 CJS，不支援 ESM `import` 語句
+  - 修復：electron-vite preload 建置輸出改為 CJS 格式（`.cjs`），同步更新 preload 路徑
+
+- **安全加固** — 多檔案修復
+  - 啟用 `sandbox: true`（原為 `false`）
+  - 新增 `session.setPermissionRequestHandler` 拒絕非必要權限
+  - 新增 CSP 標頭（開發模式允許 HMR，生產模式嚴格限制）
+  - IPC 輸入驗證：路徑穿越防護、檔案大小限制
+  - SQLite 初始化錯誤容忍（原生模組不可用時繼續啟動）
+
 ### Removed
 
 - **Virtual Server Feature** - `004-remove-virtual-server`

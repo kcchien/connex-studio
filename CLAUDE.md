@@ -92,7 +92,7 @@ const result = await window.api.invoke('modbus:read', params)
 
 ## Tech Stack
 
-- **Runtime**: Node.js 22 LTS, Electron 40
+- **Runtime**: Node.js 22 LTS, Electron 39
 - **Frontend**: React 19, Vite 6, Tailwind CSS, Shadcn/ui
 - **State**: Zustand with cross-process sync
 - **Protocols**: modbus-serial 8.x, mqtt.js 5.x, node-opcua 2.x

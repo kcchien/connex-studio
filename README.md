@@ -110,9 +110,17 @@ pnpm dev
 pnpm build
 
 # Package for distribution
-pnpm build:win   # Windows
-pnpm build:mac   # macOS
-pnpm build:linux # Linux
+npm run package:win   # Windows
+npm run package:mac   # macOS
+npm run package:linux # Linux
+
+# Quality gates (recommended before PR)
+npm run lint
+npm run typecheck
+npm run test:main
+npm run test:renderer
+npm run build
+npm run test:smoke  # fast main-process smoke gate
 ```
 
 ### Development Status
@@ -277,9 +285,17 @@ pnpm dev
 pnpm build
 
 # 打包發佈版本
-pnpm build:win   # Windows
-pnpm build:mac   # macOS
-pnpm build:linux # Linux
+npm run package:win   # Windows
+npm run package:mac   # macOS
+npm run package:linux # Linux
+
+# 品質檢查（建議 PR 前執行）
+npm run lint
+npm run typecheck
+npm run test:main
+npm run test:renderer
+npm run build
+npm run test:smoke  # 快速主進程 smoke gate
 ```
 
 ### 開發進度

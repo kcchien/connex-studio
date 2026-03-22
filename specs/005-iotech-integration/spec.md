@@ -1,0 +1,377 @@
+# 005 — IOTech Edge Central 整合
+
+> **狀態**：草案（Draft）— 記錄用，待基礎功能完善後再啟動
+> **建立日期**：2026-03-20
+> **前置條件**：Phase 1 功能真實化完成、Workspace 匯出入穩定
+
+---
+
+## 1. 動機
+
+Connex Studio 的核心能力是「探索與驗證」——連上設備、逐一測試暫存器或節點、確認資料型別和位元組排序。IOTech Edge Central 的核心能力是「規模化部署」——用 Device Profile 定義設備模型，透過 Device Service 自動採集。
+
+這兩者之間目前有一個**手動斷點**：工程師在 Connex Studio 完成設備驗證後，必須手工將結果轉寫成 Edge Central 的 Device Profile YAML。這個步驟耗時且容易出錯（位址偏移、資料型別對映、位元組排序都是常見地雷）。
+
+**目標**：讓 Connex Studio 成為 Edge Central 的「設備上線前哨站」——驗證完即可匯出可部署的設定檔。
+
+---
+
+## 2. 使用者故事
+
+### US-501：匯出為 Device Profile（主要）
+
+> 身為一位邊緣運算工程師，
+> 我想把 Connex Studio 中已驗證的連線與標籤，匯出為 IOTech Edge Central 相容的 Device Profile YAML，
+> 這樣我就不需要手動轉寫，減少設定錯誤。
+
+**驗收條件**：
+
+1. 使用者選擇一個連線，點擊「匯出為 Device Profile」
+2. 系統產生符合 EdgeX Device Profile 架構的 YAML 檔案
+3. 每個標籤對映為一個 `deviceResource`，資料型別和位址正確轉換
+4. 產生的 YAML 可直接被 Edge Central 4.0 的 Device Service 載入，無需手動修改
+5. 匯出時顯示轉換摘要（已轉換 N 個、跳過 M 個、警告 K 個）
+
+### US-502：匯出為 Device Service 組態
+
+> 身為一位邊緣運算工程師，
+> 我想同時匯出 Device Service 的裝置清單組態（Device List），
+> 這樣連接參數（主機位址、埠號、單元編號）也能一併帶入。
+
+**驗收條件**：
+
+1. 匯出時可選擇「包含 Device Service 組態」
+2. 產生的 `device-list.yaml` 包含 `DeviceList` 區段，含協定連線參數
+3. Device Profile 名稱與 Device List 的 `ProfileName` 正確關聯
+
+### US-503：匯入 Device Profile（反向）
+
+> 身為一位設備測試工程師，
+> 我想匯入既有的 Device Profile YAML，自動在 Connex Studio 建立對應的連線與標籤，
+> 這樣我可以用 Connex Studio 做回歸測試，驗證 Profile 的正確性。
+
+**驗收條件**：
+
+1. 使用者可選擇 `.yaml` 檔案匯入
+2. 系統解析 `deviceResources`，為每個資源建立一個標籤
+3. 資料型別和位址正確反向對映
+4. 不可識別的屬性或型別標記為警告，不阻擋匯入
+5. 匯入結果顯示：成功 N 個、警告 M 個、失敗 K 個
+
+---
+
+## 3. 資料對映
+
+### 3.1 Modbus：標籤 → deviceResource
+
+Connex Studio 與 Edge Central 的 Modbus 資料模型對映如下。
+
+| Connex Studio (Tag) | Edge Central (deviceResource) | 備註 |
+|---------------------|-------------------------------|------|
+| `tag.name` | `deviceResource.name` | 直接對映 |
+| `tag.address.registerType` | `attributes.primaryTable` | 見 §3.1.1 |
+| `tag.address.address` | `attributes.startingAddress` | Connex 用 0-based |
+| `tag.dataType` | `properties.valueType` | 見 §3.1.2 |
+| `tag.address.byteOrder` | `attributes.byteOrder` | 見 §3.1.3 |
+| `tag.displayFormat.unit` | `properties.units` | 選填 |
+| `tag.displayFormat.scale` | `attributes.scale` | Edge Central 不一定支援，需確認 |
+| `tag.address.length` | （自動推導） | 由 `valueType` 決定 |
+| `tag.address.unitId` | 裝置層級設定 | 在 Device List 中，非 Resource 層級 |
+
+#### 3.1.1 暫存器型別對映
+
+| Connex Studio `registerType` | Edge Central `primaryTable` |
+|------------------------------|----------------------------|
+| `holding` | `HOLDING_REGISTERS` |
+| `input` | `INPUT_REGISTERS` |
+| `coil` | `COILS` |
+| `discrete` | `DISCRETES_INPUT` |
+
+#### 3.1.2 資料型別對映
+
+| Connex Studio `dataType` | Edge Central `valueType` | `rawType`（屬性） |
+|--------------------------|--------------------------|-------------------|
+| `int16` | `Int16` | `Int16` |
+| `uint16` | `Uint16` | `Uint16` |
+| `int32` | `Int32` | `Int32` |
+| `uint32` | `Uint32` | `Uint32` |
+| `float32` | `Float32` | `Float32` |
+| `float64` | `Float64` | `Float64` |
+| `boolean` | `Bool` | `Bool` |
+| `string` | `String` | — |
+
+#### 3.1.3 位元組排序對映
+
+| Connex Studio `byteOrder` | Edge Central `byteOrder` | 說明 |
+|---------------------------|--------------------------|------|
+| `ABCD` | `BIG_ENDIAN` | 大端序 |
+| `DCBA` | `LITTLE_ENDIAN` | 小端序 |
+| `BADC` | `BIG_ENDIAN_WORD_SWAP` | 大端序字組交換 |
+| `CDAB` | `LITTLE_ENDIAN_WORD_SWAP` | 小端序字組交換 |
+
+### 3.2 OPC UA：標籤 → deviceResource
+
+| Connex Studio (Tag) | Edge Central (deviceResource) | 備註 |
+|---------------------|-------------------------------|------|
+| `tag.name` | `deviceResource.name` | 直接對映 |
+| `tag.address.nodeId` | `attributes.nodeId` | 格式需統一（`ns=2;s=...` 或 `ns=2;i=...`） |
+| `tag.dataType` | `properties.valueType` | 同 §3.1.2 對映 |
+
+### 3.3 MQTT：標籤 → deviceResource
+
+MQTT 的情況較特殊——Edge Central 的 MQTT Device Service 使用「命令主題」（Command Topic）模式，與 Connex Studio 的「訂閱主題 + JSON 路徑」模式有結構差異。
+
+| Connex Studio (Tag) | Edge Central (deviceResource) | 備註 |
+|---------------------|-------------------------------|------|
+| `tag.name` | `deviceResource.name` | 直接對映 |
+| `tag.address.topic` | `attributes.commandTopic` | 需確認 Edge Central 版本的主題結構 |
+| `tag.address.jsonPath` | — | Edge Central 通常用整包 JSON，路徑擷取在 Profile 層級處理 |
+| `tag.dataType` | `properties.valueType` | 同上 |
+
+> **待確認**：Edge Central 4.0 的 MQTT Device Service 是否支援 `jsonPath` 萃取。若不支援，此對映需要額外的轉換邏輯或警告。
+
+### 3.4 連線參數 → Device List
+
+| Connex Studio (Connection) | Edge Central (DeviceList) |
+|----------------------------|---------------------------|
+| `connection.name` | `DeviceList[].Name` |
+| `connection.protocol` | `DeviceList[].Protocols` 鍵名 |
+| `config.host` | `Protocols.modbus-tcp.Address` |
+| `config.port` | `Protocols.modbus-tcp.Port` |
+| `config.unitId` | `Protocols.modbus-tcp.UnitID` |
+| `config.timeout` | `Protocols.modbus-tcp.Timeout` |
+| `config.endpointUrl` | `Protocols.opcua.Endpoint` |
+| `config.securityMode` | `Protocols.opcua.SecurityMode` |
+| `config.securityPolicy` | `Protocols.opcua.SecurityPolicy` |
+
+---
+
+## 4. 匯出的 YAML 範例
+
+### 4.1 Device Profile（Modbus）
+
+```yaml
+name: "WaterTreatment-PLC01"
+manufacturer: "Generated by Connex Studio"
+model: "Modbus TCP"
+description: "Exported from Connex Studio — verified on 2026-03-20"
+labels:
+  - "connex-studio"
+  - "modbus-tcp"
+
+deviceResources:
+  - name: "InletPressure"
+    description: "進流壓力"
+    properties:
+      valueType: "Float32"
+      readWrite: "R"
+      units: "bar"
+    attributes:
+      primaryTable: "HOLDING_REGISTERS"
+      startingAddress: 100
+      rawType: "Float32"
+      byteOrder: "BIG_ENDIAN"
+
+  - name: "PumpSpeed"
+    description: "泵浦轉速"
+    properties:
+      valueType: "Uint16"
+      readWrite: "RW"
+      units: "rpm"
+    attributes:
+      primaryTable: "HOLDING_REGISTERS"
+      startingAddress: 200
+      rawType: "Uint16"
+
+  - name: "AlarmFlag"
+    description: "警報旗標"
+    properties:
+      valueType: "Bool"
+      readWrite: "R"
+    attributes:
+      primaryTable: "COILS"
+      startingAddress: 0
+```
+
+### 4.2 Device List
+
+```yaml
+DeviceList:
+  - Name: "PLC01"
+    ProfileName: "WaterTreatment-PLC01"
+    Description: "Exported from Connex Studio"
+    Protocols:
+      modbus-tcp:
+        Address: "192.168.1.100"
+        Port: "502"
+        UnitID: "1"
+        Timeout: "5000"
+        IdleTimeout: "5000"
+    AutoEvents:
+      - Interval: "500ms"
+        OnChange: false
+        SourceName: "InletPressure"
+      - Interval: "500ms"
+        OnChange: false
+        SourceName: "PumpSpeed"
+      - Interval: "1000ms"
+        OnChange: true
+        SourceName: "AlarmFlag"
+```
+
+### 4.3 Device Profile（OPC UA）
+
+```yaml
+name: "SCADA-Server01"
+manufacturer: "Generated by Connex Studio"
+model: "OPC UA"
+description: "Exported from Connex Studio"
+labels:
+  - "connex-studio"
+  - "opcua"
+
+deviceResources:
+  - name: "ReactorTemperature"
+    description: "反應槽溫度"
+    properties:
+      valueType: "Float64"
+      readWrite: "R"
+      units: "°C"
+    attributes:
+      nodeId: "ns=2;s=Reactor.Temperature"
+
+  - name: "ValvePosition"
+    description: "閥門開度"
+    properties:
+      valueType: "Float32"
+      readWrite: "RW"
+      units: "%"
+    attributes:
+      nodeId: "ns=2;s=Valve.Position"
+```
+
+---
+
+## 5. 實作架構（草案）
+
+### 5.1 新增模組
+
+```
+src/main/services/
+  └── EdgeCentralExporter.ts    # 核心轉換邏輯
+
+src/main/ipc/
+  └── edge-central.ts           # IPC 處理器
+
+src/renderer/components/edge-central/
+  ├── ExportDialog.tsx           # 匯出設定對話框
+  ├── ImportDialog.tsx           # 匯入 Profile 對話框
+  └── MappingPreview.tsx         # 轉換預覽與警告顯示
+
+src/shared/types/
+  └── edge-central.ts           # EdgeX Device Profile 型別定義
+```
+
+### 5.2 IPC 頻道
+
+| 頻道 | 方向 | 說明 |
+|------|------|------|
+| `edge-central:export-profile` | invoke | 匯出 Device Profile YAML |
+| `edge-central:export-device-list` | invoke | 匯出 Device List YAML |
+| `edge-central:import-profile` | invoke | 匯入 Device Profile，建立標籤 |
+| `edge-central:validate-profile` | invoke | 驗證 Profile YAML 格式 |
+| `edge-central:preview-mapping` | invoke | 預覽匯出對映（不寫檔） |
+
+### 5.3 UI 進入點
+
+- **連線右鍵選單**：新增「匯出為 Edge Central Profile」選項
+- **工具列**：在現有的工作區匯出入旁邊新增 Edge Central 區段
+- **標籤表格**：匯出時可勾選哪些標籤要包含
+
+---
+
+## 6. 邊界條件與限制
+
+### 6.1 已知限制
+
+1. **讀寫屬性推導**：Connex Studio 不記錄「此暫存器是否可寫」，匯出時預設為 `R`（唯讀）。使用者可在預覽畫面手動改為 `RW`
+2. **Scale Factor**：Connex Studio 的 `displayFormat.scale` 是 UI 層級的縮放，Edge Central 的處理方式可能不同（版本相依），需驗證
+3. **MQTT JSON 路徑**：Edge Central 的 MQTT Device Service 不一定支援 `jsonPath` 萃取，此欄位可能無法對映
+4. **AutoEvents 間隔**：Connex Studio 的輪詢間隔是連線層級的，匯出時需要決定對映到個別 `AutoEvent` 還是統一間隔
+5. **位址偏移**：部分 PLC 使用 1-based 位址（Modicon 慣例），Connex Studio 使用 0-based，需提供偏移選項
+
+### 6.2 不在範圍內
+
+- Edge Central 的 Provision Watcher 自動探索機制
+- Device Service 的進階設定（重試策略、連線池等）
+- Edge Central REST API 直接推送（未來可考慮）
+- EdgeX Foundry 社區版的相容性測試（僅保證 IOTech Edge Central 4.0）
+
+---
+
+## 7. 待確認事項
+
+在啟動實作前，需要釐清以下問題：
+
+| # | 問題 | 影響範圍 | 優先度 |
+|---|------|---------|--------|
+| Q1 | Edge Central 4.0 的 Device Profile YAML 架構是否有變更（相較於 EdgeX 3.x）？ | 所有對映邏輯 | 高 |
+| Q2 | Scale Factor 在 Edge Central 是裝置層級還是資源層級？ | §3.1 對映 | 中 |
+| Q3 | MQTT Device Service 是否支援 jsonPath 或類似的欄位萃取？ | §3.3 MQTT 對映 | 中 |
+| Q4 | 位址起始值：Edge Central 使用 0-based 還是 1-based？ | §3.1 位址對映 | 高 |
+| Q5 | `deviceCommands`（批次讀取命令）是否需要自動產生？ | 匯出完整度 | 低 |
+| Q6 | 使用者是否需要直接從 Connex Studio 推送 Profile 到 Edge Central（透過 REST API）？ | 架構擴充 | 低 |
+
+---
+
+## 8. 依賴關係
+
+```
+Phase 1 完成（Workspace 匯出入穩定）
+    │
+    ├── Q1, Q4 已釐清（Device Profile 架構確認）
+    │
+    └── 005-iotech-integration 啟動
+         ├── US-501：匯出 Device Profile（2-3 天）
+         ├── US-502：匯出 Device List（1 天）
+         └── US-503：匯入 Device Profile（2 天）
+```
+
+---
+
+## 附錄 A：Edge Central Device Profile 架構參考
+
+```yaml
+# EdgeX / IOTech Edge Central Device Profile 基本結構
+name: string                    # Profile 名稱（必填）
+manufacturer: string            # 製造商（選填）
+model: string                   # 型號（選填）
+description: string             # 描述（選填）
+labels: string[]                # 標籤（選填）
+
+deviceResources:                # 裝置資源列表（必填）
+  - name: string                # 資源名稱（必填，唯一）
+    description: string         # 描述（選填）
+    properties:                 # 屬性（必填）
+      valueType: string         # 值型別：Bool, Int16, Uint16, Int32, ...
+      readWrite: string         # R, W, RW
+      units: string             # 單位（選填）
+      defaultValue: string      # 預設值（選填）
+      minimum: string           # 最小值（選填）
+      maximum: string           # 最大值（選填）
+    attributes:                 # 協定專屬屬性（必填）
+      # Modbus:
+      primaryTable: string      # HOLDING_REGISTERS, INPUT_REGISTERS, COILS, DISCRETES_INPUT
+      startingAddress: number   # 起始位址
+      rawType: string           # 原始型別
+      byteOrder: string         # BIG_ENDIAN, LITTLE_ENDIAN, ...
+      # OPC UA:
+      nodeId: string            # OPC UA Node ID
+
+deviceCommands:                 # 批次命令（選填）
+  - name: string                # 命令名稱
+    readWrite: string           # R, W, RW
+    resourceOperations:         # 包含的資源
+      - deviceResource: string  # 引用 deviceResource 名稱
+        defaultValue: string    # 預設值（選填）
+```

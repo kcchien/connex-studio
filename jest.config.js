@@ -2,7 +2,7 @@
 export default {
   displayName: 'main',
   testEnvironment: 'node',
-  roots: ['<rootDir>/tests/unit/main'],
+  roots: ['<rootDir>/tests/unit/main', '<rootDir>/tests/integration/ipc', '<rootDir>/tests/conformance'],
   testMatch: ['**/*.test.ts'],
   transform: {
     '^.+\\.tsx?$': ['ts-jest', {

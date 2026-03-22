@@ -79,7 +79,9 @@ describe('SidebarV2', () => {
       />
     )
     // The selected connection should have visual indication
-    const plcButton = screen.getByText('PLC-01').closest('button')
-    expect(plcButton).toHaveClass('bg-blue-500/15')
+    const label = screen.getByText('PLC-01')
+    const selectedItem = label.parentElement?.parentElement
+    expect(selectedItem).toBeTruthy()
+    expect(selectedItem).toHaveClass('bg-blue-500/15')
   })
 })

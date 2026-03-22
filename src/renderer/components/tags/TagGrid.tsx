@@ -300,7 +300,10 @@ const TagRow = memo(function TagRow({ tag, displayState, historicalValue, isHist
       </div>
 
       {/* Current value */}
-      <div className="flex-shrink-0 w-28 text-right">
+      <div className="flex-shrink-0 w-28 flex items-center justify-end gap-1">
+        {!isHistorical && displayState?.isRetained && (
+          <span className="text-xs text-amber-500" title="Retained">📌</span>
+        )}
         <span className="text-sm font-mono font-medium text-foreground">{formattedValue}</span>
       </div>
 

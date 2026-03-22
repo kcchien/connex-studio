@@ -223,7 +223,8 @@ export class PollingEngine {
       const values: TagValue[] = results.map((result, index) => ({
         tagId: tags[index].id,
         value: result.value,
-        quality: result.quality as DataQuality
+        quality: result.quality as DataQuality,
+        ...(result.isRetained !== undefined && { isRetained: result.isRetained })
       }))
 
       // Store data points in buffer

@@ -21,6 +21,9 @@ export interface TagDisplayState {
   alarmState: AlarmState
   trend: TrendDirection
 
+  // MQTT retained message indicator (MQT-012)
+  isRetained?: boolean
+
   // Error tracking (P3-5)
   status: TagStatus
   lastError?: string
@@ -396,6 +399,7 @@ export const useTagStore = create<TagState>((set, get) => ({
           sparklineData,
           alarmState,
           trend,
+          isRetained: value.isRetained,
           status,
           lastError,
           lastErrorCode,

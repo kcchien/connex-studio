@@ -29,6 +29,7 @@ export interface TagValue {
   tagId: string
   value: number | boolean | string
   quality: DataQuality
+  isRetained?: boolean
 }
 
 // Polling constraints

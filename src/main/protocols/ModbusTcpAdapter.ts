@@ -26,7 +26,9 @@ import { INITIAL_METRICS, DEFAULT_BATCH_READ_CONFIG } from '@shared/types'
 import {
   convertFloat32,
   convertInt32,
-  convertUint32
+  convertUint32,
+  decodeFloat64,
+  encodeFloat64
 } from './byteOrderUtils'
 import { ProtocolAdapter, type ReadResult, type WriteResult } from './ProtocolAdapter'
 import {
@@ -353,6 +355,12 @@ export class ModbusTcpAdapter extends ProtocolAdapter {
         break
       }
 
+      case 'float64': {
+        const regs = encodeFloat64(Number(value), byteOrder ?? 'ABCD')
+        await this.client.writeRegisters(address.address, regs)
+        return
+      }
+
       default:
         throw new Error(`Unsupported data type for write: ${dataType}`)
     }
@@ -592,6 +600,11 @@ export class ModbusTcpAdapter extends ProtocolAdapter {
         }
         return convertFloat32(registers[0], registers[1], byteOrder)
 
+      case 'float64': {
+        if (registers.length < 4) return registers[0]
+        return decodeFloat64(registers, byteOrder ?? 'ABCD')
+      }
+
       case 'string':
         // Interpret registers as ASCII characters (2 chars per register)
         return this.registersToString(registers)
@@ -717,10 +730,15 @@ export function parseModbusAddress(
       DI: 'discrete'
     }
 
+    const address = parseInt(iecMatch[2], 10)
+    if (address < 0 || address > 65535) {
+      throw new Error(`Modbus address out of range: ${address} (valid: 0-65535)`)
+    }
+
     return {
       type: 'modbus',
       registerType: typeMap[iecMatch[1]],
-      address: parseInt(iecMatch[2], 10),
+      address,
       length: length ?? 1
     }
   }
@@ -768,10 +786,14 @@ export function parseModbusAddress(
   // Plain number format: requires explicit register type
   const plainMatch = addressStr.match(/^(\d+)$/)
   if (plainMatch && registerType) {
+    const address = parseInt(plainMatch[1], 10)
+    if (address < 0 || address > 65535) {
+      throw new Error(`Modbus address out of range: ${address} (valid: 0-65535)`)
+    }
     return {
       type: 'modbus',
       registerType,
-      address: parseInt(plainMatch[1], 10),
+      address,
       length: length ?? 1
     }
   }

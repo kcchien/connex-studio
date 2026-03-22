@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain, shell, dialog, session } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import log from 'electron-log/main.js'
+import * as Sentry from '@sentry/electron/main'
 import { registerAllHandlers, handleWindowClose, stopAllPollingGracefully, setForceQuit } from './ipc'
 import { initializeProtocols } from './protocols'
 import { getDataBuffer, closeDataBuffer, getConnectionManager, getPollingEngine, disposePollingEngine } from './services'
@@ -17,6 +18,16 @@ log.transports.file.level = 'info'
 log.transports.file.maxSize = 10 * 1024 * 1024 // 10MB
 log.transports.file.format = '[{y}-{m}-{d} {h}:{i}:{s}.{ms}] [{level}] {text}'
 log.transports.console.level = is.dev ? 'debug' : 'warn'
+
+// Initialize Sentry error reporting (production only)
+const SENTRY_DSN = process.env.SENTRY_DSN || ''
+if (SENTRY_DSN && !is.dev) {
+  Sentry.init({
+    dsn: SENTRY_DSN,
+    environment: 'production',
+    release: `connex-studio@${app.getVersion()}`,
+  })
+}
 
 // Global error handlers — prevent silent crashes
 process.on('unhandledRejection', (reason) => {

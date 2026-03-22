@@ -45,6 +45,8 @@ jobs:
 
   build:
     needs: quality-gate
+    permissions:
+      contents: write
     strategy:
       fail-fast: false
       matrix:

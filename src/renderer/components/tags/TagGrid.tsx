@@ -5,7 +5,7 @@
  * and threshold-based row highlighting. Supports 100+ tags at 60 FPS.
  */
 
-import React, { useMemo, useCallback, memo, useRef } from 'react'
+import React, { useMemo, useCallback, useState, memo, useRef } from 'react'
 import { useVirtualizer, type VirtualItem } from '@tanstack/react-virtual'
 import {
   TrendingUp,
@@ -15,6 +15,7 @@ import {
   AlertCircle,
   Trash2,
   Settings,
+  Pencil,
   History,
   Radio,
   Wifi,
@@ -33,6 +34,8 @@ import type { Tag, ModbusAddress, MqttAddress, DataType } from '@shared/types/ta
 import { DATA_TYPE_INFO } from '@shared/types/tag'
 import type { TagValue } from '@shared/types/polling'
 import type { Protocol } from '@shared/types/connection'
+import { ModbusWriteDialog, useModbusWriteConfirm } from '@renderer/components/modbus'
+import { modbusApi } from '@renderer/lib/ipc'
 
 interface TagGridProps {
   /** Connection ID to display tags for */
@@ -41,6 +44,8 @@ interface TagGridProps {
   onEditTag?: (tag: Tag) => void
   /** Callback when a tag is deleted */
   onDeleteTag?: (tagId: string) => void
+  /** Callback when a tag write is requested */
+  onWriteTag?: (tag: Tag) => void
   /** Optional additional className */
   className?: string
 }
@@ -51,10 +56,12 @@ interface TagRowProps {
   historicalValue?: TagValue
   isHistorical: boolean
   protocol?: Protocol
+  isConnected: boolean
   isSelected: boolean
   rowIndex: number
   onEdit?: (tag: Tag) => void
   onDelete?: (tagId: string) => void
+  onWriteTag?: (tag: Tag) => void
   onToggleSelect?: (tagId: string, event: React.MouseEvent) => void
 }
 
@@ -135,12 +142,14 @@ const QualityBadge = memo(function QualityBadge({ quality }: { quality: string }
  */
 function formatAddress(address: Tag['address']): string {
   switch (address.type) {
-    case 'modbus':
+    case 'modbus': {
       const modbus = address as ModbusAddress
       return `${modbus.registerType}:${modbus.address}`
-    case 'mqtt':
+    }
+    case 'mqtt': {
       const mqtt = address as MqttAddress
       return mqtt.jsonPath ? `${mqtt.topic}::${mqtt.jsonPath}` : mqtt.topic
+    }
     case 'opcua':
       return address.nodeId
     default:
@@ -152,7 +161,7 @@ function formatAddress(address: Tag['address']): string {
  * Individual tag row with value display and controls.
  * Supports both live and historical display modes.
  */
-const TagRow = memo(function TagRow({ tag, displayState, historicalValue, isHistorical, protocol, isSelected, rowIndex, onEdit, onDelete, onToggleSelect }: TagRowProps) {
+const TagRow = memo(function TagRow({ tag, displayState, historicalValue, isHistorical, protocol, isConnected, isSelected, rowIndex, onEdit, onDelete, onWriteTag, onToggleSelect }: TagRowProps) {
   // Determine which value to display: historical or live (with scaling)
   const formattedValue = useMemo(() => {
     // Use historical value if in historical mode
@@ -181,6 +190,15 @@ const TagRow = memo(function TagRow({ tag, displayState, historicalValue, isHist
     ? historicalValue?.quality
     : displayState?.quality
 
+  // Determine if this tag supports write operations
+  const isWritable = useMemo(() => {
+    if (protocol !== 'modbus-tcp') return false
+    if (tag.address.type !== 'modbus') return false
+    const modbus = tag.address as ModbusAddress
+    return (modbus.registerType === 'holding' || modbus.registerType === 'coil') && isConnected
+  }, [protocol, tag.address, isConnected])
+
+  const handleWrite = useCallback(() => onWriteTag?.(tag), [tag, onWriteTag])
   const handleEdit = useCallback(() => onEdit?.(tag), [tag, onEdit])
   const handleDelete = useCallback(() => onDelete?.(tag.id), [tag.id, onDelete])
   const handleCheckboxClick = useCallback(
@@ -298,6 +316,20 @@ const TagRow = memo(function TagRow({ tag, displayState, historicalValue, isHist
 
       {/* Actions */}
       <div className="flex-shrink-0 flex gap-1">
+        {isWritable && (
+          <button
+            onClick={handleWrite}
+            className={cn(
+              'p-1.5 rounded-md',
+              'text-muted-foreground hover:text-blue-500',
+              'hover:bg-blue-500/10 transition-colors',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+            )}
+            title="Write value"
+          >
+            <Pencil className="h-4 w-4" />
+          </button>
+        )}
         <button
           onClick={handleEdit}
           className={cn(
@@ -335,6 +367,7 @@ export function TagGrid({
   connectionId,
   onEditTag,
   onDeleteTag,
+  onWriteTag,
   className
 }: TagGridProps): React.ReactElement {
   const getTags = useTagStore((state) => state.getTags)
@@ -353,12 +386,24 @@ export function TagGrid({
   // Get the protocol for the current connection
   const connection = connections.find((c) => c.id === connectionId)
   const protocol = connection?.protocol
+  const isConnected = connection?.status === 'connected'
 
   // DVR state for historical mode
   const isLive = useDvrStore((state) => state.isLive)
   const historicalValues = useDvrStore((state) => state.historicalValues)
 
   const tags = getTags(connectionId)
+
+  // Modbus write dialog state
+  const {
+    state: writeDialogState,
+    requestWrite,
+    handleClose: handleWriteClose,
+    handleConfirm: handleWriteConfirm
+  } = useModbusWriteConfirm()
+
+  // Write operation feedback
+  const [writeStatus, setWriteStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
   // Virtual list container ref
   const parentRef = React.useRef<HTMLDivElement>(null)
@@ -378,6 +423,55 @@ export function TagGrid({
       onDeleteTag?.(tagId)
     },
     [onDeleteTag]
+  )
+
+  // Handle write tag - opens the Modbus write dialog
+  const handleWriteTag = useCallback(
+    (tag: Tag) => {
+      if (tag.address.type !== 'modbus') return
+      const modbusAddr = tag.address as ModbusAddress
+      const currentDisplayState = displayStates.get(tag.id)
+      const currentValue = currentDisplayState?.currentValue ?? null
+
+      requestWrite(
+        {
+          tagName: tag.name,
+          address: modbusAddr,
+          dataType: tag.dataType,
+          currentValue
+        },
+        async (value) => {
+          try {
+            setWriteStatus(null)
+            // For multi-coil arrays, convert boolean[] to appropriate format
+            const writeValue = Array.isArray(value)
+              ? value // The IPC handler will handle boolean[] for FC15
+              : value
+            const result = await modbusApi.write({
+              connectionId,
+              address: modbusAddr,
+              dataType: tag.dataType,
+              value: writeValue as number | boolean | string
+            })
+            if (result.success) {
+              setWriteStatus({ type: 'success', message: `Wrote to ${tag.name} successfully` })
+              // Auto-clear success message after 3 seconds
+              setTimeout(() => setWriteStatus(null), 3000)
+            } else {
+              setWriteStatus({ type: 'error', message: result.error || 'Write failed' })
+            }
+          } catch (err) {
+            setWriteStatus({
+              type: 'error',
+              message: err instanceof Error ? err.message : 'Write failed'
+            })
+          }
+          // Also call the parent callback if provided
+          onWriteTag?.(tag)
+        }
+      )
+    },
+    [connectionId, displayStates, requestWrite, onWriteTag]
   )
 
   // Handle tag selection with shift-click for range selection
@@ -492,10 +586,12 @@ export function TagGrid({
                   historicalValue={historicalValue}
                   isHistorical={!isLive}
                   protocol={protocol}
+                  isConnected={isConnected}
                   isSelected={selectedTagIds.has(tag.id)}
                   rowIndex={virtualRow.index}
                   onEdit={onEditTag}
                   onDelete={handleDeleteTag}
+                  onWriteTag={handleWriteTag}
                   onToggleSelect={handleToggleSelect}
                 />
               </div>
@@ -503,6 +599,31 @@ export function TagGrid({
           })}
         </div>
       </div>
+
+      {/* Write status feedback */}
+      {writeStatus && (
+        <div
+          className={cn(
+            'px-3 py-2 text-xs font-medium border-t',
+            writeStatus.type === 'success'
+              ? 'bg-green-500/10 text-green-600 border-green-500/20'
+              : 'bg-red-500/10 text-red-600 border-red-500/20'
+          )}
+        >
+          {writeStatus.message}
+        </div>
+      )}
+
+      {/* Modbus Write Dialog */}
+      <ModbusWriteDialog
+        isOpen={writeDialogState.isOpen}
+        onClose={handleWriteClose}
+        onConfirm={handleWriteConfirm}
+        tagName={writeDialogState.tagName}
+        address={writeDialogState.address}
+        dataType={writeDialogState.dataType}
+        currentValue={writeDialogState.currentValue}
+      />
     </div>
   )
 }

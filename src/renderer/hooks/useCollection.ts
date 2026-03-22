@@ -242,7 +242,7 @@ export function useCollection(): UseCollectionReturn {
   // Load collections on mount
   useEffect(() => {
     refresh()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
 
   return {
     collections,

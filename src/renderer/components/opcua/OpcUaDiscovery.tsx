@@ -528,7 +528,6 @@ function DiscoveryContent({
     if (initialUrl) {
       handleDiscover()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []) // Only on mount
 
   return (

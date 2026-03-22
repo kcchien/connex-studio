@@ -711,6 +711,6 @@ function extractCN(dn: string): string {
   // - "/CN=Name/O=Org" (OpenSSL style)
   // - "CN=Name,O=Org" (RFC 2253 style)
   // - "CN=Name\nO=Org" (multi-line)
-  const cnMatch = dn.match(/CN=([^,\/\n]+)/i)
+  const cnMatch = dn.match(/CN=([^,/\n]+)/i)
   return cnMatch ? cnMatch[1] : dn
 }

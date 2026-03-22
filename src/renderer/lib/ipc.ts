@@ -13,6 +13,7 @@ export type ElectronAPI = typeof window.electronAPI
 export const connectionApi = api.connection
 export const tagApi = api.tag
 export const pollingApi = api.polling
+export const modbusApi = api.modbus
 export const dvrApi = api.dvr
 export const profileApi = api.profile
 export const exportApi = api.export

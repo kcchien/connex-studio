@@ -12,7 +12,7 @@
  * - Automatic reconnection on failure
  */
 
-import mqtt, { type MqttClient, type IClientOptions } from 'mqtt'
+import mqtt, { type MqttClient, type IClientOptions, type IPublishPacket } from 'mqtt'
 import log from 'electron-log/main.js'
 import type {
   Connection,
@@ -131,11 +131,13 @@ function convertExtractedValue(
 
 /**
  * Cached value for a topic subscription.
+ * isRetained: true when the message was a retained message from the broker (MQT-012).
  */
 interface TopicCache {
   value: number | boolean | string
   timestamp: number
   quality: 'good' | 'bad' | 'uncertain'
+  isRetained?: boolean
 }
 
 export class MqttAdapter extends ProtocolAdapter {
@@ -185,7 +187,7 @@ export class MqttAdapter extends ProtocolAdapter {
     return new Promise((resolve, reject) => {
       const options: IClientOptions = {
         clientId: this.config.clientId,
-        clean: true,
+        clean: this.config.cleanSession ?? true,   // MQT-010: configurable clean session
         connectTimeout: 10000,
         reconnectPeriod: 5000,
         rejectUnauthorized: this.config.useTls
@@ -202,6 +204,16 @@ export class MqttAdapter extends ProtocolAdapter {
       // Add CA certificate for TLS
       if (this.config.useTls && this.config.caCert) {
         options.ca = this.config.caCert
+      }
+
+      // MQT-011: Last will & testament message
+      if (this.config.willTopic) {
+        options.will = {
+          topic: this.config.willTopic,
+          payload: Buffer.from(this.config.willPayload || ''),
+          qos: this.config.willQos ?? 0,
+          retain: this.config.willRetain ?? false
+        }
       }
 
       try {
@@ -246,8 +258,8 @@ export class MqttAdapter extends ProtocolAdapter {
   private setupEventHandlers(): void {
     if (!this.client) return
 
-    this.client.on('message', (topic, payload) => {
-      this.handleMessage(topic, payload)
+    this.client.on('message', (topic: string, payload: Buffer, packet: IPublishPacket) => {
+      this.handleMessage(topic, payload, packet)
     })
 
     this.client.on('reconnect', () => {
@@ -276,9 +288,11 @@ export class MqttAdapter extends ProtocolAdapter {
 
   /**
    * Handle incoming MQTT message.
+   * MQT-012: packet.retain indicates this is a retained message held by the broker.
    */
-  private handleMessage(topic: string, payload: Buffer): void {
+  private handleMessage(topic: string, payload: Buffer, packet?: IPublishPacket): void {
     const timestamp = Date.now()
+    const isRetained = packet?.retain ?? false
 
     try {
       // Find tags that match this topic
@@ -293,7 +307,8 @@ export class MqttAdapter extends ProtocolAdapter {
         this.topicCache.set(cacheKey, {
           value,
           timestamp,
-          quality: 'good'
+          quality: 'good',
+          isRetained
         })
 
         // Emit data received event
@@ -302,7 +317,8 @@ export class MqttAdapter extends ProtocolAdapter {
             tagId: tag.id,
             value,
             quality: 'good',
-            timestamp
+            timestamp,
+            isRetained
           }
         ])
       }
@@ -312,7 +328,8 @@ export class MqttAdapter extends ProtocolAdapter {
       this.topicCache.set(topic, {
         value: rawValue,
         timestamp,
-        quality: 'good'
+        quality: 'good',
+        isRetained
       })
     } catch (error) {
       log.warn(`[Mqtt] Error processing message on ${topic}: ${error}`)
@@ -434,7 +451,8 @@ export class MqttAdapter extends ProtocolAdapter {
           tagId: tag.id,
           value: cached.value,
           quality: cached.quality,
-          timestamp: cached.timestamp
+          timestamp: cached.timestamp,
+          isRetained: cached.isRetained
         })
       } else {
         // No cached value yet - return uncertain quality

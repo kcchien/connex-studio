@@ -16,12 +16,14 @@ import { EventEmitter } from 'events'
 
 /**
  * Result of a single tag read operation.
+ * isRetained is MQTT-specific (MQT-012): true when the value came from a retained message.
  */
 export interface ReadResult {
   tagId: string
   value: number | boolean | string
   quality: DataQuality
   timestamp: number
+  isRetained?: boolean
 }
 
 /**

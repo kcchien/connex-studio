@@ -100,3 +100,15 @@ export const DEFAULT_MQTT_ADDRESS: MqttAddress = {
   type: 'mqtt',
   topic: 'sensors/temperature'
 }
+
+/**
+ * A single tag reading with optional MQTT-specific metadata.
+ * MQT-012: isRetained indicates the message was a retained message on the broker.
+ */
+export interface TagReading {
+  tagId: string
+  value: unknown
+  quality: 'good' | 'bad' | 'uncertain'
+  timestamp: number
+  isRetained?: boolean
+}

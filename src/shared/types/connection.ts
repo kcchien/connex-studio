@@ -71,6 +71,11 @@ export interface MqttConfig {
   password?: string  // Not persisted in JSON; stored in keytar
   useTls: boolean
   caCert?: string
+  cleanSession?: boolean   // Default true; set false to resume a persistent session
+  willTopic?: string       // MQT-011: Last will topic
+  willPayload?: string     // MQT-011: Last will payload
+  willQos?: 0 | 1 | 2     // MQT-011: Last will QoS level
+  willRetain?: boolean     // MQT-011: Retain last will message on broker
 }
 
 export interface OpcUaConfig {

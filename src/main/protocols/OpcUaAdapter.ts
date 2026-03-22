@@ -32,6 +32,10 @@ import {
   type MonitoringParametersOptions,
   type CallMethodRequestLike
 } from 'node-opcua'
+import { app } from 'electron'
+import os from 'os'
+import path from 'path'
+import fs from 'fs'
 import log from 'electron-log/main.js'
 import type {
   Connection,
@@ -178,6 +182,33 @@ export function parseEndpointUrl(url: string): { host: string; port: number; pat
   const port = parseInt(hostPort.substring(colonIndex + 1), 10)
 
   return { host, port, path }
+}
+
+/**
+ * Validate that a certificate file path is within an allowed directory.
+ * Prevents path traversal attacks by restricting access to home directory
+ * or app userData directory only.
+ */
+export function validateCertificatePath(filePath: string): string {
+  const resolved = path.resolve(filePath)
+  const homeDir = os.homedir()
+  const userDataDir = app.getPath('userData')
+
+  if (!resolved.startsWith(homeDir) && !resolved.startsWith(userDataDir)) {
+    throw new Error(`Certificate path not in allowed directory: ${resolved}`)
+  }
+  return resolved
+}
+
+/**
+ * Validate that a string conforms to PEM format for the given type.
+ */
+export function validatePemFormat(content: string, type: 'certificate' | 'privateKey'): boolean {
+  if (type === 'certificate') {
+    return content.includes('-----BEGIN CERTIFICATE-----')
+  }
+  return content.includes('-----BEGIN PRIVATE KEY-----') ||
+         content.includes('-----BEGIN RSA PRIVATE KEY-----')
 }
 
 /**
@@ -2860,19 +2891,28 @@ export class OpcUaAdapter extends ProtocolAdapter {
       } as UserIdentityInfo
     }
 
-    // Certificate authentication would be handled here
-    // For now, we support it via the certificate store
-    // if (config.certificateId) {
-    //   const certStore = getOpcUaCertificateStore()
-    //   const cert = certStore.getCertificate(config.certificateId)
-    //   if (cert) {
-    //     return {
-    //       type: 2, // UserTokenType.Certificate
-    //       certificateData: cert.data,
-    //       privateKey: cert.privateKey
-    //     } as UserIdentityInfo
-    //   }
-    // }
+    // Certificate authentication via path-based PEM files
+    if (config.authCertificatePath && config.authPrivateKeyPath) {
+      const certPath = validateCertificatePath(config.authCertificatePath)
+      const keyPath = validateCertificatePath(config.authPrivateKeyPath)
+
+      const certData = fs.readFileSync(certPath, 'utf-8')
+      const keyData = fs.readFileSync(keyPath, 'utf-8')
+
+      if (!validatePemFormat(certData, 'certificate')) {
+        throw new Error('Invalid certificate format: expected PEM')
+      }
+      if (!validatePemFormat(keyData, 'privateKey')) {
+        throw new Error('Invalid private key format: expected PEM')
+      }
+
+      log.debug('[OpcUaAdapter] Using certificate authentication')
+      return {
+        type: 2, // UserTokenType.Certificate
+        certificateData: Buffer.from(certData),
+        privateKey: keyData,
+      } as UserIdentityInfo
+    }
 
     // Default to anonymous
     log.debug('[OpcUaAdapter] Using anonymous authentication')

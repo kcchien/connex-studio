@@ -84,6 +84,8 @@ export interface OpcUaConfig {
   securityPolicy: string
   username?: string  // Not persisted in JSON; stored in keytar
   password?: string  // Not persisted in JSON; stored in keytar
+  authCertificatePath?: string  // PEM certificate file absolute path
+  authPrivateKeyPath?: string   // PEM private key file absolute path
 }
 
 // Default configurations

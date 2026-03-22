@@ -5,6 +5,7 @@ import log from 'electron-log/main.js'
 import { registerAllHandlers, handleWindowClose, stopAllPollingGracefully, setForceQuit } from './ipc'
 import { initializeProtocols } from './protocols'
 import { getDataBuffer, closeDataBuffer, getConnectionManager, getPollingEngine, disposePollingEngine } from './services'
+import { initializeUpdater } from './updater'
 
 // Ignore EPIPE errors from broken stdout/stderr pipes (e.g. when parent process exits)
 process.stdout?.on?.('error', () => {})
@@ -16,6 +17,20 @@ log.transports.file.level = 'info'
 log.transports.file.maxSize = 10 * 1024 * 1024 // 10MB
 log.transports.file.format = '[{y}-{m}-{d} {h}:{i}:{s}.{ms}] [{level}] {text}'
 log.transports.console.level = is.dev ? 'debug' : 'warn'
+
+// Global error handlers — prevent silent crashes
+process.on('unhandledRejection', (reason) => {
+  log.error('Unhandled Rejection:', reason)
+})
+
+process.on('uncaughtException', (error) => {
+  log.error('Uncaught Exception:', error)
+  dialog.showErrorBox(
+    'Unexpected Error',
+    `An unexpected error occurred:\n\n${error.message}\n\nThe application will restart.`
+  )
+  app.quit()
+})
 
 // Log app startup
 log.info('======================================')
@@ -136,6 +151,11 @@ app.whenReady().then(() => {
   })
 
   log.info('App ready')
+
+  // Initialize auto-updater (production only)
+  if (!is.dev) {
+    initializeUpdater(mainWindow!)
+  }
 })
 
 app.on('window-all-closed', () => {

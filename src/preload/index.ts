@@ -463,6 +463,17 @@ export interface ElectronAPI {
     saveFile: (params: { yaml: string; defaultPath?: string }) => Promise<SaveFileResult>
     loadFile: (path?: string) => Promise<LoadFileResult>
   }
+
+  // Auto-updater
+  updater: {
+    check: () => Promise<{ updateAvailable: boolean }>
+    download: () => Promise<void>
+    install: () => void
+    onUpdateAvailable: (callback: (info: { version: string; releaseNotes?: string }) => void) => () => void
+    onUpdateNotAvailable: (callback: () => void) => () => void
+    onDownloadProgress: (callback: (progress: { percent: number }) => void) => () => void
+    onUpdateDownloaded: (callback: (info: { version: string }) => void) => () => void
+  }
 }
 
 // Implement the API
@@ -764,6 +775,37 @@ const electronAPI: ElectronAPI = {
     validate: (yamlContent) => ipcRenderer.invoke('workspace:validate', yamlContent),
     saveFile: (params) => ipcRenderer.invoke('workspace:save-file', params),
     loadFile: (path) => ipcRenderer.invoke('workspace:load-file', path ? { path } : undefined)
+  },
+
+  // ── Auto-updater ────────────────────────────────────
+  updater: {
+    check: (): Promise<{ updateAvailable: boolean }> =>
+      ipcRenderer.invoke('updater:check'),
+    download: (): Promise<void> =>
+      ipcRenderer.invoke('updater:download'),
+    install: (): void => {
+      ipcRenderer.invoke('updater:install')
+    },
+    onUpdateAvailable: (callback: (info: { version: string; releaseNotes?: string }) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, info: { version: string; releaseNotes?: string }): void => callback(info)
+      ipcRenderer.on('updater:update-available', handler)
+      return (): void => { ipcRenderer.removeListener('updater:update-available', handler) }
+    },
+    onUpdateNotAvailable: (callback: () => void) => {
+      const handler = (): void => callback()
+      ipcRenderer.on('updater:update-not-available', handler)
+      return (): void => { ipcRenderer.removeListener('updater:update-not-available', handler) }
+    },
+    onDownloadProgress: (callback: (progress: { percent: number }) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, progress: { percent: number }): void => callback(progress)
+      ipcRenderer.on('updater:download-progress', handler)
+      return (): void => { ipcRenderer.removeListener('updater:download-progress', handler) }
+    },
+    onUpdateDownloaded: (callback: (info: { version: string }) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, info: { version: string }): void => callback(info)
+      ipcRenderer.on('updater:update-downloaded', handler)
+      return (): void => { ipcRenderer.removeListener('updater:update-downloaded', handler) }
+    },
   }
 }
 

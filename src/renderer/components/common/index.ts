@@ -13,3 +13,6 @@ export { ToastContainer } from './ToastContainer'
 
 export { DataTypeSelector, getDataTypesForRegister, getRegisterCount, getDefaultDecimals } from './DataTypeSelector'
 export type { DataTypeSelectorProps } from './DataTypeSelector'
+
+export { ErrorBoundary } from './ErrorBoundary'
+export { UpdateBanner } from './UpdateBanner'

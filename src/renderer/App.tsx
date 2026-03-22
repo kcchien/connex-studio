@@ -8,7 +8,7 @@ import {
 } from '@renderer/components/connection'
 import { DataExplorer, TagDisplayState } from '@renderer/components/explorer'
 import { BatchTagDialog } from '@renderer/components/tags'
-import { LogViewer, Logo } from '@renderer/components/common'
+import { LogViewer, Logo, ToastContainer, UpdateBanner } from '@renderer/components/common'
 import { useConnectionStore } from '@renderer/stores/connectionStore'
 import { useTagStore } from '@renderer/stores/tagStore'
 import { useUIStore } from '@renderer/stores/uiStore'
@@ -321,6 +321,7 @@ function App(): React.ReactElement {
 
       {/* Main Content */}
       <main className="flex-1 overflow-hidden flex flex-col">
+        <UpdateBanner />
         {selectedConnectionId && selectedConnection ? (
           <DataExplorer
             connectionId={selectedConnectionId}
@@ -362,6 +363,7 @@ function App(): React.ReactElement {
           </div>
         )}
       </main>
+      <ToastContainer />
     </div>
   )
 }

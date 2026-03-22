@@ -1,5 +1,9 @@
 appId: com.connexstudio.app
 productName: Connex Studio
+publish:
+  provider: github
+  owner: kcchien
+  repo: connex-studio
 directories:
   buildResources: resources
   output: dist

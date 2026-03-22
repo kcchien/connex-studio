@@ -48,14 +48,22 @@ interface MqttFormState {
   username: string
   password: string
   useTls: boolean
+  cleanSession: boolean
+  willTopic: string
+  willPayload: string
+  willQos: 0 | 1 | 2
+  willRetain: boolean
 }
 
 interface OpcUaFormState {
   endpointUrl: string
   securityMode: 'None' | 'Sign' | 'SignAndEncrypt'
   securityPolicy: string
+  authMode: 'anonymous' | 'username' | 'certificate'
   username: string
   password: string
+  authCertificatePath: string
+  authPrivateKeyPath: string
 }
 
 interface FormState {
@@ -94,14 +102,22 @@ const initialFormState: FormState = {
     clientId: DEFAULT_MQTT_CONFIG.clientId,
     username: '',
     password: '',
-    useTls: DEFAULT_MQTT_CONFIG.useTls
+    useTls: DEFAULT_MQTT_CONFIG.useTls,
+    cleanSession: true,
+    willTopic: '',
+    willPayload: '',
+    willQos: 0,
+    willRetain: false
   },
   opcua: {
     endpointUrl: DEFAULT_OPCUA_CONFIG.endpointUrl,
     securityMode: DEFAULT_OPCUA_CONFIG.securityMode,
     securityPolicy: DEFAULT_OPCUA_CONFIG.securityPolicy,
+    authMode: 'anonymous' as const,
     username: '',
-    password: ''
+    password: '',
+    authCertificatePath: '',
+    authPrivateKeyPath: ''
   }
 }
 
@@ -255,16 +271,29 @@ export function ConnectionForm({
           brokerUrl: formState.mqtt.brokerUrl.trim(),
           clientId: formState.mqtt.clientId.trim(),
           useTls: formState.mqtt.useTls,
+          cleanSession: formState.mqtt.cleanSession,
           ...(formState.mqtt.username.trim() && { username: formState.mqtt.username.trim() }),
-          ...(formState.mqtt.password && { password: formState.mqtt.password })
+          ...(formState.mqtt.password && { password: formState.mqtt.password }),
+          ...(formState.mqtt.willTopic.trim() && {
+            willTopic: formState.mqtt.willTopic.trim(),
+            willPayload: formState.mqtt.willPayload,
+            willQos: formState.mqtt.willQos,
+            willRetain: formState.mqtt.willRetain
+          })
         }
       } else {
         config = {
           endpointUrl: formState.opcua.endpointUrl.trim(),
           securityMode: formState.opcua.securityMode,
           securityPolicy: formState.opcua.securityPolicy,
-          ...(formState.opcua.username.trim() && { username: formState.opcua.username.trim() }),
-          ...(formState.opcua.password && { password: formState.opcua.password })
+          ...(formState.opcua.authMode === 'username' && formState.opcua.username.trim() && {
+            username: formState.opcua.username.trim(),
+            ...(formState.opcua.password && { password: formState.opcua.password })
+          }),
+          ...(formState.opcua.authMode === 'certificate' && {
+            authCertificatePath: formState.opcua.authCertificatePath.trim(),
+            authPrivateKeyPath: formState.opcua.authPrivateKeyPath.trim()
+          })
         }
       }
 
@@ -632,6 +661,126 @@ export function ConnectionForm({
                   Use TLS (mqtts://)
                 </Label.Root>
               </div>
+
+              {/* Clean Session Toggle */}
+              <div className="flex items-center gap-2">
+                <input
+                  id="connection-clean-session"
+                  type="checkbox"
+                  checked={formState.mqtt.cleanSession}
+                  onChange={(e) => updateMqttField('cleanSession', e.target.checked)}
+                  disabled={isLoading}
+                  className="h-4 w-4 rounded border-input"
+                />
+                <Label.Root htmlFor="connection-clean-session" className="text-sm text-foreground">
+                  Clean Session
+                </Label.Root>
+              </div>
+
+              {/* Will Message - collapsible */}
+              <details className="group">
+                <summary className={cn(
+                  'text-xs font-medium text-muted-foreground cursor-pointer',
+                  'hover:text-foreground transition-colors list-none',
+                  'flex items-center gap-1'
+                )}>
+                  <ChevronRight className="h-3 w-3 group-open:rotate-90 transition-transform" />
+                  Will Message (optional)
+                </summary>
+                <div className="mt-2 space-y-2 pl-4">
+                  {/* Will Topic */}
+                  <div className="space-y-1.5">
+                    <Label.Root
+                      htmlFor="connection-will-topic"
+                      className="text-xs font-medium text-muted-foreground"
+                    >
+                      Topic
+                    </Label.Root>
+                    <input
+                      id="connection-will-topic"
+                      type="text"
+                      value={formState.mqtt.willTopic}
+                      onChange={(e) => updateMqttField('willTopic', e.target.value)}
+                      placeholder="device/status"
+                      disabled={isLoading}
+                      className={cn(
+                        'w-full h-8 px-2.5 text-sm rounded-md',
+                        'bg-background border border-input',
+                        'placeholder:text-muted-foreground/60',
+                        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                        'disabled:opacity-50 disabled:cursor-not-allowed'
+                      )}
+                    />
+                  </div>
+
+                  {/* Will Payload */}
+                  <div className="space-y-1.5">
+                    <Label.Root
+                      htmlFor="connection-will-payload"
+                      className="text-xs font-medium text-muted-foreground"
+                    >
+                      Payload
+                    </Label.Root>
+                    <textarea
+                      id="connection-will-payload"
+                      value={formState.mqtt.willPayload}
+                      onChange={(e) => updateMqttField('willPayload', e.target.value)}
+                      placeholder='{"status":"offline"}'
+                      disabled={isLoading}
+                      rows={2}
+                      className={cn(
+                        'w-full px-2.5 py-1.5 text-sm rounded-md',
+                        'bg-background border border-input',
+                        'placeholder:text-muted-foreground/60',
+                        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                        'disabled:opacity-50 disabled:cursor-not-allowed',
+                        'resize-none'
+                      )}
+                    />
+                  </div>
+
+                  {/* Will QoS and Retain - two columns */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1.5">
+                      <Label.Root
+                        htmlFor="connection-will-qos"
+                        className="text-xs font-medium text-muted-foreground"
+                      >
+                        QoS
+                      </Label.Root>
+                      <select
+                        id="connection-will-qos"
+                        value={formState.mqtt.willQos}
+                        onChange={(e) => updateMqttField('willQos', Number(e.target.value) as 0 | 1 | 2)}
+                        disabled={isLoading}
+                        className={cn(
+                          'w-full h-8 px-2.5 text-sm rounded-md',
+                          'bg-background border border-input',
+                          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                          'disabled:opacity-50 disabled:cursor-not-allowed'
+                        )}
+                      >
+                        <option value={0}>0 - At most once</option>
+                        <option value={1}>1 - At least once</option>
+                        <option value={2}>2 - Exactly once</option>
+                      </select>
+                    </div>
+                    <div className="flex items-end pb-1 gap-2">
+                      <input
+                        id="connection-will-retain"
+                        type="checkbox"
+                        checked={formState.mqtt.willRetain}
+                        onChange={(e) => updateMqttField('willRetain', e.target.checked)}
+                        disabled={isLoading}
+                        className="h-4 w-4 rounded border-input"
+                      />
+                      <Label.Root htmlFor="connection-will-retain" className="text-sm text-foreground">
+                        Retain
+                      </Label.Root>
+                    </div>
+                  </div>
+                </div>
+              </details>
             </>
           )}
 
@@ -728,56 +877,137 @@ export function ConnectionForm({
                 </div>
               </div>
 
-              {/* Username and Password - Two columns */}
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1.5">
-                  <Label.Root
-                    htmlFor="connection-opcua-username"
-                    className="text-xs font-medium text-muted-foreground"
-                  >
-                    Username (optional)
-                  </Label.Root>
-                  <input
-                    id="connection-opcua-username"
-                    type="text"
-                    value={formState.opcua.username}
-                    onChange={(e) => updateOpcUaField('username', e.target.value)}
-                    placeholder="username"
-                    disabled={isLoading}
-                    className={cn(
-                      'w-full h-8 px-2.5 text-sm rounded-md',
-                      'bg-background border border-input',
-                      'placeholder:text-muted-foreground/60',
-                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                      'disabled:opacity-50 disabled:cursor-not-allowed'
-                    )}
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label.Root
-                    htmlFor="connection-opcua-password"
-                    className="text-xs font-medium text-muted-foreground"
-                  >
-                    Password (optional)
-                  </Label.Root>
-                  <input
-                    id="connection-opcua-password"
-                    type="password"
-                    value={formState.opcua.password}
-                    onChange={(e) => updateOpcUaField('password', e.target.value)}
-                    placeholder="password"
-                    disabled={isLoading}
-                    className={cn(
-                      'w-full h-8 px-2.5 text-sm rounded-md',
-                      'bg-background border border-input',
-                      'placeholder:text-muted-foreground/60',
-                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                      'disabled:opacity-50 disabled:cursor-not-allowed'
-                    )}
-                  />
-                </div>
+              {/* Authentication Mode */}
+              <div className="space-y-1.5">
+                <Label.Root
+                  htmlFor="connection-opcua-auth-mode"
+                  className="text-xs font-medium text-muted-foreground"
+                >
+                  Authentication
+                </Label.Root>
+                <select
+                  id="connection-opcua-auth-mode"
+                  value={formState.opcua.authMode}
+                  onChange={(e) =>
+                    updateOpcUaField('authMode', e.target.value as 'anonymous' | 'username' | 'certificate')
+                  }
+                  disabled={isLoading}
+                  className={cn(
+                    'w-full h-8 px-2.5 text-sm rounded-md',
+                    'bg-background border border-input',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                    'disabled:opacity-50 disabled:cursor-not-allowed'
+                  )}
+                >
+                  <option value="anonymous">Anonymous</option>
+                  <option value="username">Username / Password</option>
+                  <option value="certificate">Certificate</option>
+                </select>
               </div>
+
+              {/* Username / Password fields */}
+              {formState.opcua.authMode === 'username' && (
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1.5">
+                    <Label.Root
+                      htmlFor="connection-opcua-username"
+                      className="text-xs font-medium text-muted-foreground"
+                    >
+                      Username
+                    </Label.Root>
+                    <input
+                      id="connection-opcua-username"
+                      type="text"
+                      value={formState.opcua.username}
+                      onChange={(e) => updateOpcUaField('username', e.target.value)}
+                      placeholder="username"
+                      disabled={isLoading}
+                      className={cn(
+                        'w-full h-8 px-2.5 text-sm rounded-md',
+                        'bg-background border border-input',
+                        'placeholder:text-muted-foreground/60',
+                        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                        'disabled:opacity-50 disabled:cursor-not-allowed'
+                      )}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label.Root
+                      htmlFor="connection-opcua-password"
+                      className="text-xs font-medium text-muted-foreground"
+                    >
+                      Password
+                    </Label.Root>
+                    <input
+                      id="connection-opcua-password"
+                      type="password"
+                      value={formState.opcua.password}
+                      onChange={(e) => updateOpcUaField('password', e.target.value)}
+                      placeholder="password"
+                      disabled={isLoading}
+                      className={cn(
+                        'w-full h-8 px-2.5 text-sm rounded-md',
+                        'bg-background border border-input',
+                        'placeholder:text-muted-foreground/60',
+                        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                        'disabled:opacity-50 disabled:cursor-not-allowed'
+                      )}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Certificate fields */}
+              {formState.opcua.authMode === 'certificate' && (
+                <div className="space-y-2">
+                  <div className="space-y-1.5">
+                    <Label.Root
+                      htmlFor="connection-opcua-cert-path"
+                      className="text-xs font-medium text-muted-foreground"
+                    >
+                      Certificate Path (.pem)
+                    </Label.Root>
+                    <input
+                      id="connection-opcua-cert-path"
+                      type="text"
+                      value={formState.opcua.authCertificatePath}
+                      onChange={(e) => updateOpcUaField('authCertificatePath', e.target.value)}
+                      placeholder="/path/to/certificate.pem"
+                      disabled={isLoading}
+                      className={cn(
+                        'w-full h-8 px-2.5 text-sm rounded-md',
+                        'bg-background border border-input',
+                        'placeholder:text-muted-foreground/60',
+                        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                        'disabled:opacity-50 disabled:cursor-not-allowed'
+                      )}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label.Root
+                      htmlFor="connection-opcua-key-path"
+                      className="text-xs font-medium text-muted-foreground"
+                    >
+                      Private Key Path (.pem)
+                    </Label.Root>
+                    <input
+                      id="connection-opcua-key-path"
+                      type="text"
+                      value={formState.opcua.authPrivateKeyPath}
+                      onChange={(e) => updateOpcUaField('authPrivateKeyPath', e.target.value)}
+                      placeholder="/path/to/private-key.pem"
+                      disabled={isLoading}
+                      className={cn(
+                        'w-full h-8 px-2.5 text-sm rounded-md',
+                        'bg-background border border-input',
+                        'placeholder:text-muted-foreground/60',
+                        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                        'disabled:opacity-50 disabled:cursor-not-allowed'
+                      )}
+                    />
+                  </div>
+                </div>
+              )}
             </>
           )}
 

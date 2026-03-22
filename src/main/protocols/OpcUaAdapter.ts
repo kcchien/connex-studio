@@ -191,10 +191,18 @@ export function parseEndpointUrl(url: string): { host: string; port: number; pat
  */
 export function validateCertificatePath(filePath: string): string {
   const resolved = path.resolve(filePath)
-  const homeDir = os.homedir()
-  const userDataDir = app.getPath('userData')
+  const homeDir = path.resolve(os.homedir())
+  const userDataDir = path.resolve(app.getPath('userData'))
 
-  if (!resolved.startsWith(homeDir) && !resolved.startsWith(userDataDir)) {
+  // 正規化路徑分隔符（Windows 使用反斜線）後比較
+  const normalizedResolved = resolved.toLowerCase()
+  const normalizedHome = homeDir.toLowerCase()
+  const normalizedUserData = userDataDir.toLowerCase()
+
+  const isUnderHome = normalizedResolved.startsWith(normalizedHome + path.sep) || normalizedResolved === normalizedHome
+  const isUnderUserData = normalizedResolved.startsWith(normalizedUserData + path.sep) || normalizedResolved === normalizedUserData
+
+  if (!isUnderHome && !isUnderUserData) {
     throw new Error(`Certificate path not in allowed directory: ${resolved}`)
   }
   return resolved

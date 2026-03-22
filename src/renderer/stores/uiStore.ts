@@ -97,7 +97,9 @@ export const useUIStore = create<UIState>()(
 
       // Language actions
       setLanguage: (lang) => {
-        import('i18next').then(({ default: i18n }) => i18n.changeLanguage(lang))
+        import('i18next').then(({ default: i18n }) => i18n.changeLanguage(lang)).catch((err) => {
+          console.error('[uiStore] Failed to change language:', err)
+        })
         set({ language: lang })
       },
 

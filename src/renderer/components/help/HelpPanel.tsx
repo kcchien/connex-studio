@@ -76,7 +76,7 @@ function CollapsibleSection({ title, children, defaultOpen = false }: Collapsibl
  * Reads open state from uiStore and calls setHelpPanelOpen to close.
  */
 export function HelpPanel(): React.ReactElement | null {
-  const { t } = useTranslation('help')
+  const { t } = useTranslation(['help', 'common'])
   const helpPanelOpen = useUIStore((state) => state.helpPanelOpen)
   const setHelpPanelOpen = useUIStore((state) => state.setHelpPanelOpen)
 
@@ -115,7 +115,7 @@ export function HelpPanel(): React.ReactElement | null {
             type="button"
             onClick={() => setHelpPanelOpen(false)}
             className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
-            aria-label="Close help panel"
+            aria-label={t('common:action.close')}
           >
             <X className="w-4 h-4" aria-hidden="true" />
           </button>

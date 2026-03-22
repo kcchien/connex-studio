@@ -142,6 +142,9 @@ export function reorderRegisters64(
  * @returns 64-bit floating point value
  */
 export function decodeFloat64(registers: number[], byteOrder: ByteOrder): number {
+  if (!registers || registers.length < 4) {
+    return NaN
+  }
   const [r0, r1, r2, r3] = reorderRegisters64(
     registers[0], registers[1], registers[2], registers[3], byteOrder
   )

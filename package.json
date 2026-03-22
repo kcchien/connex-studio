@@ -9,37 +9,11 @@
       "env-paths": "2.2.1"
     },
     "onlyBuiltDependencies": [
-      " ",
-      "-",
-      "@",
       "@serialport/bindings-cpp",
-      "/",
-      "3",
-      "a",
-      "b",
       "better-sqlite3",
-      "c",
-      "d",
-      "e",
       "electron",
       "esbuild",
-      "g",
-      "i",
-      "k",
-      "l",
-      "lzma-native",
-      "m",
-      "n",
-      "o",
-      "p",
-      "q",
-      "r",
-      "s",
-      "t",
-      "u",
-      "v",
-      "y",
-      "z"
+      "lzma-native"
     ]
   },
   "scripts": {

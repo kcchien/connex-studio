@@ -303,9 +303,15 @@ const TagRow = memo(function TagRow({ tag, displayState, historicalValue, isHist
       {/* Current value */}
       <div className="flex-shrink-0 w-28 flex items-center justify-end gap-1">
         {!isHistorical && displayState?.isRetained && (
-          <span className="text-xs text-amber-500" title="Retained">📌</span>
+          <span className="text-xs text-amber-500" title="Retained" aria-hidden="true">📌</span>
         )}
-        <span className="text-sm font-mono font-medium text-foreground">{formattedValue}</span>
+        <span
+          className="text-sm font-mono font-medium text-foreground"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          {formattedValue}
+        </span>
       </div>
 
       {/* Trend indicator */}
@@ -329,9 +335,10 @@ const TagRow = memo(function TagRow({ tag, displayState, historicalValue, isHist
               'hover:bg-blue-500/10 transition-colors',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
             )}
+            aria-label={`Write value for ${tag.name}`}
             title="Write value"
           >
-            <Pencil className="h-4 w-4" />
+            <Pencil className="h-4 w-4" aria-hidden="true" />
           </button>
         )}
         <button
@@ -342,9 +349,10 @@ const TagRow = memo(function TagRow({ tag, displayState, historicalValue, isHist
             'hover:bg-muted transition-colors',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
           )}
+          aria-label={`Edit tag ${tag.name}`}
           title="Edit tag"
         >
-          <Settings className="h-4 w-4" />
+          <Settings className="h-4 w-4" aria-hidden="true" />
         </button>
         <button
           onClick={handleDelete}
@@ -354,9 +362,10 @@ const TagRow = memo(function TagRow({ tag, displayState, historicalValue, isHist
             'hover:bg-destructive/10 transition-colors',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
           )}
+          aria-label={`Delete tag ${tag.name}`}
           title="Delete tag"
         >
-          <Trash2 className="h-4 w-4" />
+          <Trash2 className="h-4 w-4" aria-hidden="true" />
         </button>
       </div>
     </div>
@@ -608,6 +617,9 @@ export function TagGrid({
       {/* Write status feedback */}
       {writeStatus && (
         <div
+          role={writeStatus.type === 'error' ? 'alert' : 'status'}
+          aria-live={writeStatus.type === 'error' ? 'assertive' : 'polite'}
+          aria-atomic="true"
           className={cn(
             'px-3 py-2 text-xs font-medium border-t',
             writeStatus.type === 'success'

@@ -109,6 +109,9 @@ export const AlertNotification = memo(function AlertNotification({
 
   return (
     <div
+      role="alert"
+      aria-live="assertive"
+      aria-atomic="true"
       className={cn(
         'fixed bottom-4 right-4 z-50',
         'transition-all duration-200 ease-out',
@@ -144,12 +147,13 @@ export const AlertNotification = memo(function AlertNotification({
                 'p-1 rounded hover:bg-muted transition-colors',
                 'text-muted-foreground'
               )}
+              aria-label={soundEnabled ? t('notification.muteSounds') : t('notification.enableSounds')}
               title={soundEnabled ? t('notification.muteSounds') : t('notification.enableSounds')}
             >
               {soundEnabled ? (
-                <Volume2 className="h-4 w-4" />
+                <Volume2 className="h-4 w-4" aria-hidden="true" />
               ) : (
-                <VolumeX className="h-4 w-4" />
+                <VolumeX className="h-4 w-4" aria-hidden="true" />
               )}
             </button>
             {/* Close */}
@@ -159,8 +163,9 @@ export const AlertNotification = memo(function AlertNotification({
                 'p-1 rounded hover:bg-muted transition-colors',
                 'text-muted-foreground hover:text-foreground'
               )}
+              aria-label={t('action.dismiss')}
             >
-              <X className="h-4 w-4" />
+              <X className="h-4 w-4" aria-hidden="true" />
             </button>
           </div>
         </div>

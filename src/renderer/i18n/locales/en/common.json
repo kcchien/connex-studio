@@ -1,5 +1,6 @@
 {
   "app.name": "Connex Studio",
+  "action.settings": "Settings",
   "action.save": "Save",
   "action.cancel": "Cancel",
   "action.delete": "Delete",
@@ -26,5 +27,9 @@
   "theme.dark": "Dark",
   "theme.system": "System",
   "nav.sidebar": "Sidebar navigation",
-  "nav.main": "Main content"
+  "nav.main": "Main content",
+  "a11y.connectionStatus": "Connection status: {{status}}",
+  "a11y.connectionItem": "{{name}} — {{protocol}}, status: {{status}}",
+  "a11y.theme": "Theme: {{theme}}",
+  "a11y.tagValue": "Tag value: {{value}}"
 }

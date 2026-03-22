@@ -43,11 +43,11 @@ jest.mock('net', () => {
     ...originalNet,
     isIP: originalNet.isIP,
     Socket: jest.fn().mockImplementation(() => {
-      const handlers: Record<string, Function> = {}
+      const handlers: Record<string, (...args: unknown[]) => unknown> = {}
       return {
-        connect: jest.fn((_port: number, _host: string, cb: Function) => cb()),
+        connect: jest.fn((_port: number, _host: string, cb: () => void) => cb()),
         destroy: jest.fn(),
-        on: jest.fn((event: string, handler: Function) => {
+        on: jest.fn((event: string, handler: (...args: unknown[]) => unknown) => {
           handlers[event] = handler
         }),
         _handlers: handlers

@@ -10,6 +10,7 @@
  */
 
 import React, { useState, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Binary, Copy, Check, AlertCircle } from 'lucide-react'
 import { cn } from '@renderer/lib/utils'
 import { calculatorApi } from '@renderer/lib/ipc'
@@ -53,6 +54,7 @@ const BYTE_ORDERS: { value: CalculatorByteOrder; label: string }[] = [
 // =============================================================================
 
 export function FloatDecoder({ className }: FloatDecoderProps): React.ReactElement {
+  const { t } = useTranslation('calculator')
   const [mode, setMode] = useState<'decode' | 'encode'>('decode')
   const [floatSize, setFloatSize] = useState<'float32' | 'float64'>('float32')
   const [hexInput, setHexInput] = useState('')
@@ -65,7 +67,7 @@ export function FloatDecoder({ className }: FloatDecoderProps): React.ReactEleme
 
   const decode = useCallback(async () => {
     if (!hexInput.trim()) {
-      setError('Please enter hex data')
+      setError(t('float.error.emptyInput'))
       return
     }
 
@@ -80,7 +82,7 @@ export function FloatDecoder({ className }: FloatDecoderProps): React.ReactEleme
       setDecodeResult(result)
       setError(null)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Decode failed')
+      setError(err instanceof Error ? err.message : t('float.error.decodeFailed'))
       setDecodeResult(null)
     }
   }, [hexInput, byteOrder, floatSize])
@@ -88,7 +90,7 @@ export function FloatDecoder({ className }: FloatDecoderProps): React.ReactEleme
   const encode = useCallback(async () => {
     const value = parseFloat(floatInput)
     if (isNaN(value) && floatInput !== 'NaN') {
-      setError('Please enter a valid number')
+      setError(t('float.error.invalidNumber'))
       return
     }
 
@@ -100,7 +102,7 @@ export function FloatDecoder({ className }: FloatDecoderProps): React.ReactEleme
       setEncodeResult(result)
       setError(null)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Encode failed')
+      setError(err instanceof Error ? err.message : t('float.error.encodeFailed'))
       setEncodeResult(null)
     }
   }, [floatInput, byteOrder])
@@ -124,7 +126,7 @@ export function FloatDecoder({ className }: FloatDecoderProps): React.ReactEleme
       {/* Header */}
       <div className="flex items-center gap-2">
         <Binary className="h-5 w-5 text-primary" />
-        <h3 className="text-lg font-semibold">IEEE 754 Float Decoder</h3>
+        <h3 className="text-lg font-semibold">{t('float.title')}</h3>
       </div>
 
       {/* Mode Toggle */}
@@ -138,7 +140,7 @@ export function FloatDecoder({ className }: FloatDecoderProps): React.ReactEleme
               : 'bg-secondary text-secondary-foreground'
           )}
         >
-          Decode (Hex to Float)
+          {t('float.decode')}
         </button>
         <button
           onClick={() => { setMode('encode'); setError(null); }}
@@ -149,13 +151,13 @@ export function FloatDecoder({ className }: FloatDecoderProps): React.ReactEleme
               : 'bg-secondary text-secondary-foreground'
           )}
         >
-          Encode (Float to Hex)
+          {t('float.encode')}
         </button>
       </div>
 
       {/* Float Size Selection */}
       <div className="flex gap-4 items-center">
-        <label className="text-sm text-muted-foreground">Float Size:</label>
+        <label className="text-sm text-muted-foreground">{t('float.floatSize')}</label>
         <div className="flex gap-2">
           <button
             onClick={() => setFloatSize('float32')}
@@ -166,7 +168,7 @@ export function FloatDecoder({ className }: FloatDecoderProps): React.ReactEleme
                 : 'bg-muted text-muted-foreground'
             )}
           >
-            Float32 (4 bytes)
+            {t('float.float32')}
           </button>
           <button
             onClick={() => setFloatSize('float64')}
@@ -179,14 +181,14 @@ export function FloatDecoder({ className }: FloatDecoderProps): React.ReactEleme
               mode === 'encode' && 'opacity-50 cursor-not-allowed'
             )}
           >
-            Float64 (8 bytes)
+            {t('float.float64')}
           </button>
         </div>
       </div>
 
       {/* Byte Order Selection */}
       <div className="space-y-2">
-        <label className="text-sm text-muted-foreground">Byte Order</label>
+        <label className="text-sm text-muted-foreground">{t('float.byteOrder')}</label>
         <select
           value={byteOrder}
           onChange={(e) => setByteOrder(e.target.value as CalculatorByteOrder)}
@@ -204,7 +206,7 @@ export function FloatDecoder({ className }: FloatDecoderProps): React.ReactEleme
       {mode === 'decode' ? (
         <div className="space-y-2">
           <label className="text-sm text-muted-foreground">
-            Hex Data ({floatSize === 'float32' ? '4 bytes' : '8 bytes'})
+            {t('float.hexDataLabel', { bytes: floatSize === 'float32' ? '4 bytes' : '8 bytes' })}
           </label>
           <input
             type="text"
@@ -216,7 +218,7 @@ export function FloatDecoder({ className }: FloatDecoderProps): React.ReactEleme
         </div>
       ) : (
         <div className="space-y-2">
-          <label className="text-sm text-muted-foreground">Float Value</label>
+          <label className="text-sm text-muted-foreground">{t('float.floatValue')}</label>
           <input
             type="text"
             value={floatInput}
@@ -225,7 +227,7 @@ export function FloatDecoder({ className }: FloatDecoderProps): React.ReactEleme
             className="w-full p-3 font-mono text-sm bg-muted/50 rounded-md border focus:outline-none focus:ring-2 focus:ring-primary"
           />
           <p className="text-xs text-muted-foreground">
-            Special values: Infinity, -Infinity, NaN
+            {t('float.specialValues')}
           </p>
         </div>
       )}
@@ -243,14 +245,14 @@ export function FloatDecoder({ className }: FloatDecoderProps): React.ReactEleme
         onClick={mode === 'decode' ? decode : encode}
         className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 text-sm font-medium"
       >
-        {mode === 'decode' ? 'Decode' : 'Encode'}
+        {mode === 'decode' ? t('float.decodeAction') : t('float.encodeAction')}
       </button>
 
       {/* Decode Results */}
       {mode === 'decode' && decodeResult && (
         <div className="p-4 bg-muted/30 rounded-md space-y-4">
           <div className="flex items-center justify-between">
-            <h4 className="font-medium text-sm">Decoded Value</h4>
+            <h4 className="font-medium text-sm">{t('float.decodedValue')}</h4>
             {(decodeResult.isNaN || decodeResult.isInfinity || decodeResult.isZero) && (
               <span className="text-xs px-2 py-1 bg-amber-500/20 text-amber-700 dark:text-amber-300 rounded">
                 {decodeResult.isNaN ? 'NaN' : decodeResult.isInfinity ? 'Infinity' : 'Zero'}
@@ -298,7 +300,7 @@ export function FloatDecoder({ className }: FloatDecoderProps): React.ReactEleme
       {/* Encode Results */}
       {mode === 'encode' && encodeResult && (
         <div className="p-4 bg-muted/30 rounded-md space-y-4">
-          <h4 className="font-medium text-sm">Encoded Bytes</h4>
+          <h4 className="font-medium text-sm">{t('float.encodedBytes')}</h4>
 
           <div className="flex gap-2">
             {encodeResult.bytes.map((byte, i) => (
@@ -339,7 +341,7 @@ export function FloatDecoder({ className }: FloatDecoderProps): React.ReactEleme
 
       {/* Info */}
       <div className="text-xs text-muted-foreground">
-        <p>IEEE 754 is the standard for floating-point arithmetic used in most computing systems.</p>
+        <p>{t('float.info')}</p>
       </div>
     </div>
   )

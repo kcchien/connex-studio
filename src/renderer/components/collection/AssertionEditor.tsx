@@ -6,6 +6,7 @@
  */
 
 import React, { useState, useCallback, memo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Plus, Trash2, GripVertical, AlertCircle } from 'lucide-react'
 import { cn } from '@renderer/lib/utils'
 import type { Assertion, AssertionType, AssertionTarget } from '@shared/types'
@@ -21,17 +22,17 @@ interface AssertionEditorProps {
   className?: string
 }
 
-const ASSERTION_TYPES: { value: AssertionType; label: string; description: string }[] = [
-  { value: 'equals', label: 'Equals', description: 'Value exactly matches expected' },
-  { value: 'contains', label: 'Contains', description: 'Value contains expected substring' },
-  { value: 'range', label: 'Range', description: 'Value is within numeric range' },
-  { value: 'regex', label: 'Regex', description: 'Value matches regular expression' }
+const ASSERTION_TYPES: { value: AssertionType; labelKey: string }[] = [
+  { value: 'equals', labelKey: 'assertion.type.equals' },
+  { value: 'contains', labelKey: 'assertion.type.contains' },
+  { value: 'range', labelKey: 'assertion.type.range' },
+  { value: 'regex', labelKey: 'assertion.type.regex' }
 ]
 
-const ASSERTION_TARGETS: { value: AssertionTarget; label: string }[] = [
-  { value: 'value', label: 'Value' },
-  { value: 'status', label: 'Status' },
-  { value: 'latency', label: 'Latency' }
+const ASSERTION_TARGETS: { value: AssertionTarget; labelKey: string }[] = [
+  { value: 'value', labelKey: 'assertion.target.value' },
+  { value: 'status', labelKey: 'assertion.target.status' },
+  { value: 'latency', labelKey: 'assertion.target.latency' }
 ]
 
 interface AssertionRowProps {
@@ -49,6 +50,8 @@ const AssertionRow = memo(function AssertionRow({
   onDelete,
   readonly = false
 }: AssertionRowProps): React.ReactElement {
+  const { t } = useTranslation('collection')
+
   const handleFieldChange = useCallback(
     <K extends keyof Assertion>(field: K, value: Assertion[K]) => {
       onChange(index, { ...assertion, [field]: value })
@@ -72,7 +75,7 @@ const AssertionRow = memo(function AssertionRow({
       <div className="flex-1 grid grid-cols-12 gap-2">
         {/* Type */}
         <div className="col-span-2">
-          <label className="block text-xs text-muted-foreground mb-1">Type</label>
+          <label className="block text-xs text-muted-foreground mb-1">{t('assertion.type')}</label>
           <select
             value={assertion.type}
             onChange={(e) => handleFieldChange('type', e.target.value as AssertionType)}
@@ -86,7 +89,7 @@ const AssertionRow = memo(function AssertionRow({
           >
             {ASSERTION_TYPES.map((type) => (
               <option key={type.value} value={type.value}>
-                {type.label}
+                {t(type.labelKey)}
               </option>
             ))}
           </select>
@@ -94,7 +97,7 @@ const AssertionRow = memo(function AssertionRow({
 
         {/* Target */}
         <div className="col-span-2">
-          <label className="block text-xs text-muted-foreground mb-1">Target</label>
+          <label className="block text-xs text-muted-foreground mb-1">{t('assertion.target')}</label>
           <select
             value={assertion.target}
             onChange={(e) => handleFieldChange('target', e.target.value as AssertionTarget)}
@@ -108,7 +111,7 @@ const AssertionRow = memo(function AssertionRow({
           >
             {ASSERTION_TARGETS.map((target) => (
               <option key={target.value} value={target.value}>
-                {target.label}
+                {t(target.labelKey)}
               </option>
             ))}
           </select>
@@ -116,13 +119,13 @@ const AssertionRow = memo(function AssertionRow({
 
         {/* Expected value */}
         <div className="col-span-4">
-          <label className="block text-xs text-muted-foreground mb-1">Expected</label>
+          <label className="block text-xs text-muted-foreground mb-1">{t('assertion.expected')}</label>
           <input
             type="text"
             value={String(assertion.expected ?? '')}
             onChange={(e) => handleFieldChange('expected', e.target.value)}
             disabled={readonly}
-            placeholder="expected value"
+            placeholder={t('assertion.expectedPlaceholder')}
             className={cn(
               'w-full px-2 py-1.5 rounded text-sm',
               'bg-background border border-input',
@@ -134,13 +137,13 @@ const AssertionRow = memo(function AssertionRow({
 
         {/* Message */}
         <div className="col-span-3">
-          <label className="block text-xs text-muted-foreground mb-1">Message</label>
+          <label className="block text-xs text-muted-foreground mb-1">{t('assertion.message')}</label>
           <input
             type="text"
             value={assertion.message ?? ''}
             onChange={(e) => handleFieldChange('message', e.target.value || undefined)}
             disabled={readonly}
-            placeholder="failure message"
+            placeholder={t('assertion.messagePlaceholder')}
             className={cn(
               'w-full px-2 py-1.5 rounded text-sm',
               'bg-background border border-input',
@@ -161,7 +164,7 @@ const AssertionRow = memo(function AssertionRow({
                 'transition-colors',
                 'opacity-0 group-hover:opacity-100 focus:opacity-100'
               )}
-              title="Remove assertion"
+              title={t('assertion.remove')}
             >
               <Trash2 className="h-4 w-4" />
             </button>
@@ -181,6 +184,8 @@ export const AssertionEditor = memo(function AssertionEditor({
   readonly = false,
   className
 }: AssertionEditorProps): React.ReactElement {
+  const { t } = useTranslation('collection')
+
   // Handle assertion change
   const handleChange = useCallback(
     (index: number, assertion: Assertion) => {
@@ -215,7 +220,7 @@ export const AssertionEditor = memo(function AssertionEditor({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="text-sm font-medium text-foreground">
-          Assertions
+          {t('assertion.title')}
           {assertions.length > 0 && (
             <span className="ml-2 text-muted-foreground">
               ({assertions.length})
@@ -232,7 +237,7 @@ export const AssertionEditor = memo(function AssertionEditor({
             )}
           >
             <Plus className="h-4 w-4" />
-            Add Assertion
+            {t('action.addAssertion')}
           </button>
         )}
       </div>
@@ -241,8 +246,7 @@ export const AssertionEditor = memo(function AssertionEditor({
       <div className="space-y-2">
         {assertions.length === 0 ? (
           <div className="text-sm text-muted-foreground text-center py-4 border border-dashed border-border rounded-md">
-            No assertions defined.
-            {!readonly && ' Click "Add Assertion" to create one.'}
+            {readonly ? t('assertion.empty') : t('assertion.emptyWithAction')}
           </div>
         ) : (
           assertions.map((assertion, index) => (

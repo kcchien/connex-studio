@@ -10,6 +10,7 @@
  */
 
 import React, { useState, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Calculator, Copy, Check, AlertCircle } from 'lucide-react'
 import { cn } from '@renderer/lib/utils'
 import { calculatorApi } from '@renderer/lib/ipc'
@@ -39,6 +40,7 @@ interface CrcCalculatorProps {
 // =============================================================================
 
 export function CrcCalculator({ className }: CrcCalculatorProps): React.ReactElement {
+  const { t } = useTranslation('calculator')
   const [hexInput, setHexInput] = useState('')
   const [crcResult, setCrcResult] = useState<CrcResult | null>(null)
   const [lrcResult, setLrcResult] = useState<LrcResult | null>(null)
@@ -55,7 +57,7 @@ export function CrcCalculator({ className }: CrcCalculatorProps): React.ReactEle
 
   const calculateCrc = useCallback(async () => {
     if (!hexInput.trim()) {
-      setError('Please enter hex data')
+      setError(t('crc.error.emptyInput'))
       return
     }
 
@@ -64,14 +66,14 @@ export function CrcCalculator({ className }: CrcCalculatorProps): React.ReactEle
       setCrcResult(result)
       setError(null)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Calculation failed')
+      setError(err instanceof Error ? err.message : t('crc.error.calculationFailed'))
       setCrcResult(null)
     }
   }, [hexInput])
 
   const calculateLrc = useCallback(async () => {
     if (!hexInput.trim()) {
-      setError('Please enter hex data')
+      setError(t('crc.error.emptyInput'))
       return
     }
 
@@ -80,7 +82,7 @@ export function CrcCalculator({ className }: CrcCalculatorProps): React.ReactEle
       setLrcResult(result)
       setError(null)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Calculation failed')
+      setError(err instanceof Error ? err.message : t('crc.error.calculationFailed'))
       setLrcResult(null)
     }
   }, [hexInput])
@@ -100,18 +102,18 @@ export function CrcCalculator({ className }: CrcCalculatorProps): React.ReactEle
       {/* Header */}
       <div className="flex items-center gap-2">
         <Calculator className="h-5 w-5 text-primary" />
-        <h3 className="text-lg font-semibold">CRC / LRC Calculator</h3>
+        <h3 className="text-lg font-semibold">{t('crc.title')}</h3>
       </div>
 
       {/* Input */}
       <div className="space-y-2">
         <label className="text-sm text-muted-foreground">
-          Hex Data (e.g., "01 03 00 00 00 0A" or "0103000A")
+          {t('crc.hexDataLabel')}
         </label>
         <textarea
           value={hexInput}
           onChange={handleInputChange}
-          placeholder="Enter hex bytes..."
+          placeholder={t('crc.placeholder')}
           className="w-full h-24 p-3 font-mono text-sm bg-muted/50 rounded-md border resize-none focus:outline-none focus:ring-2 focus:ring-primary"
         />
       </div>
@@ -130,26 +132,26 @@ export function CrcCalculator({ className }: CrcCalculatorProps): React.ReactEle
           onClick={calculateBoth}
           className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 text-sm font-medium"
         >
-          Calculate Both
+          {t('crc.calculateBoth')}
         </button>
         <button
           onClick={calculateCrc}
           className="px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 text-sm"
         >
-          CRC-16 Only
+          {t('crc.crc16Only')}
         </button>
         <button
           onClick={calculateLrc}
           className="px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 text-sm"
         >
-          LRC Only
+          {t('crc.lrcOnly')}
         </button>
       </div>
 
       {/* CRC Results */}
       {crcResult && (
         <div className="p-4 bg-muted/30 rounded-md space-y-3">
-          <h4 className="font-medium text-sm">CRC-16/Modbus Result</h4>
+          <h4 className="font-medium text-sm">{t('crc.crcResult')}</h4>
           <div className="grid grid-cols-2 gap-3 text-sm">
             <ResultRow
               label="Decimal"
@@ -182,7 +184,7 @@ export function CrcCalculator({ className }: CrcCalculatorProps): React.ReactEle
       {/* LRC Results */}
       {lrcResult && (
         <div className="p-4 bg-muted/30 rounded-md space-y-3">
-          <h4 className="font-medium text-sm">LRC Result</h4>
+          <h4 className="font-medium text-sm">{t('crc.lrcResult')}</h4>
           <div className="grid grid-cols-2 gap-3 text-sm">
             <ResultRow
               label="Decimal"
@@ -202,8 +204,8 @@ export function CrcCalculator({ className }: CrcCalculatorProps): React.ReactEle
 
       {/* Info */}
       <div className="text-xs text-muted-foreground space-y-1">
-        <p><strong>CRC-16/Modbus:</strong> Used in Modbus RTU frames. Polynomial 0xA001 (reflected 0x8005).</p>
-        <p><strong>LRC:</strong> Used in Modbus ASCII. Two's complement of sum of bytes.</p>
+        <p><strong>CRC-16/Modbus:</strong> {t('crc.info.crc16')}</p>
+        <p><strong>LRC:</strong> {t('crc.info.lrc')}</p>
       </div>
     </div>
   )

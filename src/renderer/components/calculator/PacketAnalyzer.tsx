@@ -10,6 +10,7 @@
  */
 
 import React, { useState, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Search, AlertCircle, CheckCircle, XCircle } from 'lucide-react'
 import { cn } from '@renderer/lib/utils'
 import { calculatorApi } from '@renderer/lib/ipc'
@@ -57,13 +58,14 @@ interface PacketAnalyzerProps {
 // =============================================================================
 
 export function PacketAnalyzer({ className }: PacketAnalyzerProps): React.ReactElement {
+  const { t } = useTranslation('calculator')
   const [hexInput, setHexInput] = useState('')
   const [result, setResult] = useState<PacketAnalysis | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const analyze = useCallback(async () => {
     if (!hexInput.trim()) {
-      setError('Please enter packet data')
+      setError(t('packet.error.emptyInput'))
       return
     }
 
@@ -72,7 +74,7 @@ export function PacketAnalyzer({ className }: PacketAnalyzerProps): React.ReactE
       setResult(analysis)
       setError(null)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Analysis failed')
+      setError(err instanceof Error ? err.message : t('packet.error.analysisFailed'))
       setResult(null)
     }
   }, [hexInput])
@@ -94,34 +96,34 @@ export function PacketAnalyzer({ className }: PacketAnalyzerProps): React.ReactE
       {/* Header */}
       <div className="flex items-center gap-2">
         <Search className="h-5 w-5 text-primary" />
-        <h3 className="text-lg font-semibold">Packet Analyzer</h3>
+        <h3 className="text-lg font-semibold">{t('packet.title')}</h3>
       </div>
 
       {/* Input */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <label className="text-sm text-muted-foreground">
-            Packet Data (Hex)
+            {t('packet.hexDataLabel')}
           </label>
           <div className="flex gap-2">
             <button
               onClick={() => loadExample('rtu')}
               className="text-xs text-primary hover:underline"
             >
-              Load RTU Example
+              {t('packet.loadRtuExample')}
             </button>
             <button
               onClick={() => loadExample('tcp')}
               className="text-xs text-primary hover:underline"
             >
-              Load TCP Example
+              {t('packet.loadTcpExample')}
             </button>
           </div>
         </div>
         <textarea
           value={hexInput}
           onChange={(e) => { setHexInput(e.target.value); setError(null); }}
-          placeholder="Enter Modbus RTU or TCP packet..."
+          placeholder={t('packet.placeholder')}
           className="w-full h-20 p-3 font-mono text-sm bg-muted/50 rounded-md border resize-none focus:outline-none focus:ring-2 focus:ring-primary"
         />
       </div>
@@ -139,7 +141,7 @@ export function PacketAnalyzer({ className }: PacketAnalyzerProps): React.ReactE
         onClick={analyze}
         className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 text-sm font-medium"
       >
-        Analyze Packet
+        {t('packet.analyze')}
       </button>
 
       {/* Results */}
@@ -154,12 +156,12 @@ export function PacketAnalyzer({ className }: PacketAnalyzerProps): React.ReactE
             )}
             <div>
               <div className="font-medium">
-                {result.protocol === 'modbus-rtu' && 'Modbus RTU'}
-                {result.protocol === 'modbus-tcp' && 'Modbus TCP'}
-                {result.protocol === 'unknown' && 'Unknown Protocol'}
+                {result.protocol === 'modbus-rtu' && t('packet.protocol.modbusRtu')}
+                {result.protocol === 'modbus-tcp' && t('packet.protocol.modbusTcp')}
+                {result.protocol === 'unknown' && t('packet.protocol.unknown')}
               </div>
               <div className="text-sm text-muted-foreground">
-                {result.valid ? 'Valid packet' : 'Invalid or corrupted packet'}
+                {result.valid ? t('packet.validPacket') : t('packet.invalidPacket')}
               </div>
             </div>
           </div>
@@ -201,8 +203,8 @@ export function PacketAnalyzer({ className }: PacketAnalyzerProps): React.ReactE
 
       {/* Info */}
       <div className="text-xs text-muted-foreground space-y-1">
-        <p><strong>Modbus RTU:</strong> [Slave ID] [Function Code] [Data...] [CRC Lo] [CRC Hi]</p>
-        <p><strong>Modbus TCP:</strong> [Transaction ID] [Protocol ID] [Length] [Unit ID] [FC] [Data...]</p>
+        <p><strong>Modbus RTU:</strong> {t('packet.info.rtu')}</p>
+        <p><strong>Modbus TCP:</strong> {t('packet.info.tcp')}</p>
       </div>
     </div>
   )

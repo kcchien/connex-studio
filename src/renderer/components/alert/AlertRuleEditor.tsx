@@ -6,6 +6,7 @@
  */
 
 import React, { useState, useCallback, memo, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { X, Save, AlertCircle, Trash2, Bell, Volume2 } from 'lucide-react'
 import { cn } from '@renderer/lib/utils'
 import type {
@@ -42,20 +43,20 @@ interface AlertRuleEditorProps {
   className?: string
 }
 
-const OPERATORS: { value: AlertOperator; label: string; requiresValue2?: boolean }[] = [
-  { value: '>', label: 'Greater than (>)' },
-  { value: '<', label: 'Less than (<)' },
-  { value: '=', label: 'Equal to (=)' },
-  { value: '!=', label: 'Not equal to (!=)' },
-  { value: 'range', label: 'In range (between)', requiresValue2: true }
+const OPERATORS: { value: AlertOperator; labelKey: string; requiresValue2?: boolean }[] = [
+  { value: '>', labelKey: 'rule.operator.gt' },
+  { value: '<', labelKey: 'rule.operator.lt' },
+  { value: '=', labelKey: 'rule.operator.eq' },
+  { value: '!=', labelKey: 'rule.operator.ne' },
+  { value: 'range', labelKey: 'rule.operator.range', requiresValue2: true }
 ]
 
 const SEVERITIES: AlertSeverity[] = ['info', 'warning', 'critical']
 
-const ACTIONS: { value: AlertActionType; label: string; icon: React.ReactNode }[] = [
-  { value: 'notification', label: 'Desktop Notification', icon: <Bell className="h-4 w-4" /> },
-  { value: 'sound', label: 'Sound Alert', icon: <Volume2 className="h-4 w-4" /> },
-  { value: 'log', label: 'Log to History', icon: <AlertCircle className="h-4 w-4" /> }
+const ACTIONS: { value: AlertActionType; labelKey: string; icon: React.ReactNode }[] = [
+  { value: 'notification', labelKey: 'rule.action.notification', icon: <Bell className="h-4 w-4" /> },
+  { value: 'sound', labelKey: 'rule.action.sound', icon: <Volume2 className="h-4 w-4" /> },
+  { value: 'log', labelKey: 'rule.action.log', icon: <AlertCircle className="h-4 w-4" /> }
 ]
 
 /**
@@ -71,6 +72,8 @@ export const AlertRuleEditor = memo(function AlertRuleEditor({
   onTestSound,
   className
 }: AlertRuleEditorProps): React.ReactElement | null {
+  const { t } = useTranslation('alert')
+
   // Form state
   const [name, setName] = useState('')
   const [tagRef, setTagRef] = useState('')
@@ -130,15 +133,15 @@ export const AlertRuleEditor = memo(function AlertRuleEditor({
   // Handle save
   const handleSave = useCallback(async () => {
     if (!name.trim()) {
-      setError('Rule name is required')
+      setError(t('rule.error.nameRequired'))
       return
     }
     if (!tagRef) {
-      setError('Please select a tag')
+      setError(t('rule.error.tagRequired'))
       return
     }
     if (actions.length === 0) {
-      setError('At least one action is required')
+      setError(t('rule.error.actionRequired'))
       return
     }
 
@@ -175,7 +178,7 @@ export const AlertRuleEditor = memo(function AlertRuleEditor({
       }
       onClose()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save rule')
+      setError(err instanceof Error ? err.message : t('rule.error.saveFailed'))
     } finally {
       setIsSaving(false)
     }
@@ -200,7 +203,7 @@ export const AlertRuleEditor = memo(function AlertRuleEditor({
   const handleDelete = useCallback(async () => {
     if (!rule || !onDelete) return
 
-    if (!window.confirm(`Delete alert rule "${rule.name}"? This cannot be undone.`)) {
+    if (!window.confirm(t('rule.confirm.delete', { name: rule.name }))) {
       return
     }
 
@@ -211,7 +214,7 @@ export const AlertRuleEditor = memo(function AlertRuleEditor({
       await onDelete(rule.id)
       onClose()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete rule')
+      setError(err instanceof Error ? err.message : t('rule.error.deleteFailed'))
     } finally {
       setIsDeleting(false)
     }
@@ -246,7 +249,7 @@ export const AlertRuleEditor = memo(function AlertRuleEditor({
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border">
           <h2 className="text-lg font-semibold text-foreground">
-            {isEditMode ? 'Edit Alert Rule' : 'New Alert Rule'}
+            {isEditMode ? t('rule.title.edit') : t('rule.title.new')}
           </h2>
           <button
             onClick={onClose}
@@ -273,13 +276,13 @@ export const AlertRuleEditor = memo(function AlertRuleEditor({
           {/* Rule name */}
           <div>
             <label className="block text-sm font-medium text-foreground mb-1">
-              Rule Name
+              {t('rule.name')}
             </label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g., High Temperature Alert"
+              placeholder={t('rule.namePlaceholder')}
               className={cn(
                 'w-full px-3 py-2 rounded-md',
                 'bg-background border border-input',
@@ -293,7 +296,7 @@ export const AlertRuleEditor = memo(function AlertRuleEditor({
           {/* Tag selection */}
           <div>
             <label className="block text-sm font-medium text-foreground mb-1">
-              Monitor Tag
+              {t('rule.monitorTag')}
             </label>
             <select
               value={tagRef}
@@ -305,7 +308,7 @@ export const AlertRuleEditor = memo(function AlertRuleEditor({
                 'focus:outline-none focus:ring-2 focus:ring-ring'
               )}
             >
-              <option value="">Select a tag...</option>
+              <option value="">{t('rule.selectTag')}</option>
               {availableTags.map((tag) => (
                 <option key={tag.id} value={tag.id}>
                   {tag.connectionName ? `${tag.connectionName} / ` : ''}{tag.name}
@@ -317,12 +320,12 @@ export const AlertRuleEditor = memo(function AlertRuleEditor({
           {/* Condition */}
           <div className="space-y-3">
             <label className="block text-sm font-medium text-foreground">
-              Trigger Condition
+              {t('rule.triggerCondition')}
             </label>
             <div className="grid grid-cols-3 gap-3">
               {/* Operator */}
               <div>
-                <label className="block text-xs text-muted-foreground mb-1">Operator</label>
+                <label className="block text-xs text-muted-foreground mb-1">{t('rule.operator')}</label>
                 <select
                   value={operator}
                   onChange={(e) => setOperator(e.target.value as AlertOperator)}
@@ -335,7 +338,7 @@ export const AlertRuleEditor = memo(function AlertRuleEditor({
                 >
                   {OPERATORS.map((op) => (
                     <option key={op.value} value={op.value}>
-                      {op.label}
+                      {t(op.labelKey)}
                     </option>
                   ))}
                 </select>
@@ -344,7 +347,7 @@ export const AlertRuleEditor = memo(function AlertRuleEditor({
               {/* Value 1 */}
               <div>
                 <label className="block text-xs text-muted-foreground mb-1">
-                  {selectedOperator?.requiresValue2 ? 'Min Value' : 'Threshold'}
+                  {selectedOperator?.requiresValue2 ? t('rule.minValue') : t('rule.threshold')}
                 </label>
                 <input
                   type="number"
@@ -362,7 +365,7 @@ export const AlertRuleEditor = memo(function AlertRuleEditor({
               {/* Value 2 (for range) */}
               {selectedOperator?.requiresValue2 && (
                 <div>
-                  <label className="block text-xs text-muted-foreground mb-1">Max Value</label>
+                  <label className="block text-xs text-muted-foreground mb-1">{t('rule.maxValue')}</label>
                   <input
                     type="number"
                     value={value2}
@@ -381,7 +384,7 @@ export const AlertRuleEditor = memo(function AlertRuleEditor({
             {/* Duration (debounce) */}
             <div>
               <label className="block text-xs text-muted-foreground mb-1">
-                Duration (seconds) - Condition must hold for this long
+                {t('rule.duration')}
               </label>
               <input
                 type="number"
@@ -401,7 +404,7 @@ export const AlertRuleEditor = memo(function AlertRuleEditor({
           {/* Severity */}
           <div>
             <label className="block text-sm font-medium text-foreground mb-2">
-              Severity Level
+              {t('rule.severityLevel')}
             </label>
             <div className="flex gap-2">
               {SEVERITIES.map((sev) => (
@@ -430,7 +433,7 @@ export const AlertRuleEditor = memo(function AlertRuleEditor({
           {/* Actions */}
           <div>
             <label className="block text-sm font-medium text-foreground mb-2">
-              Alert Actions
+              {t('rule.alertActions')}
             </label>
             <div className="space-y-2">
               {ACTIONS.map((action) => (
@@ -451,7 +454,7 @@ export const AlertRuleEditor = memo(function AlertRuleEditor({
                     className="rounded border-input"
                   />
                   <span className="text-muted-foreground">{action.icon}</span>
-                  <span className="text-sm text-foreground">{action.label}</span>
+                  <span className="text-sm text-foreground">{t(action.labelKey)}</span>
                   {action.value === 'sound' && actions.includes('sound') && onTestSound && (
                     <button
                       type="button"
@@ -464,7 +467,7 @@ export const AlertRuleEditor = memo(function AlertRuleEditor({
                         'bg-muted hover:bg-muted/80 text-foreground'
                       )}
                     >
-                      Test
+                      {t('rule.action.test')}
                     </button>
                   )}
                 </label>
@@ -475,7 +478,7 @@ export const AlertRuleEditor = memo(function AlertRuleEditor({
           {/* Cooldown */}
           <div>
             <label className="block text-sm font-medium text-foreground mb-1">
-              Cooldown (seconds) - Minimum time between alerts
+              {t('rule.cooldown')}
             </label>
             <input
               type="number"
@@ -508,7 +511,7 @@ export const AlertRuleEditor = memo(function AlertRuleEditor({
                 )}
               >
                 <Trash2 className="h-4 w-4" />
-                {isDeleting ? 'Deleting...' : 'Delete'}
+                {isDeleting ? t('rule.deleting') : t('common:action.delete')}
               </button>
             )}
           </div>
@@ -523,7 +526,7 @@ export const AlertRuleEditor = memo(function AlertRuleEditor({
                 'hover:bg-muted transition-colors'
               )}
             >
-              Cancel
+              {t('common:action.cancel')}
             </button>
             <button
               onClick={handleSave}
@@ -536,7 +539,7 @@ export const AlertRuleEditor = memo(function AlertRuleEditor({
               )}
             >
               <Save className="h-4 w-4" />
-              {isSaving ? 'Saving...' : 'Save Rule'}
+              {isSaving ? t('rule.saving') : t('rule.saveRule')}
             </button>
           </div>
         </div>

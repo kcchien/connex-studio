@@ -6,6 +6,7 @@
  */
 
 import React, { memo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Gauge, CircleDot, Hash, LineChart, X } from 'lucide-react'
 import { cn } from '@renderer/lib/utils'
 import type { WidgetType } from '@shared/types'
@@ -24,8 +25,8 @@ interface WidgetPaletteProps {
 
 interface WidgetOption {
   type: WidgetType
-  label: string
-  description: string
+  labelKey: string
+  descKey: string
   icon: React.ReactNode
   preview: React.ReactNode
 }
@@ -33,8 +34,8 @@ interface WidgetOption {
 const WIDGET_OPTIONS: WidgetOption[] = [
   {
     type: 'gauge',
-    label: 'Gauge',
-    description: 'Circular gauge for numeric values',
+    labelKey: 'widget.type.gauge',
+    descKey: 'widget.desc.gauge',
     icon: <Gauge className="h-5 w-5" />,
     preview: (
       <div className="w-full h-full flex items-center justify-center">
@@ -59,8 +60,8 @@ const WIDGET_OPTIONS: WidgetOption[] = [
   },
   {
     type: 'led',
-    label: 'LED',
-    description: 'On/Off indicator light',
+    labelKey: 'widget.type.led',
+    descKey: 'widget.desc.led',
     icon: <CircleDot className="h-5 w-5" />,
     preview: (
       <div className="w-full h-full flex items-center justify-center gap-2">
@@ -71,8 +72,8 @@ const WIDGET_OPTIONS: WidgetOption[] = [
   },
   {
     type: 'numberCard',
-    label: 'Number',
-    description: 'Large numeric display',
+    labelKey: 'widget.type.numberCard',
+    descKey: 'widget.desc.numberCard',
     icon: <Hash className="h-5 w-5" />,
     preview: (
       <div className="w-full h-full flex items-center justify-center">
@@ -83,8 +84,8 @@ const WIDGET_OPTIONS: WidgetOption[] = [
   },
   {
     type: 'chart',
-    label: 'Chart',
-    description: 'Time-series line chart',
+    labelKey: 'widget.type.chart',
+    descKey: 'widget.desc.chart',
     icon: <LineChart className="h-5 w-5" />,
     preview: (
       <div className="w-full h-full flex items-end justify-between px-1 pb-1">
@@ -108,6 +109,8 @@ export const WidgetPalette = memo(function WidgetPalette({
   onSelectWidget,
   className
 }: WidgetPaletteProps): React.ReactElement | null {
+  const { t } = useTranslation('dashboard')
+
   if (!isOpen) return null
 
   return (
@@ -129,7 +132,7 @@ export const WidgetPalette = memo(function WidgetPalette({
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-semibold text-foreground">
-            Add Widget
+            {t('action.addWidget')}
           </h2>
           <button
             onClick={onClose}
@@ -173,17 +176,16 @@ export const WidgetPalette = memo(function WidgetPalette({
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-primary">{option.icon}</span>
                 <span className="font-medium text-foreground">
-                  {option.label}
+                  {t(option.labelKey)}
                 </span>
               </div>
               <p className="text-xs text-muted-foreground">
-                {option.description}
+                {t(option.descKey)}
               </p>
 
               {/* Size hint */}
               <p className="text-xs text-muted-foreground/70 mt-2">
-                Default size: {WIDGET_DEFAULT_SIZES[option.type].w}x
-                {WIDGET_DEFAULT_SIZES[option.type].h}
+                {t('widget.defaultSize', { w: WIDGET_DEFAULT_SIZES[option.type].w, h: WIDGET_DEFAULT_SIZES[option.type].h })}
               </p>
             </button>
           ))}
@@ -191,8 +193,7 @@ export const WidgetPalette = memo(function WidgetPalette({
 
         {/* Footer hint */}
         <p className="text-xs text-muted-foreground text-center mt-6">
-          Click a widget to add it to your dashboard. You can resize and
-          reposition widgets in edit mode.
+          {t('widget.paletteHint')}
         </p>
       </div>
     </div>

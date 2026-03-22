@@ -6,6 +6,7 @@
  */
 
 import React, { memo, useState, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { X, Plus, Trash2 } from 'lucide-react'
 import { cn } from '@renderer/lib/utils'
 import type {
@@ -53,6 +54,7 @@ export const WidgetConfig = memo(function WidgetConfig({
   onSave,
   className
 }: WidgetConfigProps): React.ReactElement | null {
+  const { t } = useTranslation('dashboard')
   const [tagRefs, setTagRefs] = useState<string[]>(widget.tagRefs)
   const [config, setConfig] = useState<WidgetConfigType>(widget.config)
 
@@ -89,7 +91,7 @@ export const WidgetConfig = memo(function WidgetConfig({
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border">
           <h2 className="text-lg font-semibold text-foreground">
-            Configure {WIDGET_TYPE_LABELS[widget.type]}
+            {t('config.title', { type: t(`widget.type.${widget.type}`) })}
           </h2>
           <button
             onClick={onClose}
@@ -107,7 +109,7 @@ export const WidgetConfig = memo(function WidgetConfig({
           {/* Tag binding */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-foreground">
-              Bound Tag
+              {t('config.boundTag')}
             </label>
             <select
               value={tagRefs[0] || ''}
@@ -118,7 +120,7 @@ export const WidgetConfig = memo(function WidgetConfig({
                 'focus:outline-none focus:ring-2 focus:ring-ring'
               )}
             >
-              <option value="">Select a tag...</option>
+              <option value="">{t('config.selectTag')}</option>
               {availableTags.map((tag) => (
                 <option key={tag.id} value={tag.id}>
                   {tag.name} ({tag.dataType})
@@ -164,7 +166,7 @@ export const WidgetConfig = memo(function WidgetConfig({
               'hover:bg-muted transition-colors'
             )}
           >
-            Cancel
+            {t('common:action.cancel')}
           </button>
           <button
             onClick={handleSave}
@@ -174,7 +176,7 @@ export const WidgetConfig = memo(function WidgetConfig({
               'hover:bg-primary/90 transition-colors'
             )}
           >
-            Save
+            {t('common:action.save')}
           </button>
         </div>
       </div>
@@ -195,6 +197,8 @@ const GaugeConfigEditor = memo(function GaugeConfigEditor({
   config,
   onChange
 }: GaugeConfigEditorProps): React.ReactElement {
+  const { t } = useTranslation('dashboard')
+
   const addThreshold = useCallback(() => {
     onChange({
       ...config,
@@ -225,7 +229,7 @@ const GaugeConfigEditor = memo(function GaugeConfigEditor({
     <>
       {/* Style */}
       <div className="space-y-2">
-        <label className="text-sm font-medium text-foreground">Style</label>
+        <label className="text-sm font-medium text-foreground">{t('config.style')}</label>
         <select
           value={config.style}
           onChange={(e) =>
@@ -233,15 +237,15 @@ const GaugeConfigEditor = memo(function GaugeConfigEditor({
           }
           className="w-full px-3 py-2 rounded-md text-sm bg-background border border-input"
         >
-          <option value="circular">Circular (360°)</option>
-          <option value="semi">Semi-circular (180°)</option>
+          <option value="circular">{t('config.style.circular')}</option>
+          <option value="semi">{t('config.style.semi')}</option>
         </select>
       </div>
 
       {/* Min/Max */}
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <label className="text-sm font-medium text-foreground">Min</label>
+          <label className="text-sm font-medium text-foreground">{t('config.min')}</label>
           <input
             type="number"
             value={config.min}
@@ -252,7 +256,7 @@ const GaugeConfigEditor = memo(function GaugeConfigEditor({
           />
         </div>
         <div className="space-y-2">
-          <label className="text-sm font-medium text-foreground">Max</label>
+          <label className="text-sm font-medium text-foreground">{t('config.max')}</label>
           <input
             type="number"
             value={config.max}
@@ -266,12 +270,12 @@ const GaugeConfigEditor = memo(function GaugeConfigEditor({
 
       {/* Unit */}
       <div className="space-y-2">
-        <label className="text-sm font-medium text-foreground">Unit</label>
+        <label className="text-sm font-medium text-foreground">{t('config.unit')}</label>
         <input
           type="text"
           value={config.unit || ''}
           onChange={(e) => onChange({ ...config, unit: e.target.value })}
-          placeholder="e.g., °C, %, PSI"
+          placeholder={t('config.unitPlaceholder')}
           className="w-full px-3 py-2 rounded-md text-sm bg-background border border-input"
         />
       </div>
@@ -286,7 +290,7 @@ const GaugeConfigEditor = memo(function GaugeConfigEditor({
           className="rounded border-input"
         />
         <label htmlFor="showValue" className="text-sm text-foreground">
-          Show numeric value
+          {t('config.showValue')}
         </label>
       </div>
 
@@ -294,14 +298,14 @@ const GaugeConfigEditor = memo(function GaugeConfigEditor({
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <label className="text-sm font-medium text-foreground">
-            Color Thresholds
+            {t('config.colorThresholds')}
           </label>
           <button
             onClick={addThreshold}
             className="flex items-center gap-1 text-xs text-primary hover:underline"
           >
             <Plus className="h-3 w-3" />
-            Add
+            {t('common:action.add')}
           </button>
         </div>
         {config.thresholds.map((threshold, index) => (
@@ -315,7 +319,7 @@ const GaugeConfigEditor = memo(function GaugeConfigEditor({
                 })
               }
               className="flex-1 px-2 py-1 rounded text-sm bg-background border border-input"
-              placeholder="Value"
+              placeholder={t('config.thresholdValue')}
             />
             <input
               type="color"
@@ -345,11 +349,13 @@ const LEDConfigEditor = memo(function LEDConfigEditor({
   config,
   onChange
 }: LEDConfigEditorProps): React.ReactElement {
+  const { t } = useTranslation('dashboard')
+
   return (
     <>
       {/* Shape */}
       <div className="space-y-2">
-        <label className="text-sm font-medium text-foreground">Shape</label>
+        <label className="text-sm font-medium text-foreground">{t('config.shape')}</label>
         <select
           value={config.shape}
           onChange={(e) =>
@@ -357,14 +363,14 @@ const LEDConfigEditor = memo(function LEDConfigEditor({
           }
           className="w-full px-3 py-2 rounded-md text-sm bg-background border border-input"
         >
-          <option value="circle">Circle</option>
-          <option value="square">Square</option>
+          <option value="circle">{t('config.shape.circle')}</option>
+          <option value="square">{t('config.shape.square')}</option>
         </select>
       </div>
 
       {/* On Value */}
       <div className="space-y-2">
-        <label className="text-sm font-medium text-foreground">On Value</label>
+        <label className="text-sm font-medium text-foreground">{t('config.onValue')}</label>
         <input
           type="number"
           value={typeof config.onValue === 'number' ? config.onValue : 1}
@@ -378,7 +384,7 @@ const LEDConfigEditor = memo(function LEDConfigEditor({
       {/* Colors */}
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <label className="text-sm font-medium text-foreground">On Color</label>
+          <label className="text-sm font-medium text-foreground">{t('config.onColor')}</label>
           <div className="flex items-center gap-2">
             <input
               type="color"
@@ -395,7 +401,7 @@ const LEDConfigEditor = memo(function LEDConfigEditor({
           </div>
         </div>
         <div className="space-y-2">
-          <label className="text-sm font-medium text-foreground">Off Color</label>
+          <label className="text-sm font-medium text-foreground">{t('config.offColor')}</label>
           <div className="flex items-center gap-2">
             <input
               type="color"
@@ -415,12 +421,12 @@ const LEDConfigEditor = memo(function LEDConfigEditor({
 
       {/* Label */}
       <div className="space-y-2">
-        <label className="text-sm font-medium text-foreground">Label</label>
+        <label className="text-sm font-medium text-foreground">{t('config.label')}</label>
         <input
           type="text"
           value={config.label || ''}
           onChange={(e) => onChange({ ...config, label: e.target.value })}
-          placeholder="e.g., Motor Running"
+          placeholder={t('config.labelPlaceholder')}
           className="w-full px-3 py-2 rounded-md text-sm bg-background border border-input"
         />
       </div>
@@ -437,28 +443,30 @@ const NumberCardConfigEditor = memo(function NumberCardConfigEditor({
   config,
   onChange
 }: NumberCardConfigEditorProps): React.ReactElement {
+  const { t } = useTranslation('dashboard')
+
   return (
     <>
       {/* Title */}
       <div className="space-y-2">
-        <label className="text-sm font-medium text-foreground">Title</label>
+        <label className="text-sm font-medium text-foreground">{t('config.cardTitle')}</label>
         <input
           type="text"
           value={config.title || ''}
           onChange={(e) => onChange({ ...config, title: e.target.value })}
-          placeholder="e.g., Temperature"
+          placeholder={t('config.titlePlaceholder')}
           className="w-full px-3 py-2 rounded-md text-sm bg-background border border-input"
         />
       </div>
 
       {/* Unit */}
       <div className="space-y-2">
-        <label className="text-sm font-medium text-foreground">Unit</label>
+        <label className="text-sm font-medium text-foreground">{t('config.unit')}</label>
         <input
           type="text"
           value={config.unit || ''}
           onChange={(e) => onChange({ ...config, unit: e.target.value })}
-          placeholder="e.g., °C, %, PSI"
+          placeholder={t('config.unitPlaceholder')}
           className="w-full px-3 py-2 rounded-md text-sm bg-background border border-input"
         />
       </div>
@@ -466,7 +474,7 @@ const NumberCardConfigEditor = memo(function NumberCardConfigEditor({
       {/* Decimals */}
       <div className="space-y-2">
         <label className="text-sm font-medium text-foreground">
-          Decimal Places
+          {t('config.decimalPlaces')}
         </label>
         <input
           type="number"
@@ -482,7 +490,7 @@ const NumberCardConfigEditor = memo(function NumberCardConfigEditor({
 
       {/* Font Size */}
       <div className="space-y-2">
-        <label className="text-sm font-medium text-foreground">Font Size</label>
+        <label className="text-sm font-medium text-foreground">{t('config.fontSize')}</label>
         <select
           value={config.fontSize}
           onChange={(e) =>
@@ -493,10 +501,10 @@ const NumberCardConfigEditor = memo(function NumberCardConfigEditor({
           }
           className="w-full px-3 py-2 rounded-md text-sm bg-background border border-input"
         >
-          <option value="sm">Small</option>
-          <option value="md">Medium</option>
-          <option value="lg">Large</option>
-          <option value="xl">Extra Large</option>
+          <option value="sm">{t('config.fontSize.sm')}</option>
+          <option value="md">{t('config.fontSize.md')}</option>
+          <option value="lg">{t('config.fontSize.lg')}</option>
+          <option value="xl">{t('config.fontSize.xl')}</option>
         </select>
       </div>
     </>
@@ -512,12 +520,14 @@ const ChartConfigEditor = memo(function ChartConfigEditor({
   config,
   onChange
 }: ChartConfigEditorProps): React.ReactElement {
+  const { t } = useTranslation('dashboard')
+
   return (
     <>
       {/* Time Range */}
       <div className="space-y-2">
         <label className="text-sm font-medium text-foreground">
-          Time Range (seconds)
+          {t('config.timeRange')}
         </label>
         <input
           type="number"
@@ -541,7 +551,7 @@ const ChartConfigEditor = memo(function ChartConfigEditor({
           className="rounded border-input"
         />
         <label htmlFor="showGrid" className="text-sm text-foreground">
-          Show grid lines
+          {t('config.showGrid')}
         </label>
       </div>
 
@@ -555,7 +565,7 @@ const ChartConfigEditor = memo(function ChartConfigEditor({
           className="rounded border-input"
         />
         <label htmlFor="showLegend" className="text-sm text-foreground">
-          Show legend
+          {t('config.showLegend')}
         </label>
       </div>
     </>

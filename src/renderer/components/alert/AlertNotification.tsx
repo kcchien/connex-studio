@@ -6,6 +6,7 @@
  */
 
 import React, { useEffect, memo, useState, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { AlertCircle, AlertTriangle, Info, X, Check, Volume2, VolumeX } from 'lucide-react'
 import { cn } from '@renderer/lib/utils'
 import type { AlertEvent, AlertSeverity } from '@shared/types'
@@ -55,6 +56,7 @@ export const AlertNotification = memo(function AlertNotification({
   autoDismissMs,
   className
 }: AlertNotificationProps): React.ReactElement | null {
+  const { t } = useTranslation('alert')
   const [isVisible, setIsVisible] = useState(false)
   const [isLeaving, setIsLeaving] = useState(false)
 
@@ -131,7 +133,7 @@ export const AlertNotification = memo(function AlertNotification({
               className="text-sm font-semibold"
               style={{ color: severityColor }}
             >
-              {SEVERITY_LABELS[event.severity]} Alert
+              {t('notification.alert', { severity: SEVERITY_LABELS[event.severity] })}
             </span>
           </div>
           <div className="flex items-center gap-1">
@@ -142,7 +144,7 @@ export const AlertNotification = memo(function AlertNotification({
                 'p-1 rounded hover:bg-muted transition-colors',
                 'text-muted-foreground'
               )}
-              title={soundEnabled ? 'Mute sounds' : 'Enable sounds'}
+              title={soundEnabled ? t('notification.muteSounds') : t('notification.enableSounds')}
             >
               {soundEnabled ? (
                 <Volume2 className="h-4 w-4" />
@@ -167,9 +169,9 @@ export const AlertNotification = memo(function AlertNotification({
         <div className="px-4 py-3">
           <p className="text-sm text-foreground leading-snug">{event.message}</p>
           <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-            <span>Tag: {event.tagRef}</span>
+            <span>{t('notification.tag', { tag: event.tagRef })}</span>
             <span className="opacity-50">|</span>
-            <span>Value: {event.triggerValue}</span>
+            <span>{t('event.value', { value: event.triggerValue })}</span>
           </div>
         </div>
 
@@ -183,7 +185,7 @@ export const AlertNotification = memo(function AlertNotification({
               'transition-colors'
             )}
           >
-            Dismiss
+            {t('action.dismiss')}
           </button>
           <button
             onClick={handleAcknowledge}
@@ -194,7 +196,7 @@ export const AlertNotification = memo(function AlertNotification({
             )}
           >
             <Check className="h-4 w-4" />
-            Acknowledge
+            {t('action.acknowledge')}
           </button>
         </div>
 
@@ -259,6 +261,7 @@ export const AlertNotificationStack = memo(function AlertNotificationStack({
   maxVisible = 3,
   className
 }: AlertNotificationStackProps): React.ReactElement | null {
+  const { t } = useTranslation('alert')
   const visibleEvents = events.slice(0, maxVisible)
   const hiddenCount = events.length - maxVisible
 
@@ -270,7 +273,7 @@ export const AlertNotificationStack = memo(function AlertNotificationStack({
       {hiddenCount > 0 && (
         <div className="flex justify-end">
           <span className="px-2 py-1 text-xs bg-muted text-muted-foreground rounded-full">
-            +{hiddenCount} more alerts
+            {t('notification.moreAlerts', { count: hiddenCount })}
           </span>
         </div>
       )}
@@ -302,7 +305,7 @@ export const AlertNotificationStack = memo(function AlertNotificationStack({
               'transition-colors'
             )}
           >
-            Dismiss All ({events.length})
+            {t('action.dismissAll', { count: events.length })}
           </button>
         </div>
       )}

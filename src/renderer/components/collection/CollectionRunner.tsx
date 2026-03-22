@@ -6,6 +6,7 @@
  */
 
 import React, { memo, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Play,
   Square,
@@ -54,6 +55,8 @@ const RequestResultItem = memo(function RequestResultItem({
   isExpanded,
   onToggle
 }: RequestResultItemProps): React.ReactElement {
+  const { t } = useTranslation('collection')
+
   const getStatusIcon = () => {
     switch (result.status) {
       case 'passed':
@@ -84,7 +87,7 @@ const RequestResultItem = memo(function RequestResultItem({
         )}
         {getStatusIcon()}
         <span className="flex-1 text-sm font-medium truncate">
-          Request {result.requestId}
+          {t('result.request', { id: result.requestId })}
         </span>
         <span className="text-xs text-muted-foreground">
           {result.latency}ms
@@ -105,7 +108,7 @@ const RequestResultItem = memo(function RequestResultItem({
           {result.assertions && result.assertions.length > 0 && (
             <div>
               <div className="text-xs font-medium text-muted-foreground mb-1">
-                Assertions
+                {t('assertion.title')}
               </div>
               <div className="space-y-1">
                 {result.assertions.map((assertion: AssertionResult, index: number) => (
@@ -122,7 +125,7 @@ const RequestResultItem = memo(function RequestResultItem({
                       <XCircle className="h-3.5 w-3.5" />
                     )}
                     <span>
-                      Expected: {String(assertion.expected)}, Got: {String(assertion.actual)}
+                      {t('result.expected', { expected: String(assertion.expected), actual: String(assertion.actual) })}
                     </span>
                     {!assertion.passed && assertion.message && (
                       <span className="text-xs text-muted-foreground">
@@ -139,7 +142,7 @@ const RequestResultItem = memo(function RequestResultItem({
           {result.value !== undefined && (
             <div>
               <div className="text-xs font-medium text-muted-foreground mb-1">
-                Value
+                {t('assertion.value')}
               </div>
               <pre className="text-xs bg-background p-2 rounded overflow-x-auto max-h-32">
                 {typeof result.value === 'object'
@@ -166,6 +169,7 @@ export const CollectionRunner = memo(function CollectionRunner({
   onStop,
   className
 }: CollectionRunnerProps): React.ReactElement {
+  const { t } = useTranslation('collection')
   const [expandedItems, setExpandedItems] = React.useState<Set<number>>(new Set())
 
   const toggleItem = useCallback((index: number) => {
@@ -197,7 +201,7 @@ export const CollectionRunner = memo(function CollectionRunner({
     return (
       <div className={cn('flex items-center justify-center h-full', className)}>
         <div className="text-muted-foreground text-center">
-          <p>Select a collection to run</p>
+          <p>{t('empty.selectCollection')}</p>
         </div>
       </div>
     )
@@ -210,7 +214,7 @@ export const CollectionRunner = memo(function CollectionRunner({
         <div>
           <h3 className="text-lg font-medium text-foreground">{collection.name}</h3>
           <p className="text-sm text-muted-foreground">
-            {collection.requests?.length ?? 0} requests
+            {t('runner.requests', { count: collection.requests?.length ?? 0 })}
           </p>
         </div>
 
@@ -225,7 +229,7 @@ export const CollectionRunner = memo(function CollectionRunner({
               )}
             >
               <Square className="h-4 w-4" />
-              Stop
+              {t('common:action.stop')}
             </button>
           ) : (
             <button
@@ -237,7 +241,7 @@ export const CollectionRunner = memo(function CollectionRunner({
               )}
             >
               <Play className="h-4 w-4" />
-              Run Collection
+              {t('action.run')}
             </button>
           )}
         </div>
@@ -250,7 +254,7 @@ export const CollectionRunner = memo(function CollectionRunner({
             <div className="flex items-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin text-primary" />
               <span className="text-sm text-foreground">
-                Running: {progress.currentRequest}
+                {t('runner.running', { name: progress.currentRequest })}
               </span>
             </div>
             <span className="text-sm text-muted-foreground">
@@ -271,23 +275,23 @@ export const CollectionRunner = memo(function CollectionRunner({
         <div className="flex items-center gap-4 px-4 py-3 border-b border-border bg-muted/30">
           <div className="flex items-center gap-1.5">
             <CheckCircle2 className="h-4 w-4 text-green-500" />
-            <span className="text-sm font-medium">{stats.passed} passed</span>
+            <span className="text-sm font-medium">{t('result.passed', { count: stats.passed })}</span>
           </div>
           {stats.failed > 0 && (
             <div className="flex items-center gap-1.5">
               <XCircle className="h-4 w-4 text-destructive" />
-              <span className="text-sm font-medium">{stats.failed} failed</span>
+              <span className="text-sm font-medium">{t('result.failed', { count: stats.failed })}</span>
             </div>
           )}
           {stats.skipped > 0 && (
             <div className="flex items-center gap-1.5">
               <AlertTriangle className="h-4 w-4 text-yellow-500" />
-              <span className="text-sm font-medium">{stats.skipped} skipped</span>
+              <span className="text-sm font-medium">{t('result.skipped', { count: stats.skipped })}</span>
             </div>
           )}
           <div className="flex-1" />
           <span className="text-sm text-muted-foreground">
-            {stats.duration}ms total
+            {t('result.totalTime', { ms: stats.duration })}
           </span>
         </div>
       )}
@@ -307,7 +311,7 @@ export const CollectionRunner = memo(function CollectionRunner({
           </div>
         ) : !isRunning ? (
           <div className="text-center text-muted-foreground py-8">
-            <p>No results yet. Run the collection to see results.</p>
+            <p>{t('empty.noResults')}</p>
           </div>
         ) : null}
       </div>

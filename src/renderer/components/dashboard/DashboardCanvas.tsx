@@ -6,6 +6,7 @@
  */
 
 import React, { memo, useCallback, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import GridLayout, { type Layout, type LayoutItem } from 'react-grid-layout'
 import { Edit2, Eye, Plus } from 'lucide-react'
 import { cn } from '@renderer/lib/utils'
@@ -84,6 +85,8 @@ export const DashboardCanvas = memo(function DashboardCanvas({
   width = 1200,
   className
 }: DashboardCanvasProps): React.ReactElement {
+  const { t } = useTranslation('dashboard')
+
   // Convert layout to react-grid-layout format
   const gridLayout = useMemo((): Layout => {
     return dashboard.layout.map((item): LayoutItem => ({
@@ -169,7 +172,7 @@ export const DashboardCanvas = memo(function DashboardCanvas({
         default:
           return (
             <div className="flex items-center justify-center h-full text-muted-foreground">
-              Unknown widget type
+              {t('widget.unknown')}
             </div>
           )
       }
@@ -192,7 +195,7 @@ export const DashboardCanvas = memo(function DashboardCanvas({
           </span>
           {dashboard.isDefault && (
             <span className="px-2 py-0.5 text-xs bg-primary/10 text-primary rounded">
-              Default
+              {t('badge.default')}
             </span>
           )}
         </div>
@@ -208,7 +211,7 @@ export const DashboardCanvas = memo(function DashboardCanvas({
               )}
             >
               <Plus className="h-4 w-4" />
-              Add Widget
+              {t('action.addWidget')}
             </button>
           )}
 
@@ -225,12 +228,12 @@ export const DashboardCanvas = memo(function DashboardCanvas({
             {isEditing ? (
               <>
                 <Eye className="h-4 w-4" />
-                View Mode
+                {t('action.viewMode')}
               </>
             ) : (
               <>
                 <Edit2 className="h-4 w-4" />
-                Edit Mode
+                {t('action.editMode')}
               </>
             )}
           </button>
@@ -246,7 +249,7 @@ export const DashboardCanvas = memo(function DashboardCanvas({
           )}
         >
           <p className="text-muted-foreground mb-4">
-            No widgets added yet
+            {t('empty.noWidgets')}
           </p>
           <button
             onClick={onAddWidget}
@@ -257,7 +260,7 @@ export const DashboardCanvas = memo(function DashboardCanvas({
             )}
           >
             <Plus className="h-4 w-4" />
-            Add Your First Widget
+            {t('action.addFirstWidget')}
           </button>
         </div>
       ) : (

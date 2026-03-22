@@ -6,6 +6,7 @@
  */
 
 import React, { memo, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import { GripVertical, Settings, Trash2 } from 'lucide-react'
 import { cn } from '@renderer/lib/utils'
 import type { WidgetType, WidgetConfig, Threshold } from '@shared/types'
@@ -66,6 +67,8 @@ export const WidgetContainer = memo(function WidgetContainer({
   children,
   className
 }: WidgetContainerProps): React.ReactElement {
+  const { t } = useTranslation('dashboard')
+
   return (
     <div
       className={cn(
@@ -107,7 +110,7 @@ export const WidgetContainer = memo(function WidgetContainer({
                     'p-1 rounded text-muted-foreground',
                     'hover:text-foreground hover:bg-muted transition-colors'
                   )}
-                  title="Widget settings"
+                  title={t('widget.settings')}
                 >
                   <Settings className="h-4 w-4" />
                 </button>
@@ -119,7 +122,7 @@ export const WidgetContainer = memo(function WidgetContainer({
                     'p-1 rounded text-muted-foreground',
                     'hover:text-destructive hover:bg-destructive/10 transition-colors'
                   )}
-                  title="Remove widget"
+                  title={t('widget.remove')}
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>

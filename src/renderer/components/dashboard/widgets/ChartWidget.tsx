@@ -6,6 +6,7 @@
  */
 
 import React, { memo, useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@renderer/lib/utils'
 import type { ChartConfig } from '@shared/types'
 import { WidgetContainer, type WidgetBaseProps } from '../WidgetBase'
@@ -28,7 +29,8 @@ function renderChart(
   data: DataPoint[],
   width: number,
   height: number,
-  showGrid: boolean
+  showGrid: boolean,
+  waitingText: string
 ): React.ReactElement {
   if (data.length < 2) {
     return (
@@ -39,7 +41,7 @@ function renderChart(
         className="fill-muted-foreground"
         style={{ fontSize: '12px' }}
       >
-        Waiting for data...
+        {waitingText}
       </text>
     )
   }
@@ -144,6 +146,7 @@ export const ChartWidget = memo(function ChartWidget({
   onRemove,
   className
 }: ChartWidgetProps): React.ReactElement {
+  const { t } = useTranslation('dashboard')
   const { timeRange, showGrid, showLegend } = config
   const containerRef = useRef<HTMLDivElement>(null)
   const [dimensions, setDimensions] = useState({ width: 300, height: 150 })
@@ -225,7 +228,7 @@ export const ChartWidget = memo(function ChartWidget({
           height={dimensions.height}
           className="overflow-visible"
         >
-          {renderChart(chartData, dimensions.width, dimensions.height, showGrid)}
+          {renderChart(chartData, dimensions.width, dimensions.height, showGrid, t('chart.waitingForData'))}
         </svg>
       </div>
 

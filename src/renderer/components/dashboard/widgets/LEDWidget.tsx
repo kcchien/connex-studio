@@ -6,6 +6,7 @@
  */
 
 import React, { memo, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@renderer/lib/utils'
 import type { LEDConfig } from '@shared/types'
 import {
@@ -50,6 +51,7 @@ export const LEDWidget = memo(function LEDWidget({
   onRemove,
   className
 }: LEDWidgetProps): React.ReactElement {
+  const { t } = useTranslation('dashboard')
   const { shape, onValue, onColor, offColor, label } = config
 
   // Get current value
@@ -98,7 +100,7 @@ export const LEDWidget = memo(function LEDWidget({
             isActive ? 'text-foreground' : 'text-muted-foreground'
           )}
         >
-          {isActive ? 'ON' : 'OFF'}
+          {isActive ? t('led.on') : t('led.off')}
         </span>
       </div>
     </WidgetContainer>

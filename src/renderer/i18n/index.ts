@@ -6,11 +6,19 @@ import enConnection from './locales/en/connection.json'
 import enModbus from './locales/en/modbus.json'
 import enMqtt from './locales/en/mqtt.json'
 import enOpcua from './locales/en/opcua.json'
+import enDashboard from './locales/en/dashboard.json'
+import enAlert from './locales/en/alert.json'
+import enCollection from './locales/en/collection.json'
+import enCalculator from './locales/en/calculator.json'
 import zhTWCommon from './locales/zh-TW/common.json'
 import zhTWConnection from './locales/zh-TW/connection.json'
 import zhTWModbus from './locales/zh-TW/modbus.json'
 import zhTWMqtt from './locales/zh-TW/mqtt.json'
 import zhTWOpcua from './locales/zh-TW/opcua.json'
+import zhTWDashboard from './locales/zh-TW/dashboard.json'
+import zhTWAlert from './locales/zh-TW/alert.json'
+import zhTWCollection from './locales/zh-TW/collection.json'
+import zhTWCalculator from './locales/zh-TW/calculator.json'
 
 const resources = {
   en: {
@@ -19,6 +27,10 @@ const resources = {
     modbus: enModbus,
     mqtt: enMqtt,
     opcua: enOpcua,
+    dashboard: enDashboard,
+    alert: enAlert,
+    collection: enCollection,
+    calculator: enCalculator,
   },
   'zh-TW': {
     common: zhTWCommon,
@@ -26,6 +38,10 @@ const resources = {
     modbus: zhTWModbus,
     mqtt: zhTWMqtt,
     opcua: zhTWOpcua,
+    dashboard: zhTWDashboard,
+    alert: zhTWAlert,
+    collection: zhTWCollection,
+    calculator: zhTWCalculator,
   },
 }
 

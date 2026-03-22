@@ -9,6 +9,7 @@
  */
 
 import React, { useState, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ArrowRightLeft, Copy, Check, AlertCircle } from 'lucide-react'
 import { cn } from '@renderer/lib/utils'
 import { calculatorApi } from '@renderer/lib/ipc'
@@ -42,6 +43,7 @@ const BYTE_ORDERS: { value: ByteOrder; label: string; description: string }[] = 
 // =============================================================================
 
 export function ByteOrderConverter({ className }: ByteOrderConverterProps): React.ReactElement {
+  const { t } = useTranslation('calculator')
   const [hexInput, setHexInput] = useState('')
   const [fromOrder, setFromOrder] = useState<ByteOrder>('big-endian')
   const [toOrder, setToOrder] = useState<ByteOrder>('little-endian')
@@ -57,7 +59,7 @@ export function ByteOrderConverter({ className }: ByteOrderConverterProps): Reac
 
   const convert = useCallback(async () => {
     if (!hexInput.trim()) {
-      setError('Please enter hex data')
+      setError(t('byteOrder.error.emptyInput'))
       return
     }
 
@@ -70,14 +72,14 @@ export function ByteOrderConverter({ className }: ByteOrderConverterProps): Reac
       setResult(convertResult)
       setError(null)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Conversion failed')
+      setError(err instanceof Error ? err.message : t('byteOrder.error.conversionFailed'))
       setResult(null)
     }
-  }, [hexInput, fromOrder, toOrder])
+  }, [hexInput, fromOrder, toOrder, t])
 
   const swapBytes = useCallback(async () => {
     if (!hexInput.trim()) {
-      setError('Please enter hex data')
+      setError(t('byteOrder.error.emptyInput'))
       return
     }
 
@@ -86,14 +88,14 @@ export function ByteOrderConverter({ className }: ByteOrderConverterProps): Reac
       setResult(swapResult)
       setError(null)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Swap failed')
+      setError(err instanceof Error ? err.message : t('byteOrder.error.swapFailed'))
       setResult(null)
     }
-  }, [hexInput])
+  }, [hexInput, t])
 
   const swapWords = useCallback(async () => {
     if (!hexInput.trim()) {
-      setError('Please enter hex data')
+      setError(t('byteOrder.error.emptyInput'))
       return
     }
 
@@ -102,7 +104,7 @@ export function ByteOrderConverter({ className }: ByteOrderConverterProps): Reac
       setResult(swapResult)
       setError(null)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Swap failed')
+      setError(err instanceof Error ? err.message : t('byteOrder.error.swapFailed'))
       setResult(null)
     }
   }, [hexInput])
@@ -124,19 +126,19 @@ export function ByteOrderConverter({ className }: ByteOrderConverterProps): Reac
       {/* Header */}
       <div className="flex items-center gap-2">
         <ArrowRightLeft className="h-5 w-5 text-primary" />
-        <h3 className="text-lg font-semibold">Byte Order Converter</h3>
+        <h3 className="text-lg font-semibold">{t('byteOrder.title')}</h3>
       </div>
 
       {/* Input */}
       <div className="space-y-2">
         <label className="text-sm text-muted-foreground">
-          Hex Data (e.g., "41 42 43 44" or "ABCD1234")
+          {t('byteOrder.hexDataLabel')}
         </label>
         <input
           type="text"
           value={hexInput}
           onChange={handleInputChange}
-          placeholder="Enter hex bytes..."
+          placeholder={t('byteOrder.placeholder')}
           className="w-full p-3 font-mono text-sm bg-muted/50 rounded-md border focus:outline-none focus:ring-2 focus:ring-primary"
         />
       </div>
@@ -144,7 +146,7 @@ export function ByteOrderConverter({ className }: ByteOrderConverterProps): Reac
       {/* Byte Order Selection */}
       <div className="grid grid-cols-[1fr,auto,1fr] gap-4 items-end">
         <div className="space-y-2">
-          <label className="text-sm text-muted-foreground">From</label>
+          <label className="text-sm text-muted-foreground">{t('byteOrder.from')}</label>
           <select
             value={fromOrder}
             onChange={(e) => setFromOrder(e.target.value as ByteOrder)}
@@ -161,13 +163,13 @@ export function ByteOrderConverter({ className }: ByteOrderConverterProps): Reac
         <button
           onClick={swapOrders}
           className="p-2 rounded-md hover:bg-muted"
-          title="Swap orders"
+          title={t('byteOrder.swapOrders')}
         >
           <ArrowRightLeft className="h-5 w-5" />
         </button>
 
         <div className="space-y-2">
-          <label className="text-sm text-muted-foreground">To</label>
+          <label className="text-sm text-muted-foreground">{t('byteOrder.to')}</label>
           <select
             value={toOrder}
             onChange={(e) => setToOrder(e.target.value as ByteOrder)}
@@ -196,31 +198,31 @@ export function ByteOrderConverter({ className }: ByteOrderConverterProps): Reac
           onClick={convert}
           className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 text-sm font-medium"
         >
-          Convert
+          {t('byteOrder.convert')}
         </button>
         <button
           onClick={swapBytes}
           className="px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 text-sm"
         >
-          Swap Bytes
+          {t('byteOrder.swapBytes')}
         </button>
         <button
           onClick={swapWords}
           className="px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 text-sm"
         >
-          Swap Words
+          {t('byteOrder.swapWords')}
         </button>
       </div>
 
       {/* Results */}
       {result && (
         <div className="p-4 bg-muted/30 rounded-md space-y-4">
-          <h4 className="font-medium text-sm">Result</h4>
+          <h4 className="font-medium text-sm">{t('byteOrder.result')}</h4>
 
           {/* Visual Representation */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <span className="text-xs text-muted-foreground">Original</span>
+              <span className="text-xs text-muted-foreground">{t('byteOrder.original')}</span>
               <div className="flex gap-1 flex-wrap">
                 {result.original.map((byte, i) => (
                   <span
@@ -233,7 +235,7 @@ export function ByteOrderConverter({ className }: ByteOrderConverterProps): Reac
               </div>
             </div>
             <div className="space-y-2">
-              <span className="text-xs text-muted-foreground">Converted</span>
+              <span className="text-xs text-muted-foreground">{t('byteOrder.converted')}</span>
               <div className="flex gap-1 flex-wrap">
                 {result.swapped.map((byte, i) => (
                   <span
@@ -250,13 +252,13 @@ export function ByteOrderConverter({ className }: ByteOrderConverterProps): Reac
           {/* Hex Output */}
           <div className="flex items-center justify-between p-3 bg-background rounded">
             <div>
-              <span className="text-muted-foreground text-sm">Result: </span>
+              <span className="text-muted-foreground text-sm">{t('byteOrder.resultLabel')}</span>
               <span className="font-mono">{result.swappedHex}</span>
             </div>
             <button
               onClick={() => copyToClipboard(result.swappedHex)}
               className="p-1 rounded hover:bg-muted"
-              title="Copy to clipboard"
+              title={t('byteOrder.copyToClipboard')}
             >
               {copied ? (
                 <Check className="h-4 w-4 text-green-500" />
@@ -270,10 +272,10 @@ export function ByteOrderConverter({ className }: ByteOrderConverterProps): Reac
 
       {/* Info */}
       <div className="text-xs text-muted-foreground space-y-1">
-        <p><strong>Big-Endian (ABCD):</strong> Most significant byte first. Network byte order.</p>
-        <p><strong>Little-Endian (DCBA):</strong> Least significant byte first. x86/x64.</p>
-        <p><strong>Mid-Big (CDAB):</strong> Word-swapped big-endian. Some PLCs.</p>
-        <p><strong>Mid-Little (BADC):</strong> Byte-swapped little-endian.</p>
+        <p><strong>Big-Endian (ABCD):</strong> {t('byteOrder.info.bigEndian')}</p>
+        <p><strong>Little-Endian (DCBA):</strong> {t('byteOrder.info.littleEndian')}</p>
+        <p><strong>Mid-Big (CDAB):</strong> {t('byteOrder.info.midBig')}</p>
+        <p><strong>Mid-Little (BADC):</strong> {t('byteOrder.info.midLittle')}</p>
       </div>
     </div>
   )

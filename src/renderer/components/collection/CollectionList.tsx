@@ -6,6 +6,7 @@
  */
 
 import React, { memo, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   FolderOpen,
   Play,
@@ -47,6 +48,7 @@ const CollectionItem = memo(function CollectionItem({
   onRun,
   onOpenMenu
 }: CollectionItemProps): React.ReactElement {
+  const { t } = useTranslation('collection')
   const requestCount = collection.requests?.length ?? 0
 
   const handleRun = useCallback((e: React.MouseEvent) => {
@@ -86,7 +88,7 @@ const CollectionItem = memo(function CollectionItem({
           </span>
         </div>
         <div className="text-xs text-muted-foreground">
-          {requestCount} request{requestCount !== 1 ? 's' : ''}
+          {t('item.requestCount', { count: requestCount })}
         </div>
       </div>
 
@@ -100,7 +102,7 @@ const CollectionItem = memo(function CollectionItem({
               'hover:text-primary hover:bg-primary/10',
               'transition-colors'
             )}
-            title="Run collection"
+            title={t('action.runCollection')}
           >
             <Play className="h-3.5 w-3.5" />
           </button>
@@ -113,7 +115,7 @@ const CollectionItem = memo(function CollectionItem({
               'hover:text-foreground hover:bg-muted',
               'transition-colors'
             )}
-            title="More options"
+            title={t('action.moreOptions')}
           >
             <MoreVertical className="h-3.5 w-3.5" />
           </button>
@@ -135,11 +137,13 @@ export const CollectionList = memo(function CollectionList({
   onOpenMenu,
   className
 }: CollectionListProps): React.ReactElement {
+  const { t } = useTranslation('collection')
+
   return (
     <div className={cn('flex flex-col', className)}>
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-border">
-        <span className="text-sm font-medium text-foreground">Collections</span>
+        <span className="text-sm font-medium text-foreground">{t('title')}</span>
         {onAddNew && (
           <button
             onClick={onAddNew}
@@ -148,7 +152,7 @@ export const CollectionList = memo(function CollectionList({
               'hover:text-primary hover:bg-primary/10',
               'transition-colors'
             )}
-            title="New collection"
+            title={t('action.newCollection')}
           >
             <Plus className="h-4 w-4" />
           </button>
@@ -159,13 +163,13 @@ export const CollectionList = memo(function CollectionList({
       <div className="flex-1 overflow-y-auto p-2 space-y-1">
         {collections.length === 0 ? (
           <div className="text-sm text-muted-foreground text-center py-8">
-            No collections yet.
+            {t('empty.noCollections')}
             {onAddNew && (
               <button
                 onClick={onAddNew}
                 className="block mx-auto mt-2 text-primary hover:underline"
               >
-                Create your first collection
+                {t('empty.createFirst')}
               </button>
             )}
           </div>

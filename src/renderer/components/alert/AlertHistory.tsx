@@ -6,6 +6,7 @@
  */
 
 import React, { useState, useCallback, memo } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   AlertCircle,
   AlertTriangle,
@@ -69,13 +70,13 @@ function formatTimestamp(timestamp: number): string {
 /**
  * Format relative time.
  */
-function formatRelativeTime(timestamp: number): string {
+function formatRelativeTime(timestamp: number, t: (key: string, opts?: Record<string, unknown>) => string): string {
   const seconds = Math.floor((Date.now() - timestamp) / 1000)
 
-  if (seconds < 60) return 'just now'
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`
-  return `${Math.floor(seconds / 86400)}d ago`
+  if (seconds < 60) return t('relativeTime.justNow')
+  if (seconds < 3600) return t('relativeTime.minutesAgo', { count: Math.floor(seconds / 60) })
+  if (seconds < 86400) return t('relativeTime.hoursAgo', { count: Math.floor(seconds / 3600) })
+  return t('relativeTime.daysAgo', { count: Math.floor(seconds / 86400) })
 }
 
 /**
@@ -94,6 +95,7 @@ export const AlertHistory = memo(function AlertHistory({
   onClearHistory,
   className
 }: AlertHistoryProps): React.ReactElement {
+  const { t } = useTranslation('alert')
   const [severityFilter, setSeverityFilter] = useState<AlertSeverity | null>(null)
   const [showAcknowledged, setShowAcknowledged] = useState(true)
   const [isFilterOpen, setIsFilterOpen] = useState(false)
@@ -129,20 +131,20 @@ export const AlertHistory = memo(function AlertHistory({
 
   // Handle clear history
   const handleClearHistory = useCallback(() => {
-    if (window.confirm('Clear all alert history? This cannot be undone.')) {
+    if (window.confirm(t('confirm.clearHistory'))) {
       onClearHistory()
     }
-  }, [onClearHistory])
+  }, [onClearHistory, t])
 
   return (
     <div className={cn('flex flex-col h-full', className)}>
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-border">
         <div className="flex items-center gap-3">
-          <h3 className="text-lg font-semibold text-foreground">Alert History</h3>
+          <h3 className="text-lg font-semibold text-foreground">{t('title')}</h3>
           {totalUnacknowledged > 0 && (
             <span className="px-2 py-0.5 text-xs font-medium bg-destructive/10 text-destructive rounded-full">
-              {totalUnacknowledged} unread
+              {t('unread', { count: totalUnacknowledged })}
             </span>
           )}
         </div>
@@ -159,7 +161,7 @@ export const AlertHistory = memo(function AlertHistory({
               )}
             >
               <Filter className="h-4 w-4" />
-              Filter
+              {t('filter.title')}
               <ChevronDown className="h-3 w-3" />
             </button>
 
@@ -169,7 +171,7 @@ export const AlertHistory = memo(function AlertHistory({
                   {/* Severity filter */}
                   <div>
                     <label className="block text-xs font-medium text-muted-foreground mb-1">
-                      Severity
+                      {t('filter.severity')}
                     </label>
                     <select
                       value={severityFilter ?? ''}
@@ -183,10 +185,10 @@ export const AlertHistory = memo(function AlertHistory({
                         'bg-background border border-input'
                       )}
                     >
-                      <option value="">All severities</option>
-                      <option value="critical">Critical</option>
-                      <option value="warning">Warning</option>
-                      <option value="info">Info</option>
+                      <option value="">{t('filter.allSeverities')}</option>
+                      <option value="critical">{t('filter.critical')}</option>
+                      <option value="warning">{t('filter.warning')}</option>
+                      <option value="info">{t('filter.info')}</option>
                     </select>
                   </div>
 
@@ -198,7 +200,7 @@ export const AlertHistory = memo(function AlertHistory({
                       onChange={(e) => setShowAcknowledged(e.target.checked)}
                       className="rounded border-input"
                     />
-                    <span className="text-sm">Show acknowledged</span>
+                    <span className="text-sm">{t('filter.showAcknowledged')}</span>
                   </label>
 
                   <div className="flex gap-2 pt-2 border-t border-border">
@@ -206,13 +208,13 @@ export const AlertHistory = memo(function AlertHistory({
                       onClick={handleClearFilters}
                       className="flex-1 px-2 py-1 text-xs text-muted-foreground hover:text-foreground"
                     >
-                      Clear
+                      {t('filter.clear')}
                     </button>
                     <button
                       onClick={handleApplyFilters}
                       className="flex-1 px-2 py-1 text-xs bg-primary text-primary-foreground rounded"
                     >
-                      Apply
+                      {t('filter.apply')}
                     </button>
                   </div>
                 </div>
@@ -231,7 +233,7 @@ export const AlertHistory = memo(function AlertHistory({
               )}
             >
               <CheckCheck className="h-4 w-4" />
-              Ack All
+              {t('action.ackAll')}
             </button>
           )}
 
@@ -243,7 +245,7 @@ export const AlertHistory = memo(function AlertHistory({
               'text-muted-foreground hover:text-destructive',
               'hover:bg-muted transition-colors'
             )}
-            title="Clear history"
+            title={t('action.clearHistory')}
           >
             <Trash2 className="h-4 w-4" />
           </button>
@@ -258,7 +260,7 @@ export const AlertHistory = memo(function AlertHistory({
               'hover:bg-muted transition-colors',
               'disabled:opacity-50'
             )}
-            title="Refresh"
+            title={t('common:action.refresh')}
           >
             <RefreshCw className={cn('h-4 w-4', isLoading && 'animate-spin')} />
           </button>
@@ -306,13 +308,13 @@ export const AlertHistory = memo(function AlertHistory({
         {events.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
             <AlertCircle className="h-12 w-12 mb-2 opacity-30" />
-            <p>No alert events</p>
+            <p>{t('empty.noEvents')}</p>
             {(severityFilter || !showAcknowledged) && (
               <button
                 onClick={handleClearFilters}
                 className="mt-2 text-sm text-primary hover:underline"
               >
-                Clear filters
+                {t('action.clearFilters')}
               </button>
             )}
           </div>
@@ -339,15 +341,15 @@ export const AlertHistory = memo(function AlertHistory({
                   <p className="text-sm text-foreground">{event.message}</p>
                   <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
                     <span title={formatTimestamp(event.timestamp)}>
-                      {formatRelativeTime(event.timestamp)}
+                      {formatRelativeTime(event.timestamp, t)}
                     </span>
                     <span className="opacity-50">|</span>
-                    <span>Value: {event.triggerValue}</span>
+                    <span>{t('event.value', { value: event.triggerValue })}</span>
                     {event.acknowledged && event.acknowledgedAt && (
                       <>
                         <span className="opacity-50">|</span>
                         <span className="text-green-600">
-                          Ack'd {formatRelativeTime(event.acknowledgedAt)}
+                          {t('event.acked', { time: formatRelativeTime(event.acknowledgedAt, t) })}
                         </span>
                       </>
                     )}
@@ -363,10 +365,10 @@ export const AlertHistory = memo(function AlertHistory({
                       'bg-muted hover:bg-primary hover:text-primary-foreground',
                       'transition-colors'
                     )}
-                    title="Acknowledge"
+                    title={t('action.acknowledge')}
                   >
                     <Check className="h-3 w-3" />
-                    Ack
+                    {t('action.ack')}
                   </button>
                 )}
               </div>
@@ -379,7 +381,7 @@ export const AlertHistory = memo(function AlertHistory({
       {events.length > 0 && (
         <div className="flex items-center justify-between px-4 py-2 border-t border-border text-xs text-muted-foreground">
           <span>
-            Showing {events.length} of {total} events
+            {t('event.showing', { count: events.length, total })}
           </span>
           {hasMore && (
             <button
@@ -391,7 +393,7 @@ export const AlertHistory = memo(function AlertHistory({
                 'disabled:opacity-50'
               )}
             >
-              {isLoading ? 'Loading...' : 'Load More'}
+              {isLoading ? t('event.loading') : t('event.loadMore')}
             </button>
           )}
         </div>

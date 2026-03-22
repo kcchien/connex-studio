@@ -45,7 +45,10 @@
     "industrial",
     "protocol"
   ],
-  "author": "",
+  "author": {
+    "name": "KC Chien",
+    "email": "kcchien@users.noreply.github.com"
+  },
   "license": "MIT",
   "devDependencies": {
     "@electron-toolkit/eslint-config-ts": "^3.0.0",

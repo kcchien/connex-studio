@@ -23,6 +23,9 @@ interface UIState {
   // Log viewer
   logViewerOpen: boolean
 
+  // Help panel
+  helpPanelOpen: boolean
+
   // Navigation state (UI/UX redesign)
   newConnectionDialogOpen: boolean
   toolsExpanded: boolean
@@ -40,6 +43,10 @@ interface UIState {
   toggleSidebar: () => void
   setLogViewerOpen: (open: boolean) => void
   toggleLogViewer: () => void
+
+  // Help panel actions
+  setHelpPanelOpen: (open: boolean) => void
+  toggleHelpPanel: () => void
 
   // Navigation actions (UI/UX redesign)
   setNewConnectionDialogOpen: (open: boolean) => void
@@ -79,6 +86,7 @@ export const useUIStore = create<UIState>()(
       resolvedTheme: resolveTheme('system'),
       sidebarCollapsed: false,
       logViewerOpen: false,
+      helpPanelOpen: false,
       language: (navigator.language.startsWith('zh') ? 'zh-TW' : 'en') as 'en' | 'zh-TW',
 
       // Navigation state (UI/UX redesign)
@@ -116,6 +124,10 @@ export const useUIStore = create<UIState>()(
       // Log viewer actions
       setLogViewerOpen: (open) => set({ logViewerOpen: open }),
       toggleLogViewer: () => set((state) => ({ logViewerOpen: !state.logViewerOpen })),
+
+      // Help panel actions
+      setHelpPanelOpen: (open) => set({ helpPanelOpen: open }),
+      toggleHelpPanel: () => set((state) => ({ helpPanelOpen: !state.helpPanelOpen })),
 
       // Navigation actions (UI/UX redesign)
       setNewConnectionDialogOpen: (open) => set({ newConnectionDialogOpen: open }),

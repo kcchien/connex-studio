@@ -15,6 +15,7 @@ import enBridge from './locales/en/bridge.json'
 import enDiagnostics from './locales/en/diagnostics.json'
 import enExport from './locales/en/export.json'
 import enLayout from './locales/en/layout.json'
+import enHelp from './locales/en/help.json'
 import zhTWCommon from './locales/zh-TW/common.json'
 import zhTWConnection from './locales/zh-TW/connection.json'
 import zhTWModbus from './locales/zh-TW/modbus.json'
@@ -29,6 +30,7 @@ import zhTWBridge from './locales/zh-TW/bridge.json'
 import zhTWDiagnostics from './locales/zh-TW/diagnostics.json'
 import zhTWExport from './locales/zh-TW/export.json'
 import zhTWLayout from './locales/zh-TW/layout.json'
+import zhTWHelp from './locales/zh-TW/help.json'
 
 const resources = {
   en: {
@@ -46,6 +48,7 @@ const resources = {
     diagnostics: enDiagnostics,
     export: enExport,
     layout: enLayout,
+    help: enHelp,
   },
   'zh-TW': {
     common: zhTWCommon,
@@ -62,6 +65,7 @@ const resources = {
     diagnostics: zhTWDiagnostics,
     export: zhTWExport,
     layout: zhTWLayout,
+    help: zhTWHelp,
   },
 }
 

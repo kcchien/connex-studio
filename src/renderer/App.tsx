@@ -10,6 +10,7 @@ import {
 import { DataExplorer, TagDisplayState } from '@renderer/components/explorer'
 import { BatchTagDialog } from '@renderer/components/tags'
 import { LogViewer, Logo, ToastContainer, UpdateBanner } from '@renderer/components/common'
+import { HelpPanel } from '@renderer/components/help/HelpPanel'
 import { useConnectionStore } from '@renderer/stores/connectionStore'
 import { useTagStore } from '@renderer/stores/tagStore'
 import { useUIStore } from '@renderer/stores/uiStore'
@@ -367,6 +368,7 @@ function App(): React.ReactElement {
         )}
       </main>
       <ToastContainer />
+      <HelpPanel />
     </div>
   )
 }

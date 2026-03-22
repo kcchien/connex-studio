@@ -34,6 +34,7 @@ export function useKeyboardShortcuts(handlers?: KeyboardShortcutHandlers): void 
   const connections = useConnectionStore((state) => state.connections)
   const getTags = useTagStore((state) => state.getTags)
   const toggleLogViewer = useUIStore((state) => state.toggleLogViewer)
+  const toggleHelpPanel = useUIStore((state) => state.toggleHelpPanel)
 
   const selectedConnection = connections.find((c) => c.id === selectedConnectionId)
 
@@ -115,6 +116,11 @@ export function useKeyboardShortcuts(handlers?: KeyboardShortcutHandlers): void 
     toggleLogViewer()
   }, [toggleLogViewer, handlers])
 
+  // Help panel toggle handler
+  const handleToggleHelpPanel = useCallback(() => {
+    toggleHelpPanel()
+  }, [toggleHelpPanel])
+
   // Global keyboard event listener
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent): void => {
@@ -148,9 +154,16 @@ export function useKeyboardShortcuts(handlers?: KeyboardShortcutHandlers): void 
         handleToggleLogViewer()
         return
       }
+
+      // Ctrl+? (Ctrl+Shift+/ on most keyboards) or Cmd+? on Mac: Toggle help panel
+      if (ctrlOrMeta && (event.key === '?' || (event.key === '/' && event.shiftKey))) {
+        event.preventDefault()
+        handleToggleHelpPanel()
+        return
+      }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [handleConnect, handleStartPolling, handleStopPolling, handleToggleLogViewer])
+  }, [handleConnect, handleStartPolling, handleStopPolling, handleToggleLogViewer, handleToggleHelpPanel])
 }

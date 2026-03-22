@@ -15,7 +15,8 @@ import {
   Sun,
   Moon,
   Monitor,
-  Globe
+  Globe,
+  HelpCircle
 } from 'lucide-react'
 import { Logo } from '@renderer/components/common'
 import { ConnectionMenu } from '@renderer/components/connection'
@@ -93,6 +94,7 @@ export function SidebarV2({
   const toggleTheme = useUIStore((state) => state.toggleTheme)
   const language = useUIStore((state) => state.language)
   const setLanguage = useUIStore((state) => state.setLanguage)
+  const toggleHelpPanel = useUIStore((state) => state.toggleHelpPanel)
   const ThemeIcon = themeIcons[theme]
 
   const userInitials = userName
@@ -279,6 +281,15 @@ export function SidebarV2({
             title={`Theme: ${themeLabels[theme]}`}
           >
             <ThemeIcon className="w-4 h-4" aria-hidden="true" />
+          </button>
+          {/* Help Button */}
+          <button
+            onClick={toggleHelpPanel}
+            className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+            aria-label={tCommon('action.help')}
+            title={tCommon('action.help')}
+          >
+            <HelpCircle className="w-4 h-4" aria-hidden="true" />
           </button>
           <button
             className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"

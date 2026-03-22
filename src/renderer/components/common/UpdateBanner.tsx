@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Download, RefreshCw, X } from 'lucide-react'
 
 type UpdateState = 'idle' | 'available' | 'downloading' | 'ready'
 
 export function UpdateBanner(): React.ReactElement | null {
+  const { t } = useTranslation('layout')
   const [state, setState] = useState<UpdateState>('idle')
   const [version, setVersion] = useState('')
   const [progress, setProgress] = useState(0)
@@ -45,34 +47,34 @@ export function UpdateBanner(): React.ReactElement | null {
       {state === 'available' && (
         <>
           <span className="text-gray-700 dark:text-gray-300">
-            Version {version} is available.
+            {t('update.available', { version })}
           </span>
           <button
             onClick={handleDownload}
             className="ml-auto px-3 py-1 rounded bg-blue-500 text-white text-xs font-medium hover:bg-blue-600 transition-colors"
           >
-            Download
+            {t('update.download')}
           </button>
         </>
       )}
 
       {state === 'downloading' && (
         <span className="text-gray-700 dark:text-gray-300">
-          Downloading update... {progress}%
+          {t('update.downloading', { progress })}
         </span>
       )}
 
       {state === 'ready' && (
         <>
           <span className="text-gray-700 dark:text-gray-300">
-            Update ready. Restart to apply.
+            {t('update.ready')}
           </span>
           <button
             onClick={handleInstall}
             className="ml-auto inline-flex items-center gap-1 px-3 py-1 rounded bg-green-500 text-white text-xs font-medium hover:bg-green-600 transition-colors"
           >
             <RefreshCw className="w-3 h-3" />
-            Restart
+            {t('update.restart')}
           </button>
         </>
       )}
@@ -80,7 +82,7 @@ export function UpdateBanner(): React.ReactElement | null {
       <button
         onClick={() => setDismissed(true)}
         className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-        aria-label="Dismiss"
+        aria-label={t('update.dismiss')}
       >
         <X className="w-3 h-3" />
       </button>

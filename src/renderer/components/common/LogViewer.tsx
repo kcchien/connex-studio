@@ -9,6 +9,7 @@
  */
 
 import React, { useEffect, useState, useCallback, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@renderer/lib/utils'
 import type { LogLevel, LogEntry } from '@shared/types'
 
@@ -39,6 +40,7 @@ export function LogViewer({
   maxHeight = '400px',
   autoRefreshInterval = 5000
 }: LogViewerProps): React.ReactElement {
+  const { t } = useTranslation('layout')
   const [logs, setLogs] = useState<LogEntry[]>([])
   const [filterLevel, setFilterLevel] = useState<LogLevel | 'all'>('all')
   const [isLoading, setIsLoading] = useState(false)
@@ -112,7 +114,7 @@ export function LogViewer({
     <div className={cn('flex flex-col bg-card rounded-lg border border-border', className)}>
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-border">
-        <h3 className="text-sm font-medium text-foreground">Application Logs</h3>
+        <h3 className="text-sm font-medium text-foreground">{t('logViewer.title')}</h3>
         <div className="flex items-center gap-2">
           {/* Level filter */}
           <select
@@ -120,11 +122,11 @@ export function LogViewer({
             onChange={(e) => setFilterLevel(e.target.value as LogLevel | 'all')}
             className="px-2 py-1 text-xs rounded-md border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           >
-            <option value="all">All Levels</option>
-            <option value="debug">Debug</option>
-            <option value="info">Info</option>
-            <option value="warn">Warning</option>
-            <option value="error">Error</option>
+            <option value="all">{t('logViewer.allLevels')}</option>
+            <option value="debug">{t('logViewer.debug')}</option>
+            <option value="info">{t('logViewer.info')}</option>
+            <option value="warn">{t('logViewer.warning')}</option>
+            <option value="error">{t('logViewer.error')}</option>
           </select>
 
           {/* Refresh button */}
@@ -132,7 +134,7 @@ export function LogViewer({
             onClick={fetchLogs}
             disabled={isLoading}
             className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors disabled:opacity-50"
-            title="Refresh logs"
+            title={t('logViewer.refreshLogs')}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -157,7 +159,7 @@ export function LogViewer({
           <button
             onClick={handleOpenFolder}
             className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-            title="Open log folder"
+            title={t('logViewer.openFolder')}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -187,7 +189,7 @@ export function LogViewer({
       >
         {logs.length === 0 ? (
           <div className="flex items-center justify-center py-8 text-muted-foreground">
-            <p>No logs to display</p>
+            <p>{t('logViewer.noLogs')}</p>
           </div>
         ) : (
           <table className="w-full">
@@ -222,7 +224,7 @@ export function LogViewer({
 
       {/* Footer with auto-scroll indicator */}
       <div className="flex items-center justify-between px-4 py-1 border-t border-border text-xs text-muted-foreground">
-        <span>{logs.length} entries</span>
+        <span>{t('logViewer.entries', { count: logs.length })}</span>
         <button
           onClick={() => {
             setAutoScroll(true)
@@ -240,7 +242,7 @@ export function LogViewer({
           <span
             className={cn('w-2 h-2 rounded-full', autoScroll ? 'bg-green-500' : 'bg-muted')}
           />
-          Auto-scroll
+          {t('logViewer.autoScroll')}
         </button>
       </div>
     </div>

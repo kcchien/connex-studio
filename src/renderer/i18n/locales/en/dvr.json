@@ -1,0 +1,14 @@
+{
+  "mode.live": "LIVE",
+  "mode.historical": "HISTORICAL",
+  "mode.error": "Error",
+  "mode.switchToHistorical": "Switch to historical mode",
+  "mode.goToLive": "Go to live",
+  "action.goLive": "Go Live",
+  "action.skipBack": "Skip back {{seconds}}s",
+  "action.skipForward": "Skip forward {{seconds}}s",
+  "timeline.noData": "No historical data available",
+  "timeline.now": "Now",
+  "timeline.ago.seconds": "{{count}}s ago",
+  "timeline.ago.minutes": "{{minutes}}m {{seconds}}s ago"
+}

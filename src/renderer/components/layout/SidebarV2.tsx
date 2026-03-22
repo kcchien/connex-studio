@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@renderer/lib/utils'
 import {
   Plus,
@@ -13,7 +14,8 @@ import {
   Settings,
   Sun,
   Moon,
-  Monitor
+  Monitor,
+  Globe
 } from 'lucide-react'
 import { Logo } from '@renderer/components/common'
 import { ConnectionMenu } from '@renderer/components/connection'
@@ -52,10 +54,10 @@ const statusColors: Record<ConnectionStatus, string> = {
   error: 'bg-red-500',
 }
 
-const toolItems = [
-  { id: 'bridge', label: 'Bridge', icon: Shuffle },
-  { id: 'calculator', label: 'Calculator', icon: Calculator },
-  { id: 'dvr', label: 'DVR', icon: HardDrive },
+const toolItemDefs = [
+  { id: 'bridge', labelKey: 'sidebar.bridge', icon: Shuffle },
+  { id: 'calculator', labelKey: 'sidebar.calculator', icon: Calculator },
+  { id: 'dvr', labelKey: 'sidebar.dvr', icon: HardDrive },
 ]
 
 /**
@@ -84,9 +86,12 @@ export function SidebarV2({
   onDeleteConnection,
   userName = 'User',
 }: SidebarV2Props): React.ReactElement {
+  const { t } = useTranslation('layout')
   const [toolsExpanded, setToolsExpanded] = useState(false)
   const theme = useUIStore((state) => state.theme)
   const toggleTheme = useUIStore((state) => state.toggleTheme)
+  const language = useUIStore((state) => state.language)
+  const setLanguage = useUIStore((state) => state.setLanguage)
   const ThemeIcon = themeIcons[theme]
 
   const userInitials = userName
@@ -127,19 +132,19 @@ export function SidebarV2({
           )}
         >
           <Plus className="w-4 h-4" />
-          New Connection
+          {t('sidebar.newConnection')}
         </button>
       </div>
 
       {/* Connections List */}
       <div className="flex-1 overflow-y-auto px-2">
         <div className="text-xs font-medium text-gray-500 uppercase tracking-wider px-2 mb-2">
-          My Connections
+          {t('sidebar.myConnections')}
         </div>
 
         {connections.length === 0 ? (
           <div className="px-2 py-4 text-center text-gray-500 text-sm">
-            No connections yet
+            {t('sidebar.noConnections')}
           </div>
         ) : (
           <div className="space-y-1">
@@ -211,12 +216,12 @@ export function SidebarV2({
             ) : (
               <ChevronRight className="w-4 h-4" />
             )}
-            <span className="text-xs font-medium uppercase tracking-wider">Tools</span>
+            <span className="text-xs font-medium uppercase tracking-wider">{t('sidebar.tools')}</span>
           </button>
 
           {toolsExpanded && (
             <div className="mt-1 space-y-1">
-              {toolItems.map((tool) => {
+              {toolItemDefs.map((tool) => {
                 const Icon = tool.icon
                 return (
                   <button
@@ -229,7 +234,7 @@ export function SidebarV2({
                     )}
                   >
                     <Icon className="w-4 h-4" />
-                    <span className="text-sm">{tool.label}</span>
+                    <span className="text-sm">{t(tool.labelKey)}</span>
                   </button>
                 )
               })}
@@ -247,6 +252,14 @@ export function SidebarV2({
           <div className="flex-1 min-w-0">
             <div className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">{userName}</div>
           </div>
+          {/* Language Switcher */}
+          <button
+            onClick={() => setLanguage(language === 'en' ? 'zh-TW' : 'en')}
+            className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+            title={`${t('common:language.en')} / ${t('common:language.zh-TW')}`}
+          >
+            <Globe className="w-4 h-4" />
+          </button>
           {/* Theme Toggle */}
           <button
             onClick={toggleTheme}

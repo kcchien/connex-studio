@@ -1,4 +1,5 @@
 import React, { useEffect, useCallback, useState, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { SidebarV2 } from '@renderer/components/layout/SidebarV2'
 import {
   NewConnectionDialog,
@@ -27,6 +28,8 @@ import type { Tag } from '@shared/types/tag'
  * Uses SidebarV2, NewConnectionDialog, DataExplorer, BatchTagDialog
  */
 function App(): React.ReactElement {
+  const { t } = useTranslation('layout')
+
   // Connection store
   const setConnections = useConnectionStore((state) => state.setConnections)
   const handleStatusChanged = useConnectionStore((state) => state.handleStatusChanged)
@@ -341,16 +344,16 @@ function App(): React.ReactElement {
             <div className="text-center">
               <Logo size={64} className="mx-auto mb-6 opacity-50" />
               <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                Welcome to ConneX Studio
+                {t('welcome.title')}
               </h2>
               <p className="text-gray-500 dark:text-gray-500 mb-6">
-                Select a connection or create a new one to get started
+                {t('welcome.description')}
               </p>
               <button
                 onClick={() => setNewConnectionDialogOpen(true)}
                 className="px-6 py-3 rounded-lg bg-gradient-to-r from-blue-500 to-teal-400 text-white font-medium hover:shadow-lg hover:shadow-blue-500/25 transition-all"
               >
-                New Connection
+                {t('welcome.newConnection')}
               </button>
             </div>
           </div>

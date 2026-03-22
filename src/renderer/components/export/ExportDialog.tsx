@@ -6,6 +6,7 @@
  */
 
 import React, { useState, useCallback, memo, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { X, Download, FileText, FileSpreadsheet, AlertCircle } from 'lucide-react'
 import { cn } from '@renderer/lib/utils'
 import { useTagStore } from '@renderer/stores/tagStore'
@@ -43,6 +44,7 @@ export const ExportDialog = memo(function ExportDialog({
   onExport,
   className
 }: ExportDialogProps): React.ReactElement | null {
+  const { t } = useTranslation('export')
   const [format, setFormat] = useState<ExportFormat>('csv')
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set())
   const [includeCharts, setIncludeCharts] = useState(true)
@@ -116,12 +118,12 @@ export const ExportDialog = memo(function ExportDialog({
   // Handle export
   const handleExport = useCallback(async () => {
     if (selectedTags.size === 0) {
-      setError('Select at least one tag to export')
+      setError(t('dialog.error.noTags'))
       return
     }
 
     if (startTimestamp >= endTimestamp) {
-      setError('End time must be after start time')
+      setError(t('dialog.error.timeRange'))
       return
     }
 
@@ -138,7 +140,7 @@ export const ExportDialog = memo(function ExportDialog({
       })
       onClose()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Export failed')
+      setError(err instanceof Error ? err.message : t('dialog.error.failed'))
     } finally {
       setIsExporting(false)
     }
@@ -172,7 +174,7 @@ export const ExportDialog = memo(function ExportDialog({
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-foreground">Export Data</h2>
+          <h2 className="text-lg font-semibold text-foreground">{t('dialog.title')}</h2>
           <button
             onClick={onClose}
             className={cn(
@@ -195,7 +197,7 @@ export const ExportDialog = memo(function ExportDialog({
 
         {/* Format selection */}
         <div className="mb-4">
-          <label className="block text-sm font-medium text-foreground mb-2">Export Format</label>
+          <label className="block text-sm font-medium text-foreground mb-2">{t('dialog.formatLabel')}</label>
           <div className="flex gap-2">
             <button
               onClick={() => setFormat('csv')}
@@ -208,7 +210,7 @@ export const ExportDialog = memo(function ExportDialog({
               )}
             >
               <FileSpreadsheet className="h-4 w-4" />
-              CSV
+              {t('dialog.csv')}
             </button>
             <button
               onClick={() => setFormat('html')}
@@ -221,7 +223,7 @@ export const ExportDialog = memo(function ExportDialog({
               )}
             >
               <FileText className="h-4 w-4" />
-              HTML Report
+              {t('dialog.htmlReport')}
             </button>
           </div>
         </div>
@@ -229,7 +231,7 @@ export const ExportDialog = memo(function ExportDialog({
         {/* Time range */}
         <div className="mb-4 grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1">Start Time</label>
+            <label className="block text-sm font-medium text-foreground mb-1">{t('dialog.startTime')}</label>
             <input
               type="datetime-local"
               value={startTime}
@@ -243,7 +245,7 @@ export const ExportDialog = memo(function ExportDialog({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1">End Time</label>
+            <label className="block text-sm font-medium text-foreground mb-1">{t('dialog.endTime')}</label>
             <input
               type="datetime-local"
               value={endTime}
@@ -261,20 +263,20 @@ export const ExportDialog = memo(function ExportDialog({
         {/* Tag selection */}
         <div className="mb-4">
           <div className="flex items-center justify-between mb-2">
-            <label className="text-sm font-medium text-foreground">Select Tags</label>
+            <label className="text-sm font-medium text-foreground">{t('dialog.selectTags')}</label>
             <div className="flex gap-2 text-xs">
               <button onClick={selectAll} className="text-muted-foreground hover:text-foreground">
-                All
+                {t('dialog.all')}
               </button>
               <span className="text-muted-foreground">/</span>
               <button onClick={selectNone} className="text-muted-foreground hover:text-foreground">
-                None
+                {t('dialog.none')}
               </button>
             </div>
           </div>
 
           {tags.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-2">No tags available</p>
+            <p className="text-sm text-muted-foreground py-2">{t('dialog.noTags')}</p>
           ) : (
             <div className="max-h-40 overflow-y-auto space-y-1 border border-border rounded-md p-2">
               {tags.map((tag) => (
@@ -298,7 +300,7 @@ export const ExportDialog = memo(function ExportDialog({
             </div>
           )}
           <p className="text-xs text-muted-foreground mt-1">
-            {selectedTags.size} of {tags.length} selected
+            {t('dialog.selectedCount', { selected: selectedTags.size, total: tags.length })}
           </p>
         </div>
 
@@ -312,7 +314,7 @@ export const ExportDialog = memo(function ExportDialog({
                 onChange={(e) => setIncludeCharts(e.target.checked)}
                 className="rounded border-input"
               />
-              <span className="text-sm text-foreground">Include trend charts</span>
+              <span className="text-sm text-foreground">{t('dialog.includeCharts')}</span>
             </label>
           </div>
         )}
@@ -327,7 +329,7 @@ export const ExportDialog = memo(function ExportDialog({
               'hover:bg-muted transition-colors'
             )}
           >
-            Cancel
+            {t('common:action.cancel')}
           </button>
           <button
             onClick={handleExport}
@@ -340,7 +342,7 @@ export const ExportDialog = memo(function ExportDialog({
             )}
           >
             <Download className="h-4 w-4" />
-            {isExporting ? 'Exporting...' : 'Export'}
+            {isExporting ? t('dialog.exporting') : t('common:action.export')}
           </button>
         </div>
       </div>

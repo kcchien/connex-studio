@@ -6,6 +6,7 @@
  */
 
 import React, { useCallback, memo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Play, Pause, SkipBack, SkipForward, Radio, History } from 'lucide-react'
 import { cn } from '@renderer/lib/utils'
 
@@ -80,6 +81,8 @@ export const PlaybackControls = memo(function PlaybackControls({
   // Can step forward?
   const canStepForward = hasData && !isLive && playbackTimestamp < bufferEnd
 
+  const { t } = useTranslation('dvr')
+
   return (
     <div className={cn('flex items-center gap-2', className)}>
       {/* Mode indicator and toggle */}
@@ -95,17 +98,17 @@ export const PlaybackControls = memo(function PlaybackControls({
             ? 'bg-green-500/20 text-green-500 hover:bg-green-500/30'
             : 'bg-amber-500/20 text-amber-500 hover:bg-amber-500/30'
         )}
-        title={isLive ? 'Switch to historical mode' : 'Go to live'}
+        title={isLive ? t('mode.switchToHistorical') : t('mode.goToLive')}
       >
         {isLive ? (
           <>
             <Radio className="h-4 w-4" />
-            <span>LIVE</span>
+            <span>{t('mode.live')}</span>
           </>
         ) : (
           <>
             <History className="h-4 w-4" />
-            <span>HISTORICAL</span>
+            <span>{t('mode.historical')}</span>
           </>
         )}
       </button>
@@ -123,7 +126,7 @@ export const PlaybackControls = memo(function PlaybackControls({
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
               'disabled:opacity-50 disabled:cursor-not-allowed'
             )}
-            title={`Skip back ${stepMs / 1000}s`}
+            title={t('action.skipBack', { seconds: stepMs / 1000 })}
           >
             <SkipBack className="h-4 w-4" />
           </button>
@@ -138,7 +141,7 @@ export const PlaybackControls = memo(function PlaybackControls({
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
               'disabled:opacity-50 disabled:cursor-not-allowed'
             )}
-            title={`Skip forward ${stepMs / 1000}s`}
+            title={t('action.skipForward', { seconds: stepMs / 1000 })}
           >
             <SkipForward className="h-4 w-4" />
           </button>
@@ -159,7 +162,7 @@ export const PlaybackControls = memo(function PlaybackControls({
           )}
         >
           <Play className="h-3.5 w-3.5" />
-          <span>Go Live</span>
+          <span>{t('action.goLive')}</span>
         </button>
       )}
     </div>

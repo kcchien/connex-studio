@@ -6,6 +6,7 @@
  */
 
 import React, { memo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Radio, History, AlertCircle } from 'lucide-react'
 import { cn } from '@renderer/lib/utils'
 
@@ -44,6 +45,8 @@ export const ModeIndicator = memo(function ModeIndicator({
   hasError = false,
   className
 }: ModeIndicatorProps): React.ReactElement {
+  const { t } = useTranslation('dvr')
+
   if (hasError) {
     return (
       <div
@@ -54,7 +57,7 @@ export const ModeIndicator = memo(function ModeIndicator({
         )}
       >
         <AlertCircle className="h-4 w-4" />
-        <span className="text-sm font-medium">Error</span>
+        <span className="text-sm font-medium">{t('mode.error')}</span>
       </div>
     )
   }
@@ -69,7 +72,7 @@ export const ModeIndicator = memo(function ModeIndicator({
         )}
       >
         <Radio className="h-4 w-4 animate-pulse" />
-        <span className="text-sm font-medium">LIVE</span>
+        <span className="text-sm font-medium">{t('mode.live')}</span>
       </div>
     )
   }
@@ -84,7 +87,7 @@ export const ModeIndicator = memo(function ModeIndicator({
     >
       <History className="h-4 w-4" />
       <div className="flex flex-col">
-        <span className="text-sm font-medium">HISTORICAL</span>
+        <span className="text-sm font-medium">{t('mode.historical')}</span>
         {playbackTimestamp && (
           <span className="text-xs opacity-80">
             {formatTimestamp(playbackTimestamp)}

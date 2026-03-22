@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@renderer/lib/utils'
 import {
   Activity,
@@ -71,11 +72,11 @@ export interface DataExplorerProps {
   onFrameLogsClear?: () => void
 }
 
-const statusConfig: Record<ConnectionStatus, { icon: typeof Wifi; color: string; label: string }> = {
-  connected: { icon: Wifi, color: 'text-green-400', label: 'Connected' },
-  connecting: { icon: Loader2, color: 'text-yellow-400 animate-spin', label: 'Connecting' },
-  disconnected: { icon: WifiOff, color: 'text-gray-500', label: 'Disconnected' },
-  error: { icon: AlertCircle, color: 'text-red-400', label: 'Error' },
+const statusConfigDef: Record<ConnectionStatus, { icon: typeof Wifi; color: string; labelKey: string }> = {
+  connected: { icon: Wifi, color: 'text-green-400', labelKey: 'common:status.connected' },
+  connecting: { icon: Loader2, color: 'text-yellow-400 animate-spin', labelKey: 'common:status.connecting' },
+  disconnected: { icon: WifiOff, color: 'text-gray-500', labelKey: 'common:status.disconnected' },
+  error: { icon: AlertCircle, color: 'text-red-400', labelKey: 'common:status.error' },
 }
 
 /**
@@ -155,6 +156,7 @@ export function DataExplorer({
   onFrameLoggingToggle,
   onFrameLogsClear,
 }: DataExplorerProps): React.ReactElement {
+  const { t } = useTranslation('layout')
   const [selectedTagId, setSelectedTagId] = useState<string | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [tagsToDelete, setTagsToDelete] = useState<string[]>([])
@@ -179,7 +181,7 @@ export function DataExplorer({
     onFrameLogsClear?.()
   }, [onFrameLogsClear])
 
-  const status = statusConfig[connectionStatus]
+  const status = statusConfigDef[connectionStatus]
   const StatusIcon = status.icon
   const selectedTag = selectedTagId ? tags.find(t => t.id === selectedTagId) : null
   const selectedDisplayState = selectedTagId ? displayStates[selectedTagId] : null
@@ -216,7 +218,7 @@ export function DataExplorer({
           <h1 className="text-xl font-semibold text-gray-900 dark:text-white">{connectionName}</h1>
           <div className="flex items-center gap-2">
             <StatusIcon className={cn('w-4 h-4', status.color)} />
-            <span className={cn('text-sm', status.color)}>{status.label}</span>
+            <span className={cn('text-sm', status.color)}>{t(status.labelKey)}</span>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -231,7 +233,7 @@ export function DataExplorer({
             )}
           >
             <Plus className="w-4 h-4" />
-            Add Tag
+            {t('explorer.addTag')}
           </button>
           {/* Connection Toggle Button */}
           {connectionStatus === 'connecting' ? (
@@ -245,7 +247,7 @@ export function DataExplorer({
               )}
             >
               <Loader2 className="w-4 h-4 animate-spin" />
-              Connecting...
+              {t('explorer.connecting')}
             </button>
           ) : connectionStatus === 'connected' ? (
             <button
@@ -259,7 +261,7 @@ export function DataExplorer({
               )}
             >
               <PowerOff className="w-4 h-4" />
-              Disconnect
+              {t('explorer.disconnect')}
             </button>
           ) : (
             <button
@@ -273,7 +275,7 @@ export function DataExplorer({
               )}
             >
               <Plug className="w-4 h-4" />
-              Connect
+              {t('explorer.connect')}
             </button>
           )}
         </div>
@@ -305,7 +307,7 @@ export function DataExplorer({
               )}
             >
               <Settings className="w-4 h-4" />
-              Edit Settings
+              {t('explorer.editSettings')}
             </button>
           )}
         </div>
@@ -317,7 +319,7 @@ export function DataExplorer({
           <PollingControls
             connectionId={connectionId}
             disabled={connectionStatus !== 'connected'}
-            disabledMessage={connectionStatus === 'connecting' ? 'Connecting...' : 'Connect to enable polling'}
+            disabledMessage={connectionStatus === 'connecting' ? t('explorer.connecting') : t('explorer.connectToEnable')}
           />
         </div>
       )}
@@ -347,8 +349,8 @@ export function DataExplorer({
           {tags.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-gray-400 dark:text-gray-500">
               <Activity className="w-12 h-12 mb-4 opacity-50" />
-              <p className="text-lg text-gray-600 dark:text-gray-400">No tags configured</p>
-              <p className="text-sm">Click "Add Tag" to start monitoring</p>
+              <p className="text-lg text-gray-600 dark:text-gray-400">{t('explorer.noTags')}</p>
+              <p className="text-sm">{t('explorer.addTagHint')}</p>
             </div>
           ) : (
             <TagGrid

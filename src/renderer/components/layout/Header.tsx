@@ -1,4 +1,5 @@
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@renderer/lib/utils'
 import { ConnectionStatusIndicator, type ConnectionStatus } from '@renderer/components/connection'
 
@@ -21,6 +22,7 @@ interface HeaderProps {
  * Fixed height of 48px as per design requirements.
  */
 export function Header({ className, actions, connection }: HeaderProps): React.ReactElement {
+  const { t } = useTranslation('layout')
   return (
     <header
       className={cn(
@@ -31,10 +33,10 @@ export function Header({ className, actions, connection }: HeaderProps): React.R
     >
       <div className="flex items-center gap-3">
         <h1 className="text-base font-semibold text-foreground">
-          Connex Studio
+          {t('header.title')}
         </h1>
         <span className="text-xs text-muted-foreground">
-          IIoT Protocol Studio
+          {t('header.subtitle')}
         </span>
         {connection && (
           <>

@@ -10,6 +10,11 @@ import enDashboard from './locales/en/dashboard.json'
 import enAlert from './locales/en/alert.json'
 import enCollection from './locales/en/collection.json'
 import enCalculator from './locales/en/calculator.json'
+import enDvr from './locales/en/dvr.json'
+import enBridge from './locales/en/bridge.json'
+import enDiagnostics from './locales/en/diagnostics.json'
+import enExport from './locales/en/export.json'
+import enLayout from './locales/en/layout.json'
 import zhTWCommon from './locales/zh-TW/common.json'
 import zhTWConnection from './locales/zh-TW/connection.json'
 import zhTWModbus from './locales/zh-TW/modbus.json'
@@ -19,6 +24,11 @@ import zhTWDashboard from './locales/zh-TW/dashboard.json'
 import zhTWAlert from './locales/zh-TW/alert.json'
 import zhTWCollection from './locales/zh-TW/collection.json'
 import zhTWCalculator from './locales/zh-TW/calculator.json'
+import zhTWDvr from './locales/zh-TW/dvr.json'
+import zhTWBridge from './locales/zh-TW/bridge.json'
+import zhTWDiagnostics from './locales/zh-TW/diagnostics.json'
+import zhTWExport from './locales/zh-TW/export.json'
+import zhTWLayout from './locales/zh-TW/layout.json'
 
 const resources = {
   en: {
@@ -31,6 +41,11 @@ const resources = {
     alert: enAlert,
     collection: enCollection,
     calculator: enCalculator,
+    dvr: enDvr,
+    bridge: enBridge,
+    diagnostics: enDiagnostics,
+    export: enExport,
+    layout: enLayout,
   },
   'zh-TW': {
     common: zhTWCommon,
@@ -42,6 +57,11 @@ const resources = {
     alert: zhTWAlert,
     collection: zhTWCollection,
     calculator: zhTWCalculator,
+    dvr: zhTWDvr,
+    bridge: zhTWBridge,
+    diagnostics: zhTWDiagnostics,
+    export: zhTWExport,
+    layout: zhTWLayout,
   },
 }
 

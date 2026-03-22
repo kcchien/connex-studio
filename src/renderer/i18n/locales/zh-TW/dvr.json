@@ -1,0 +1,14 @@
+{
+  "mode.live": "即時",
+  "mode.historical": "歷史回放",
+  "mode.error": "錯誤",
+  "mode.switchToHistorical": "切換至歷史模式",
+  "mode.goToLive": "回到即時模式",
+  "action.goLive": "回到即時",
+  "action.skipBack": "後退 {{seconds}} 秒",
+  "action.skipForward": "前進 {{seconds}} 秒",
+  "timeline.noData": "尚無歷史資料",
+  "timeline.now": "現在",
+  "timeline.ago.seconds": "{{count}} 秒前",
+  "timeline.ago.minutes": "{{minutes}} 分 {{seconds}} 秒前"
+}

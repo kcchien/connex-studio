@@ -6,6 +6,7 @@
  */
 
 import React, { useCallback, useMemo, memo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@renderer/lib/utils'
 
 interface TimelineSliderProps {
@@ -99,11 +100,13 @@ export const TimelineSlider = memo(function TimelineSlider({
     [rangeStart, duration, hasData, onChangeEnd]
   )
 
+  const { t } = useTranslation('dvr')
+
   if (!hasData) {
     return (
       <div className={cn('flex flex-col gap-2', className)}>
         <div className="flex items-center justify-center h-8 text-sm text-muted-foreground">
-          No historical data available
+          {t('timeline.noData')}
         </div>
       </div>
     )
@@ -120,7 +123,7 @@ export const TimelineSlider = memo(function TimelineSlider({
             isLive ? 'text-green-500' : 'text-amber-500'
           )}
         >
-          {isLive ? 'LIVE' : formatTime(value)}
+          {isLive ? t('mode.live') : formatTime(value)}
         </span>
         <span>{formatTime(rangeEnd)}</span>
       </div>
@@ -175,7 +178,7 @@ export const TimelineSlider = memo(function TimelineSlider({
       {/* Relative time */}
       <div className="flex items-center justify-between text-xs text-muted-foreground">
         <span>{formatRelative(rangeStart, rangeEnd)}</span>
-        <span>Now</span>
+        <span>{t('timeline.now')}</span>
       </div>
     </div>
   )

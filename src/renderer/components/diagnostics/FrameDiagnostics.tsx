@@ -10,6 +10,7 @@
  */
 
 import React, { useState, useCallback, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   ChevronDown,
   ChevronRight,
@@ -232,6 +233,7 @@ export function FrameDiagnostics({
   onClear,
   className
 }: FrameDiagnosticsProps): React.ReactElement {
+  const { t } = useTranslation('diagnostics')
   const [isExpanded, setIsExpanded] = useState(false)
 
   const handleToggle = useCallback(() => {
@@ -272,7 +274,7 @@ export function FrameDiagnostics({
         ) : (
           <ChevronRight className="h-4 w-4 text-muted-foreground" />
         )}
-        <span>Frame Diagnostics</span>
+        <span>{t('title')}</span>
 
         {/* Status indicators */}
         <div className="ml-auto flex items-center gap-3 text-xs text-muted-foreground">
@@ -295,7 +297,7 @@ export function FrameDiagnostics({
                 : 'bg-muted text-muted-foreground'
             )}
           >
-            {enabled ? 'ON' : 'OFF'}
+            {enabled ? t('enabled') : t('disabled')}
           </span>
         </div>
       </button>
@@ -316,14 +318,14 @@ export function FrameDiagnostics({
                   ? 'bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50'
                   : 'bg-muted text-muted-foreground hover:bg-muted/80'
               )}
-              title={enabled ? 'Disable frame logging' : 'Enable frame logging'}
+              title={enabled ? t('disableLogging') : t('enableLogging')}
             >
               {enabled ? (
                 <ToggleRight className="h-4 w-4" />
               ) : (
                 <ToggleLeft className="h-4 w-4" />
               )}
-              <span>{enabled ? 'Enabled' : 'Disabled'}</span>
+              <span>{enabled ? t('enabled') : t('disabled')}</span>
             </button>
 
             <div className="flex-1" />
@@ -338,7 +340,7 @@ export function FrameDiagnostics({
                 'bg-muted text-muted-foreground hover:bg-muted/80',
                 'disabled:opacity-50 disabled:cursor-not-allowed'
               )}
-              title="Export as .log file"
+              title={t('exportLog')}
             >
               <Download className="h-3 w-3" />
               <span>.log</span>
@@ -353,7 +355,7 @@ export function FrameDiagnostics({
                 'bg-muted text-muted-foreground hover:bg-muted/80',
                 'disabled:opacity-50 disabled:cursor-not-allowed'
               )}
-              title="Export as .csv file"
+              title={t('exportCsv')}
             >
               <Download className="h-3 w-3" />
               <span>.csv</span>
@@ -369,33 +371,29 @@ export function FrameDiagnostics({
                 'bg-muted text-muted-foreground hover:bg-destructive/10 hover:text-destructive',
                 'disabled:opacity-50 disabled:cursor-not-allowed'
               )}
-              title="Clear all frames"
+              title={t('clearAll')}
             >
               <Trash2 className="h-3 w-3" />
-              <span>Clear</span>
+              <span>{t('clear')}</span>
             </button>
           </div>
 
           {/* Legend */}
           <div className="flex items-center gap-4 px-3 py-1.5 text-xs text-muted-foreground bg-muted/20 border-b border-border">
-            <span className="font-medium">Legend:</span>
-            <span className="text-blue-600 dark:text-blue-400">Transaction ID</span>
-            <span className="text-gray-500 dark:text-gray-400">Protocol</span>
-            <span className="text-purple-600 dark:text-purple-400">Length</span>
-            <span className="text-orange-600 dark:text-orange-400">Unit ID</span>
-            <span className="text-green-600 dark:text-green-400">Function</span>
-            <span>Data</span>
+            <span className="font-medium">{t('legend')}</span>
+            <span className="text-blue-600 dark:text-blue-400">{t('legend.transactionId')}</span>
+            <span className="text-gray-500 dark:text-gray-400">{t('legend.protocol')}</span>
+            <span className="text-purple-600 dark:text-purple-400">{t('legend.length')}</span>
+            <span className="text-orange-600 dark:text-orange-400">{t('legend.unitId')}</span>
+            <span className="text-green-600 dark:text-green-400">{t('legend.function')}</span>
+            <span>{t('legend.data')}</span>
           </div>
 
           {/* Frame list */}
           <div className="max-h-64 overflow-y-auto">
             {frames.length === 0 ? (
               <div className="px-3 py-8 text-center text-sm text-muted-foreground">
-                {enabled ? (
-                  'No frames captured yet. Perform a read operation to see frames.'
-                ) : (
-                  'Frame logging is disabled. Enable it to capture Modbus frames.'
-                )}
+                {enabled ? t('empty.enabled') : t('empty.disabled')}
               </div>
             ) : (
               reversedFrames.map((frame) => <FrameRow key={frame.id} frame={frame} />)
@@ -405,7 +403,7 @@ export function FrameDiagnostics({
           {/* Footer with buffer info */}
           {frames.length > 0 && (
             <div className="px-3 py-1.5 text-xs text-muted-foreground bg-muted/20 border-t border-border">
-              {frames.length} frames (max 500) | Oldest will be dropped when full
+              {t('footer', { count: frames.length })}
             </div>
           )}
         </div>

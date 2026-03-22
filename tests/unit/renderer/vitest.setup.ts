@@ -1,6 +1,107 @@
 import '@testing-library/jest-dom'
 import { vi } from 'vitest'
 
+// ---------------------------------------------------------------------------
+// i18n mock — load the actual English translation files so that components
+// render their human-readable strings instead of raw translation keys.
+// ---------------------------------------------------------------------------
+import enCommon from '../../../src/renderer/i18n/locales/en/common.json'
+import enConnection from '../../../src/renderer/i18n/locales/en/connection.json'
+import enModbus from '../../../src/renderer/i18n/locales/en/modbus.json'
+import enMqtt from '../../../src/renderer/i18n/locales/en/mqtt.json'
+import enOpcua from '../../../src/renderer/i18n/locales/en/opcua.json'
+import enDashboard from '../../../src/renderer/i18n/locales/en/dashboard.json'
+import enAlert from '../../../src/renderer/i18n/locales/en/alert.json'
+import enCollection from '../../../src/renderer/i18n/locales/en/collection.json'
+import enCalculator from '../../../src/renderer/i18n/locales/en/calculator.json'
+import enDvr from '../../../src/renderer/i18n/locales/en/dvr.json'
+import enBridge from '../../../src/renderer/i18n/locales/en/bridge.json'
+import enDiagnostics from '../../../src/renderer/i18n/locales/en/diagnostics.json'
+import enExport from '../../../src/renderer/i18n/locales/en/export.json'
+import enLayout from '../../../src/renderer/i18n/locales/en/layout.json'
+import enHelp from '../../../src/renderer/i18n/locales/en/help.json'
+
+// Flat record mapping namespace → (key → translated string).
+// All translation JSON files use flat keys with dot notation (e.g. "status.connected").
+const translations: Record<string, Record<string, string>> = {
+  common: enCommon as Record<string, string>,
+  connection: enConnection as Record<string, string>,
+  modbus: enModbus as Record<string, string>,
+  mqtt: enMqtt as Record<string, string>,
+  opcua: enOpcua as Record<string, string>,
+  dashboard: enDashboard as Record<string, string>,
+  alert: enAlert as Record<string, string>,
+  collection: enCollection as Record<string, string>,
+  calculator: enCalculator as Record<string, string>,
+  dvr: enDvr as Record<string, string>,
+  bridge: enBridge as Record<string, string>,
+  diagnostics: enDiagnostics as Record<string, string>,
+  export: enExport as Record<string, string>,
+  layout: enLayout as Record<string, string>,
+  help: enHelp as Record<string, string>,
+}
+
+/**
+ * Resolve a translation key, handling cross-namespace syntax "ns:key" and
+ * simple {{variable}} interpolation.
+ */
+function resolveTKey(
+  key: string,
+  defaultNs: string,
+  options?: Record<string, unknown>
+): string {
+  let namespace = defaultNs
+  let lookupKey = key
+
+  // Handle "namespace:key" cross-namespace syntax
+  if (key.includes(':')) {
+    const colonIdx = key.indexOf(':')
+    namespace = key.slice(0, colonIdx)
+    lookupKey = key.slice(colonIdx + 1)
+  }
+
+  let result = translations[namespace]?.[lookupKey] ?? lookupKey
+
+  // Simple {{variable}} interpolation
+  if (options) {
+    for (const [k, v] of Object.entries(options)) {
+      if (k !== 'count' || typeof v !== 'undefined') {
+        result = result.replace(new RegExp(`\\{\\{${k}\\}\\}`, 'g'), String(v))
+      }
+    }
+  }
+
+  return result
+}
+
+vi.mock('react-i18next', () => ({
+  useTranslation: (ns?: string | string[]) => {
+    const defaultNs = Array.isArray(ns) ? (ns[0] ?? 'common') : (ns ?? 'common')
+    return {
+      t: (key: string, options?: Record<string, unknown>) =>
+        resolveTKey(key, defaultNs, options),
+      i18n: {
+        language: 'en',
+        changeLanguage: vi.fn(),
+      },
+    }
+  },
+  Trans: ({ children }: { children: React.ReactNode }) => children,
+  initReactI18next: { type: '3rdParty', init: vi.fn() },
+}))
+
+// Mock the i18n initialisation module so tests don't trigger the real i18next
+// setup (which tries to load locale files asynchronously).
+// ErrorBoundary imports the default `i18n` instance directly and calls i18n.t(),
+// so the default export must expose a `t` function with the same resolution logic.
+vi.mock('@renderer/i18n', () => ({
+  default: {
+    t: (key: string, options?: Record<string, unknown>) => resolveTKey(key, 'common', options),
+    language: 'en',
+    changeLanguage: vi.fn(),
+  },
+}))
+
 // Mock window.matchMedia for theme detection
 Object.defineProperty(window, 'matchMedia', {
   writable: true,

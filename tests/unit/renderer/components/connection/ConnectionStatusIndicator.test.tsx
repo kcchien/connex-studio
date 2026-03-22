@@ -47,7 +47,7 @@ describe('ConnectionStatusIndicator', () => {
     expect(screen.getByText('Connected')).toBeInTheDocument()
 
     rerender(<ConnectionStatusIndicator status="connecting" showLabel />)
-    expect(screen.getByText('Connecting')).toBeInTheDocument()
+    expect(screen.getByText('Connecting...')).toBeInTheDocument()
 
     rerender(<ConnectionStatusIndicator status="disconnected" showLabel />)
     expect(screen.getByText('Disconnected')).toBeInTheDocument()

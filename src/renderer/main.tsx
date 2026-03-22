@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/electron/renderer'
 import App from './App'
 import { ErrorBoundary } from '@renderer/components/common'
 import './styles/globals.css'
+import './i18n' // Initialize i18n before App renders
 
 // Initialize Sentry error reporting (production only)
 const SENTRY_DSN = import.meta.env.VITE_SENTRY_DSN || ''

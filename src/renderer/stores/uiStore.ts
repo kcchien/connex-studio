@@ -29,6 +29,10 @@ interface UIState {
   selectedConnectionId: string | null
   batchTagDialogOpen: boolean
 
+  // Language
+  language: 'en' | 'zh-TW'
+  setLanguage: (lang: 'en' | 'zh-TW') => void
+
   // Actions
   setTheme: (theme: Theme) => void
   toggleTheme: () => void
@@ -75,12 +79,19 @@ export const useUIStore = create<UIState>()(
       resolvedTheme: resolveTheme('system'),
       sidebarCollapsed: false,
       logViewerOpen: false,
+      language: (navigator.language.startsWith('zh') ? 'zh-TW' : 'en') as 'en' | 'zh-TW',
 
       // Navigation state (UI/UX redesign)
       newConnectionDialogOpen: false,
       toolsExpanded: false,
       selectedConnectionId: null,
       batchTagDialogOpen: false,
+
+      // Language actions
+      setLanguage: (lang) => {
+        import('i18next').then(({ default: i18n }) => i18n.changeLanguage(lang))
+        set({ language: lang })
+      },
 
       // Theme actions
       setTheme: (theme) => {
@@ -118,7 +129,8 @@ export const useUIStore = create<UIState>()(
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         theme: state.theme,
-        sidebarCollapsed: state.sidebarCollapsed
+        sidebarCollapsed: state.sidebarCollapsed,
+        language: state.language,
         // Don't persist logViewerOpen - always start closed
       }),
       onRehydrateStorage: () => {

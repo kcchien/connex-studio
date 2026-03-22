@@ -31,7 +31,14 @@ export default defineConfig({
       }
     },
     build: {
-      externalizeDeps: true
+      externalizeDeps: true,
+      rollupOptions: {
+        output: {
+          // Sandbox mode requires CJS; ESM (.mjs) causes "Cannot use import statement"
+          format: 'cjs',
+          entryFileNames: '[name].cjs'
+        }
+      }
     }
   },
   renderer: {

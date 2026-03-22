@@ -5,7 +5,8 @@
  * Renderer and Main processes.
  */
 
-import { ipcMain, shell } from 'electron'
+import { ipcMain, shell, app } from 'electron'
+import path from 'path'
 import { IPC_CHANNELS } from '@shared/constants'
 import { getLogService } from '../services/LogService'
 import type { LogLevel, LogEntry } from '@shared/types'
@@ -78,12 +79,27 @@ export function registerLogHandlers(): void {
     }
   )
 
-  // log:export - Export logs to file
+  // log:export - Export logs to file (path restricted to user data directory)
   ipcMain.handle(
     IPC_CHANNELS.log.export,
     async (_event, filePath: string): Promise<{ success: boolean; error?: string }> => {
       try {
-        await logService.exportLogs(filePath)
+        // Validate export path is within safe directories
+        const resolved = path.resolve(filePath)
+        const userDataDir = app.getPath('userData')
+        const documentsDir = app.getPath('documents')
+        const downloadsDir = app.getPath('downloads')
+        const desktopDir = app.getPath('desktop')
+        const allowedPrefixes = [userDataDir, documentsDir, downloadsDir, desktopDir]
+
+        if (!allowedPrefixes.some((prefix) => resolved.startsWith(prefix))) {
+          return {
+            success: false,
+            error: 'Export path must be within user documents, downloads, desktop, or app data directory'
+          }
+        }
+
+        await logService.exportLogs(resolved)
         return { success: true }
       } catch (error) {
         return {

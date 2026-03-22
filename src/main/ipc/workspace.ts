@@ -198,11 +198,17 @@ export function registerWorkspaceHandlers(): void {
           filePath = dialogResult.filePaths[0]
         }
 
-        // Check file exists
+        // Check file exists and size
         try {
           await fs.access(filePath)
         } catch {
           return { success: false, error: `File not found: ${filePath}` }
+        }
+
+        const MAX_WORKSPACE_FILE_SIZE = 10 * 1024 * 1024 // 10MB
+        const stats = await fs.stat(filePath)
+        if (stats.size > MAX_WORKSPACE_FILE_SIZE) {
+          return { success: false, error: `File too large (${Math.round(stats.size / 1024 / 1024)}MB). Maximum is 10MB.` }
         }
 
         const yaml = await fs.readFile(filePath, 'utf-8')

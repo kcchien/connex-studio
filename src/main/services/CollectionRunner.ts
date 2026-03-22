@@ -5,6 +5,10 @@
  */
 
 import { EventEmitter } from 'events'
+import { app } from 'electron'
+import { promises as fs } from 'fs'
+import path from 'path'
+import log from 'electron-log/main.js'
 import type {
   Collection,
   CollectionRequest,
@@ -17,6 +21,13 @@ import type {
   UpdateCollectionRequest
 } from '@shared/types'
 import { DEFAULT_REQUEST_TIMEOUT } from '@shared/types'
+import { getConnectionManager } from './ConnectionManager'
+import type {
+  DataType,
+  ModbusAddress,
+  MqttAddress,
+  OpcUaAddress
+} from '@shared/types'
 
 /**
  * Events emitted by CollectionRunner.
@@ -32,16 +43,31 @@ export interface CollectionRunnerEvents {
 export class CollectionRunner extends EventEmitter {
   private collections: Map<string, Collection> = new Map()
   private activeRuns: Map<string, { cancelled: boolean }> = new Map()
+  private readonly storagePath: string | null
 
   constructor() {
     super()
+    this.storagePath = this.resolveStoragePath()
   }
 
   /**
    * Initialize the runner, loading collections from storage.
    */
   async initialize(): Promise<void> {
-    // TODO: Load collections from profile storage
+    if (!this.storagePath) {
+      return
+    }
+
+    try {
+      const content = await fs.readFile(this.storagePath, 'utf-8')
+      const parsed = JSON.parse(content) as Collection[]
+      this.collections = new Map(parsed.map((item) => [item.id, item]))
+      log.info(`[CollectionRunner] Loaded ${parsed.length} collections`)
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+        log.warn('[CollectionRunner] Failed to load collections', error)
+      }
+    }
   }
 
   /**
@@ -74,7 +100,7 @@ export class CollectionRunner extends EventEmitter {
     }
 
     this.collections.set(collection.id, collection)
-    // TODO: Persist to profile storage
+    await this.persistCollections()
     return collection
   }
 
@@ -96,7 +122,7 @@ export class CollectionRunner extends EventEmitter {
     }
 
     this.collections.set(updated.id, updated)
-    // TODO: Persist to profile storage
+    await this.persistCollections()
     return updated
   }
 
@@ -109,7 +135,7 @@ export class CollectionRunner extends EventEmitter {
     }
 
     this.collections.delete(id)
-    // TODO: Persist to profile storage
+    await this.persistCollections()
     return true
   }
 
@@ -204,6 +230,41 @@ export class CollectionRunner extends EventEmitter {
   }
 
   /**
+   * Resolve collection storage path.
+   */
+  private resolveStoragePath(): string | null {
+    // Keep unit tests deterministic and filesystem independent.
+    if (process.env.NODE_ENV === 'test') {
+      return null
+    }
+
+    try {
+      const userDataPath = app.getPath('userData')
+      return path.join(userDataPath, 'collections.json')
+    } catch {
+      // Fallback for non-Electron contexts.
+      return path.join(process.cwd(), '.connex', 'collections.json')
+    }
+  }
+
+  /**
+   * Persist collections to local storage.
+   */
+  private async persistCollections(): Promise<void> {
+    if (!this.storagePath) {
+      return
+    }
+
+    try {
+      await fs.mkdir(path.dirname(this.storagePath), { recursive: true })
+      const payload = JSON.stringify(Array.from(this.collections.values()), null, 2)
+      await fs.writeFile(this.storagePath, payload, 'utf-8')
+    } catch (error) {
+      log.warn('[CollectionRunner] Failed to persist collections', error)
+    }
+  }
+
+  /**
    * Stop a running collection.
    */
   stop(runId: string): boolean {
@@ -223,20 +284,13 @@ export class CollectionRunner extends EventEmitter {
     const startTime = Date.now()
 
     try {
-      // TODO: Get connection from ConnectionManager
-      // TODO: Execute read/write based on request.operation
-      // For now, simulate a request
-      await new Promise(resolve =>
-        setTimeout(resolve, Math.min(request.timeout ?? DEFAULT_REQUEST_TIMEOUT, 100))
-      )
-
-      const value = Math.random() * 100 // Simulated value
+      const execution = await this.executeOperationWithTimeout(request)
       const latency = Date.now() - startTime
 
       // Evaluate assertions
       const assertionResults = this.evaluateAssertions(request.assertions, {
-        value,
-        status: 'success',
+        value: execution.value,
+        status: execution.status,
         latency
       })
 
@@ -245,7 +299,7 @@ export class CollectionRunner extends EventEmitter {
       return {
         requestId: request.id,
         status: allPassed ? 'passed' : 'failed',
-        value,
+        value: execution.value,
         latency,
         assertions: assertionResults
       }
@@ -258,6 +312,110 @@ export class CollectionRunner extends EventEmitter {
         error: error instanceof Error ? error.message : String(error)
       }
     }
+  }
+
+  /**
+   * Execute operation with per-request timeout.
+   */
+  private async executeOperationWithTimeout(
+    request: CollectionRequest
+  ): Promise<{ value: unknown; status: string }> {
+    const timeoutMs = Math.max(1, request.timeout ?? DEFAULT_REQUEST_TIMEOUT)
+
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error(`Request timed out after ${timeoutMs}ms`))
+      }, timeoutMs)
+
+      this.executeOperation(request)
+        .then((result) => {
+          clearTimeout(timeout)
+          resolve(result)
+        })
+        .catch((error) => {
+          clearTimeout(timeout)
+          reject(error)
+        })
+    })
+  }
+
+  /**
+   * Execute read/write operation.
+   */
+  private async executeOperation(
+    request: CollectionRequest
+  ): Promise<{ value: unknown; status: string }> {
+    switch (request.operation) {
+      case 'read':
+        return this.executeReadOperation(request)
+      case 'write':
+        throw new Error('Write operation is not implemented yet')
+      default:
+        throw new Error(`Unsupported operation: ${request.operation}`)
+    }
+  }
+
+  /**
+   * Execute a read request via ConnectionManager.
+   */
+  private async executeReadOperation(
+    request: CollectionRequest
+  ): Promise<{ value: unknown; status: string }> {
+    const address = this.getAddressFromParameters(request.parameters)
+    const dataType = this.getDataTypeFromParameters(request.parameters)
+
+    const result = await getConnectionManager().readOnce(
+      request.connectionId,
+      address,
+      dataType
+    )
+
+    return {
+      value: result.value,
+      status: result.quality === 'bad' ? 'failed' : 'success'
+    }
+  }
+
+  /**
+   * Parse address payload from request parameters.
+   */
+  private getAddressFromParameters(
+    parameters: Record<string, unknown>
+  ): ModbusAddress | MqttAddress | OpcUaAddress {
+    const address = parameters.address
+    if (!address || typeof address !== 'object') {
+      throw new Error('Invalid request parameters: address is required')
+    }
+
+    const type = (address as { type?: unknown }).type
+    if (type !== 'modbus' && type !== 'mqtt' && type !== 'opcua') {
+      throw new Error('Invalid request parameters: unsupported address type')
+    }
+
+    return address as ModbusAddress | MqttAddress | OpcUaAddress
+  }
+
+  /**
+   * Parse data type from request parameters, defaults to uint16.
+   */
+  private getDataTypeFromParameters(parameters: Record<string, unknown>): DataType {
+    const value = parameters.dataType
+    if (typeof value !== 'string') {
+      return 'uint16'
+    }
+
+    const validDataTypes = new Set<DataType>([
+      'boolean',
+      'int16',
+      'uint16',
+      'int32',
+      'uint32',
+      'float32',
+      'float64',
+      'string'
+    ])
+
+    return validDataTypes.has(value as DataType) ? (value as DataType) : 'uint16'
   }
 
   /**

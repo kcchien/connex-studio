@@ -201,6 +201,21 @@ export function registerConnectionHandlers(): void {
     log.debug(`[IPC] ${CONNECTION_TEST}`, params)
 
     const { protocol, host, port } = params
+
+    // Validate host format
+    if (!host || typeof host !== 'string' || host.length > 255) {
+      return { success: false, error: 'Invalid host: must be a non-empty string (max 255 chars)' }
+    }
+    const hostPattern = /^[a-zA-Z0-9]([a-zA-Z0-9\-_.]*[a-zA-Z0-9])?$/
+    if (!hostPattern.test(host) && !net.isIP(host)) {
+      return { success: false, error: 'Invalid host format: must be a valid hostname or IP address' }
+    }
+
+    // Validate port range
+    if (!Number.isInteger(port) || port < 1 || port > 65535) {
+      return { success: false, error: 'Invalid port: must be an integer between 1 and 65535' }
+    }
+
     const timeout = 5000 // 5 seconds
 
     // For now, we only support TCP-based protocols (Modbus TCP)

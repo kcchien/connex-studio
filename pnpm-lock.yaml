@@ -59,18 +59,9 @@ importers:
       '@tanstack/react-virtual':
         specifier: ^3.13.18
         version: 3.13.18(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
-      acorn:
-        specifier: ^8.14.0
-        version: 8.15.0
-      acorn-import-attributes:
-        specifier: ^1.9.5
-        version: 1.9.5(acorn@8.15.0)
       better-sqlite3:
         specifier: ^12.8.0
         version: 12.8.0
-      cjs-module-lexer:
-        specifier: ^1.4.3
-        version: 1.4.3
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -101,15 +92,9 @@ importers:
       modbus-serial:
         specifier: ^8.0.23
         version: 8.0.23
-      module-details-from-path:
-        specifier: ^1.0.4
-        version: 1.0.4
       mqtt:
         specifier: ^5.14.1
         version: 5.14.1
-      ms:
-        specifier: ^2.1.3
-        version: 2.1.3
       node-opcua:
         specifier: ^2.160.0
         version: 2.161.0
@@ -125,9 +110,6 @@ importers:
       react-i18next:
         specifier: ^16.6.0
         version: 16.6.0(i18next@25.10.3(typescript@5.9.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(typescript@5.9.3)
-      shimmer:
-        specifier: ^1.2.1
-        version: 1.2.1
       tailwind-merge:
         specifier: ^2.5.5
         version: 2.6.0
@@ -5398,9 +5380,6 @@ packages:
   shebang-regex@3.0.0:
     resolution: {integrity: sha512-7++dFhtcx3353uBaq8DDR4NuxBetBzC7ZQOhmTQInHEd6bSrXdiEyzCvG07Z44UYdLShWUyXt5M/yhz8ekcb1A==}
     engines: {node: '>=8'}
-
-  shimmer@1.2.1:
-    resolution: {integrity: sha512-sQTKC1Re/rM6XyFM6fIAGHRPVGvyXfgzIDvzoq608vM+jeyVD0Tu1E6Np0Kc2zAIFWIj963V2800iF/9LPieQw==}
 
   side-channel-list@1.0.0:
     resolution: {integrity: sha512-FCLHtRD/gnpCiCHEiJLOwdmFP+wzCmDEkc9y7NsYxeF4u7Btsn1ZuwgwJGxImImHicJArLP4R0yX4c2KCrMrTA==}
@@ -12676,8 +12655,6 @@ snapshots:
       shebang-regex: 3.0.0
 
   shebang-regex@3.0.0: {}
-
-  shimmer@1.2.1: {}
 
   side-channel-list@1.0.0:
     dependencies:

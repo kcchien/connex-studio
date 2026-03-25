@@ -88,3 +88,6 @@ asarUnpack:
 # Rebuild native modules
 npmRebuild: true
 nodeGypRebuild: false
+
+# Fix missing transitive deps (pnpm list --prod returns incomplete tree)
+afterPack: ./scripts/afterPack.cjs

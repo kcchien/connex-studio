@@ -83,12 +83,6 @@
     "vitest": "^2.1.6"
   },
   "dependencies": {
-    "acorn": "^8.14.0",
-    "acorn-import-attributes": "^1.9.5",
-    "cjs-module-lexer": "^1.4.3",
-    "module-details-from-path": "^1.0.4",
-    "ms": "^2.1.3",
-    "shimmer": "^1.2.1",
     "@electron-toolkit/utils": "^3.0.0",
     "@radix-ui/react-alert-dialog": "^1.1.15",
     "@radix-ui/react-dialog": "^1.1.2",

@@ -89,5 +89,6 @@ asarUnpack:
 npmRebuild: true
 nodeGypRebuild: false
 
-# Fix missing transitive deps (pnpm list --prod returns incomplete tree)
+# Vite bundles all JS deps — afterPack strips 370+ unnecessary packages
+# from node_modules, keeping only native module runtime deps
 afterPack: ./scripts/afterPack.cjs

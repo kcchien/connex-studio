@@ -1,102 +1,23 @@
 /**
- * afterPack hook for electron-builder (v4)
+ * afterPack hook for electron-builder (v5 — strip mode)
  *
- * Fixes TWO problems with electron-builder + pnpm:
- * 1. Missing transitive deps (pnpm list --prod returns incomplete tree)
- * 2. Version conflicts (top-level ajv@6 vs conf needing ajv@8)
- *
- * Strategy:
- * - BFS from package.json dependencies to find all 481 production packages
- * - Copy each from local node_modules (dereferenced)
- * - For each, check pnpm's virtual store to detect version conflicts
- * - Where a dep resolves to a DIFFERENT version than top-level, create
- *   a nested node_modules/ with the correct version
+ * Vite bundles all JS dependencies into a single file.
+ * electron-builder still copies the full node_modules tree (313+ packages).
+ * This hook strips everything except native module runtime dependencies,
+ * then updates the asar integrity hash so Electron's verification passes.
  */
 const { execSync } = require("child_process");
+const crypto = require("crypto");
 const path = require("path");
 const fs = require("fs");
+const { execFileSync } = require("child_process");
 
-function getDeps(pkgDir) {
-  const pj = path.join(pkgDir, "package.json");
-  if (!fs.existsSync(pj)) return [];
-  try {
-    return Object.keys(JSON.parse(fs.readFileSync(pj, "utf8")).dependencies || {});
-  } catch {
-    return [];
-  }
-}
-
-function getVersion(pkgDir) {
-  const pj = path.join(pkgDir, "package.json");
-  if (!fs.existsSync(pj)) return null;
-  try {
-    return JSON.parse(fs.readFileSync(pj, "utf8")).version || null;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * BFS from project's dependencies to find all production package names.
- */
-function resolveProductionDeps(localNm) {
-  const rootPj = path.join(path.dirname(localNm), "package.json");
-  const seeds = Object.keys(JSON.parse(fs.readFileSync(rootPj, "utf8")).dependencies || {});
-
-  const allProd = new Set();
-  const queue = [...seeds];
-  while (queue.length > 0) {
-    const pkg = queue.pop();
-    if (allProd.has(pkg)) continue;
-    allProd.add(pkg);
-    for (const dep of getDeps(path.join(localNm, pkg))) {
-      if (!allProd.has(dep)) queue.push(dep);
-    }
-  }
-  return allProd;
-}
-
-/**
- * For a given package, find version conflicts between what pnpm resolves
- * for its deps vs what's at the top-level node_modules.
- * Returns array of { dep, correctPath } for conflicting deps.
- */
-function findVersionConflicts(pkgName, localNm) {
-  const topPath = path.join(localNm, pkgName);
-  if (!fs.existsSync(topPath)) return [];
-
-  let realPath;
-  try {
-    realPath = fs.realpathSync(topPath);
-  } catch {
-    return [];
-  }
-
-  // pnpm virtual store: .pnpm/pkg@version/node_modules/ contains
-  // symlinks to the exact versions this package needs
-  const pnpmNm = path.dirname(realPath);
-
-  const conflicts = [];
-  for (const dep of getDeps(realPath)) {
-    const depInStore = path.join(pnpmNm, dep);
-    const depTopLevel = path.join(localNm, dep);
-
-    if (!fs.existsSync(depInStore) || !fs.existsSync(depTopLevel)) continue;
-
-    let storeReal, topReal;
-    try {
-      storeReal = fs.realpathSync(depInStore);
-      topReal = fs.realpathSync(depTopLevel);
-    } catch {
-      continue;
-    }
-
-    if (storeReal !== topReal) {
-      conflicts.push({ dep, correctPath: storeReal });
-    }
-  }
-  return conflicts;
-}
+// Only these packages are needed at runtime (native module + its loader)
+const KEEP = new Set([
+  "better-sqlite3",   // native .node binary
+  "bindings",         // locates .node files at runtime
+  "file-uri-to-path", // dependency of bindings
+]);
 
 function countPackages(nmDir) {
   if (!fs.existsSync(nmDir)) return 0;
@@ -114,10 +35,63 @@ function countPackages(nmDir) {
   return count;
 }
 
+/**
+ * Update ElectronAsarIntegrity in Info.plist (macOS) after repacking.
+ * Without this, Electron silently refuses to load the asar.
+ */
+function updateAsarIntegrity(platform, appOutDir, productName, asarPath) {
+  if (platform !== "darwin") {
+    // On Windows/Linux, integrity is embedded differently.
+    // electron-builder stores it in the executable resources.
+    // For now, we'll handle macOS only.
+    // TODO: handle Windows/Linux if needed
+    return;
+  }
+
+  const hash = crypto
+    .createHash("sha256")
+    .update(fs.readFileSync(asarPath))
+    .digest("hex");
+
+  const plistPath = path.join(
+    appOutDir,
+    `${productName}.app`,
+    "Contents",
+    "Info.plist"
+  );
+
+  if (!fs.existsSync(plistPath)) {
+    console.log("[afterPack] Info.plist not found, skipping integrity update.");
+    return;
+  }
+
+  // Read current plist
+  const plistXml = fs.readFileSync(plistPath, "utf8");
+
+  // Replace the hash value in ElectronAsarIntegrity
+  // The plist XML structure:
+  //   <key>ElectronAsarIntegrity</key>
+  //   <dict>
+  //     <key>Resources/app.asar</key>
+  //     <dict>
+  //       <key>algorithm</key><string>SHA256</string>
+  //       <key>hash</key><string>OLD_HASH</string>
+  //     </dict>
+  //   </dict>
+  const hashRegex = /(<key>hash<\/key>\s*<string>)[a-f0-9]{64}(<\/string>)/;
+  if (!hashRegex.test(plistXml)) {
+    console.log("[afterPack] Could not find asar hash in Info.plist.");
+    return;
+  }
+
+  const updated = plistXml.replace(hashRegex, `$1${hash}$2`);
+  fs.writeFileSync(plistPath, updated);
+  console.log(`[afterPack] Updated asar integrity hash in Info.plist: ${hash.substring(0, 16)}...`);
+}
+
 exports.default = async function afterPack(context) {
   const platform = context.electronPlatformName;
   const productName = context.packager.appInfo.productFilename;
-  const projectDir = context.packager.projectDir;
   const appOutDir = context.appOutDir;
 
   let resourcesDir;
@@ -133,59 +107,63 @@ exports.default = async function afterPack(context) {
     return;
   }
 
-  const localNm = path.join(projectDir, "node_modules");
-  const tempDir = path.join(resourcesDir, "__asar_fix_tmp");
+  const tempDir = path.join(resourcesDir, "__asar_strip_tmp");
 
   try {
-    // 1. Resolve production deps
-    console.log("[afterPack] Resolving production dependencies...");
-    const prodPkgs = resolveProductionDeps(localNm);
-    console.log(`[afterPack] ${prodPkgs.size} production packages found.`);
-
-    // 2. Extract asar
-    console.log("[afterPack] Extracting asar...");
+    // 1. Extract asar
+    console.log("[afterPack] Extracting asar to strip bundled deps...");
     execSync(`npx asar extract "${asarPath}" "${tempDir}"`, { stdio: "pipe" });
     const asarNm = path.join(tempDir, "node_modules");
     const beforeCount = countPackages(asarNm);
 
-    // 3. Replace node_modules with clean copy
-    fs.rmSync(asarNm, { recursive: true, force: true });
-    fs.mkdirSync(asarNm, { recursive: true });
+    if (!fs.existsSync(asarNm)) {
+      console.log("[afterPack] No node_modules in asar, nothing to strip.");
+      return;
+    }
 
-    let copied = 0;
-    let conflictsFixed = 0;
+    // 2. Remove everything except KEEP list
+    let removed = 0;
+    for (const entry of fs.readdirSync(asarNm)) {
+      const full = path.join(asarNm, entry);
+      if (!fs.statSync(full).isDirectory()) continue;
 
-    for (const pkg of prodPkgs) {
-      const src = path.join(localNm, pkg);
-      const dest = path.join(asarNm, pkg);
-      if (!fs.existsSync(src)) continue;
-
-      // Ensure parent dir for scoped packages
-      const parent = path.dirname(dest);
-      if (!fs.existsSync(parent)) fs.mkdirSync(parent, { recursive: true });
-
-      // Copy package (dereference pnpm symlinks)
-      fs.cpSync(src, dest, { recursive: true, dereference: true });
-      copied++;
-
-      // 4. Fix version conflicts: create nested node_modules/ where needed
-      const conflicts = findVersionConflicts(pkg, localNm);
-      for (const { dep, correctPath } of conflicts) {
-        const nestedDest = path.join(dest, "node_modules", dep);
-        const nestedParent = path.dirname(nestedDest);
-        if (!fs.existsSync(nestedParent)) fs.mkdirSync(nestedParent, { recursive: true });
-        fs.cpSync(correctPath, nestedDest, { recursive: true });
-        conflictsFixed++;
+      if (entry.startsWith("@")) {
+        // Scoped package: check each sub-entry
+        let allRemoved = true;
+        for (const sub of fs.readdirSync(full)) {
+          const scopedName = `${entry}/${sub}`;
+          if (KEEP.has(scopedName)) {
+            allRemoved = false;
+          } else {
+            fs.rmSync(path.join(full, sub), { recursive: true, force: true });
+            removed++;
+          }
+        }
+        if (allRemoved) {
+          fs.rmSync(full, { recursive: true, force: true });
+        }
+      } else {
+        if (!KEEP.has(entry)) {
+          fs.rmSync(full, { recursive: true, force: true });
+          removed++;
+        }
       }
     }
 
     const afterCount = countPackages(asarNm);
-    console.log(`[afterPack] node_modules: ${beforeCount} → ${afterCount} packages (copied ${copied}, version conflicts fixed: ${conflictsFixed})`);
+    console.log(`[afterPack] node_modules: ${beforeCount} → ${afterCount} packages (removed ${removed})`);
 
-    // 5. Repack
+    // 3. Repack
     console.log("[afterPack] Repacking asar...");
     fs.rmSync(asarPath, { force: true });
-    execSync(`npx asar pack "${tempDir}" "${asarPath}" --unpack "{**/*.node,**/better-sqlite3/**}"`, { stdio: "pipe" });
+    execSync(
+      `npx asar pack "${tempDir}" "${asarPath}" --unpack "{**/*.node,**/better-sqlite3/**}"`,
+      { stdio: "pipe" }
+    );
+
+    // 4. Update asar integrity hash (critical for macOS)
+    updateAsarIntegrity(platform, appOutDir, productName, asarPath);
+
     console.log("[afterPack] Done.");
   } finally {
     if (fs.existsSync(tempDir)) {

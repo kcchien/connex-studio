@@ -18,21 +18,21 @@ log.transports.file.maxSize = 10 * 1024 * 1024 // 10MB
 log.transports.file.format = '[{y}-{m}-{d} {h}:{i}:{s}.{ms}] [{level}] {text}'
 log.transports.console.level = is.dev ? 'debug' : 'warn'
 
-// Initialize Sentry error reporting (production only, loaded dynamically to avoid
-// crashing on missing transitive dependencies when packaged with pnpm)
+// Initialize Sentry error reporting (production only)
 const SENTRY_DSN = process.env.SENTRY_DSN || ''
 if (SENTRY_DSN && !is.dev) {
-  try {
-    const Sentry = await import('@sentry/electron/main')
-    Sentry.init({
-      dsn: SENTRY_DSN,
-      environment: 'production',
-      release: `connex-studio@${app.getVersion()}`,
+  import('@sentry/electron/main')
+    .then((Sentry) => {
+      Sentry.init({
+        dsn: SENTRY_DSN,
+        environment: 'production',
+        release: `connex-studio@${app.getVersion()}`,
+      })
+      log.info('Sentry error reporting initialized')
     })
-    log.info('Sentry error reporting initialized')
-  } catch (error) {
-    log.warn('Sentry initialization skipped (module unavailable):', error)
-  }
+    .catch((error) => {
+      log.warn('Sentry initialization skipped (module unavailable):', error)
+    })
 }
 
 // Global error handlers — prevent silent crashes

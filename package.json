@@ -2,7 +2,7 @@
   "name": "connex-studio",
   "version": "1.0.0",
   "description": "IIoT Protocol Studio - Cross-platform GUI for industrial protocol testing",
-  "main": "out/main/index.js",
+  "main": "out/main/index.cjs",
   "type": "module",
   "pnpm": {
     "overrides": {

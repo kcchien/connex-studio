@@ -1,91 +1,84 @@
 /**
  * afterPack hook for electron-builder
  *
- * Workaround: pnpm list --prod --json --depth Infinity returns an incomplete
- * dependency tree, causing electron-builder to miss transitive dependencies.
+ * Root cause: pnpm list --prod returns an incomplete dependency tree,
+ * and electron-builder consumes it as-is, resulting in missing packages.
  *
- * This hook extracts the asar after packing, scans every included package's
- * dependencies, copies any missing packages from the local node_modules, and
- * repacks the asar — recursively, until nothing is missing.
+ * Fix: After electron-builder packs, this hook REPLACES the asar's
+ * node_modules with a clean copy built by recursively resolving
+ * dependencies from the project's package.json. This is independent
+ * of pnpm's broken dependency resolution.
+ *
+ * All copies use dereference: true to resolve pnpm symlinks to real files.
  */
 const { execSync } = require("child_process");
 const path = require("path");
 const fs = require("fs");
 
 /**
- * Collect all top-level package names inside a node_modules directory,
- * including scoped packages (@org/pkg).
+ * Recursively resolve all production dependencies starting from
+ * the project's package.json. Returns a Set of package names.
  */
-function getInstalledPackages(nmDir) {
-  const pkgs = new Set();
-  if (!fs.existsSync(nmDir)) return pkgs;
+function resolveProductionDeps(projectDir) {
+  const localNm = path.join(projectDir, "node_modules");
 
+  function getDeps(pkgName) {
+    const pj = path.join(localNm, pkgName, "package.json");
+    if (!fs.existsSync(pj)) return [];
+    try {
+      const data = JSON.parse(fs.readFileSync(pj, "utf8"));
+      return Object.keys(data.dependencies || {});
+    } catch {
+      return [];
+    }
+  }
+
+  // Seed from project's own dependencies
+  const rootPj = path.join(projectDir, "package.json");
+  const rootData = JSON.parse(fs.readFileSync(rootPj, "utf8"));
+  const seeds = Object.keys(rootData.dependencies || {});
+
+  // BFS to collect all transitive production dependencies
+  const allProd = new Set();
+  const queue = [...seeds];
+  while (queue.length > 0) {
+    const pkg = queue.pop();
+    if (allProd.has(pkg)) continue;
+    allProd.add(pkg);
+    for (const dep of getDeps(pkg)) {
+      if (!allProd.has(dep)) {
+        queue.push(dep);
+      }
+    }
+  }
+  return allProd;
+}
+
+/**
+ * Count top-level packages in a node_modules directory.
+ */
+function countPackages(nmDir) {
+  if (!fs.existsSync(nmDir)) return 0;
+  let count = 0;
   for (const entry of fs.readdirSync(nmDir)) {
     if (entry.startsWith(".")) continue;
     const full = path.join(nmDir, entry);
     if (!fs.statSync(full).isDirectory()) continue;
-
     if (entry.startsWith("@")) {
-      for (const sub of fs.readdirSync(full)) {
-        pkgs.add(`${entry}/${sub}`);
-      }
+      try { count += fs.readdirSync(full).length; } catch { /* empty scope */ }
     } else {
-      pkgs.add(entry);
+      count++;
     }
   }
-  return pkgs;
-}
-
-/**
- * Read a package.json and return its production dependency names.
- */
-function getDeps(pkgJsonPath) {
-  if (!fs.existsSync(pkgJsonPath)) return [];
-  try {
-    const data = JSON.parse(fs.readFileSync(pkgJsonPath, "utf8"));
-    return Object.keys(data.dependencies || {});
-  } catch {
-    return [];
-  }
-}
-
-/**
- * Recursively find all missing transitive dependencies.
- * Returns a Set of package names that need to be copied.
- */
-function findMissing(asarNm, localNm) {
-  const allMissing = new Set();
-  let changed = true;
-
-  while (changed) {
-    changed = false;
-    const present = getInstalledPackages(asarNm);
-
-    for (const pkg of present) {
-      const deps = getDeps(path.join(asarNm, pkg, "package.json"));
-      for (const dep of deps) {
-        if (!present.has(dep) && !allMissing.has(dep)) {
-          const localPath = path.join(localNm, dep);
-          if (fs.existsSync(localPath)) {
-            allMissing.add(dep);
-            // Copy it so the next iteration can check ITS dependencies
-            const destPath = path.join(asarNm, dep);
-            fs.cpSync(localPath, destPath, { recursive: true, dereference: true });
-            changed = true;
-          }
-        }
-      }
-    }
-  }
-  return allMissing;
+  return count;
 }
 
 exports.default = async function afterPack(context) {
   const appOutDir = context.appOutDir;
   const platform = context.electronPlatformName;
   const productName = context.packager.appInfo.productFilename;
+  const projectDir = context.packager.projectDir;
 
-  // Determine resources directory (platform-specific)
   let resourcesDir;
   if (platform === "darwin") {
     resourcesDir = path.join(appOutDir, `${productName}.app`, "Contents", "Resources");
@@ -94,50 +87,67 @@ exports.default = async function afterPack(context) {
   }
 
   const asarPath = path.join(resourcesDir, "app.asar");
-  const unpackedPath = path.join(resourcesDir, "app.asar.unpacked");
-
   if (!fs.existsSync(asarPath)) {
-    console.log("[afterPack] No asar found, skipping dependency check.");
+    console.log("[afterPack] No asar found, skipping.");
     return;
   }
 
+  const localNm = path.join(projectDir, "node_modules");
   const tempDir = path.join(resourcesDir, "__asar_fix_tmp");
-  const localNm = path.join(context.packager.projectDir, "node_modules");
 
-  console.log("[afterPack] Extracting asar to check dependencies...");
-  execSync(`npx asar extract "${asarPath}" "${tempDir}"`, { stdio: "pipe" });
+  try {
+    // 1. Resolve the correct set of production dependencies
+    console.log("[afterPack] Resolving production dependencies...");
+    const prodPkgs = resolveProductionDeps(projectDir);
+    console.log(`[afterPack] ${prodPkgs.size} production packages resolved.`);
 
-  const asarNm = path.join(tempDir, "node_modules");
-  const beforeCount = getInstalledPackages(asarNm).size;
+    // 2. Extract asar
+    console.log("[afterPack] Extracting asar...");
+    execSync(`npx asar extract "${asarPath}" "${tempDir}"`, { stdio: "pipe" });
 
-  const missing = findMissing(asarNm, localNm);
+    const asarNm = path.join(tempDir, "node_modules");
+    const beforeCount = countPackages(asarNm);
 
-  if (missing.size === 0) {
-    console.log(`[afterPack] All dependencies present (${beforeCount} packages). No fix needed.`);
-    fs.rmSync(tempDir, { recursive: true, force: true });
-    return;
+    // 3. Delete asar's node_modules and rebuild from scratch
+    fs.rmSync(asarNm, { recursive: true, force: true });
+    fs.mkdirSync(asarNm, { recursive: true });
+
+    let copied = 0;
+    let skipped = 0;
+    for (const pkg of prodPkgs) {
+      const src = path.join(localNm, pkg);
+      const dest = path.join(asarNm, pkg);
+
+      if (!fs.existsSync(src)) {
+        skipped++;
+        continue;
+      }
+
+      // Ensure parent directory exists (for scoped packages)
+      const parent = path.dirname(dest);
+      if (!fs.existsSync(parent)) {
+        fs.mkdirSync(parent, { recursive: true });
+      }
+
+      // Copy with dereference to resolve pnpm symlinks
+      fs.cpSync(src, dest, { recursive: true, dereference: true });
+      copied++;
+    }
+
+    const afterCount = countPackages(asarNm);
+    console.log(`[afterPack] Replaced node_modules: ${beforeCount} → ${afterCount} (copied ${copied}, not found ${skipped})`);
+
+    // 4. Repack asar
+    console.log("[afterPack] Repacking asar...");
+    fs.rmSync(asarPath, { force: true });
+    const unpackGlob = "{**/*.node,**/better-sqlite3/**}";
+    execSync(`npx asar pack "${tempDir}" "${asarPath}" --unpack "${unpackGlob}"`, { stdio: "pipe" });
+
+    console.log("[afterPack] Done.");
+  } finally {
+    // Always clean up temp directory
+    if (fs.existsSync(tempDir)) {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
   }
-
-  const afterCount = getInstalledPackages(asarNm).size;
-  console.log(`[afterPack] Added ${missing.size} missing packages (${beforeCount} → ${afterCount}):`);
-  for (const pkg of [...missing].sort()) {
-    console.log(`  + ${pkg}`);
-  }
-
-  // Repack asar, preserving the unpack patterns for native modules
-  console.log("[afterPack] Repacking asar...");
-  fs.rmSync(asarPath, { force: true });
-
-  // Preserve existing unpacked files if any
-  const unpackGlob = "{**/*.node,**/better-sqlite3/**}";
-  execSync(`npx asar pack "${tempDir}" "${asarPath}" --unpack "${unpackGlob}"`, { stdio: "pipe" });
-
-  // If there was an existing unpacked dir, merge our new native files
-  if (fs.existsSync(unpackedPath)) {
-    // asar pack --unpack creates a new .unpacked dir; electron-builder already made one
-    // The new one from asar pack takes precedence
-  }
-
-  fs.rmSync(tempDir, { recursive: true, force: true });
-  console.log("[afterPack] Done. Asar repacked with complete dependencies.");
 };

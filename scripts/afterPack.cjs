@@ -27,7 +27,7 @@ function countPackages(nmDir) {
     const full = path.join(nmDir, entry);
     if (!fs.statSync(full).isDirectory()) continue;
     if (entry.startsWith("@")) {
-      try { count += fs.readdirSync(full).length; } catch {}
+      try { count += fs.readdirSync(full).length; } catch { /* ignore unreadable scope dirs */ }
     } else {
       count++;
     }

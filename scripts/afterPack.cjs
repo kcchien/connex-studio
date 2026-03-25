@@ -70,7 +70,7 @@ function findMissing(asarNm, localNm) {
             allMissing.add(dep);
             // Copy it so the next iteration can check ITS dependencies
             const destPath = path.join(asarNm, dep);
-            fs.cpSync(localPath, destPath, { recursive: true });
+            fs.cpSync(localPath, destPath, { recursive: true, dereference: true });
             changed = true;
           }
         }

@@ -154,6 +154,8 @@ export class MqttAdapter extends ProtocolAdapter {
 
   // Map of tagId to topic for reverse lookup
   private tagTopicMap = new Map<string, string>()
+  // Full tag objects by id — handleMessage needs address/dataType to parse payloads
+  private tagById = new Map<string, Tag>()
 
   // Track QoS level per topic for resubscription
   private topicQosMap = new Map<string, 0 | 1 | 2>()
@@ -344,9 +346,8 @@ export class MqttAdapter extends ProtocolAdapter {
 
     for (const [tagId, subscribedTopic] of this.tagTopicMap) {
       if (this.topicMatches(topic, subscribedTopic)) {
-        // We need to get the tag somehow - for now track by ID
-        // In practice, tags are passed to readTags which stores them
-        tags.push({ id: tagId } as Tag)
+        const tag = this.tagById.get(tagId)
+        if (tag) tags.push(tag)
       }
     }
 
@@ -485,6 +486,7 @@ export class MqttAdapter extends ProtocolAdapter {
 
       const topic = address.topic
       this.tagTopicMap.set(tag.id, topic)
+      this.tagById.set(tag.id, tag)
 
       if (!this.subscribedTopics.has(topic)) {
         const existingQos = newSubscriptions.get(topic) ?? 0
@@ -562,6 +564,7 @@ export class MqttAdapter extends ProtocolAdapter {
     this.topicCache.clear()
     this.subscribedTopics.clear()
     this.tagTopicMap.clear()
+    this.tagById.clear()
     this.topicQosMap.clear()
     this.removeAllListeners()
     log.info('[Mqtt] Adapter disposed')

@@ -49,7 +49,9 @@ type Protocol = 'modbus-tcp' | 'mqtt' | 'opcua'
 const RECONNECT_BASE_DELAY_MS = 1000 // 1 second initial delay
 const RECONNECT_MAX_DELAY_MS = 30000 // 30 seconds max delay
 const RECONNECT_MAX_ATTEMPTS = 5 // Max attempts before giving up
-const NETWORK_TIMEOUT_MS = 3000 // 3 seconds timeout for detecting disconnection
+// Connect timeout across protocols. OPC UA first connect generates a client
+// certificate and negotiates a secure channel + session, which exceeds 3s.
+const NETWORK_TIMEOUT_MS = 10000
 
 interface ReconnectionState {
   attempts: number
@@ -283,10 +285,14 @@ export class ConnectionManager {
    * Connect with network timeout detection.
    */
   private async connectWithTimeout(adapter: ProtocolAdapter, connectionId: string): Promise<void> {
+    // OPC UA first connect generates a client certificate and negotiates a
+    // secure channel + session — allow far more time than plain TCP protocols.
+    const protocol = this.connections.get(connectionId)?.protocol
+    const timeoutMs = protocol === 'opcua' ? 30000 : NETWORK_TIMEOUT_MS
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
-        reject(new Error(`Connection timeout after ${NETWORK_TIMEOUT_MS}ms`))
-      }, NETWORK_TIMEOUT_MS)
+        reject(new Error(`Connection timeout after ${timeoutMs}ms`))
+      }, timeoutMs)
 
       adapter.connect()
         .then(() => {

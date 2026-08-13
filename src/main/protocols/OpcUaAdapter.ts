@@ -6,6 +6,7 @@
 
 import {
   OPCUAClient,
+  OPCUACertificateManager,
   ClientSession,
   ClientSubscription,
   AttributeIds,
@@ -295,10 +296,21 @@ export class OpcUaAdapter extends ProtocolAdapter {
       const securityMode = this.mapSecurityModeToEnum(config.securityMode)
       const securityPolicy = this.mapSecurityPolicyToUri(config.securityPolicy)
 
+      // Explicit client PKI under userData: the node-opcua default location is
+      // not reliably writable inside a packaged Electron app, and certificate
+      // generation there can hang the whole connect.
+      const clientCertificateManager = new OPCUACertificateManager({
+        rootFolder: path.join(app.getPath('userData'), 'opcua-client-pki'),
+        automaticallyAcceptUnknownCertificate: true,
+        name: 'ConnexStudioClient'
+      })
+      await clientCertificateManager.initialize()
+
       // Create client with proper settings
       this.client = OPCUAClient.create({
         applicationName: 'Connex Studio',
         applicationUri: 'urn:connex-studio:client',
+        clientCertificateManager,
         securityMode,
         securityPolicy,
         endpointMustExist: false,

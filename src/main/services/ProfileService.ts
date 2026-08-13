@@ -30,6 +30,9 @@ import { getCredentialService } from './CredentialService'
 // Profile directory within user data
 const PROFILES_DIR = 'profiles'
 
+// Auto-save profile name (not shown in user profile list)
+const AUTOSAVE_NAME = '_autosave'
+
 // Supported schema versions for migration
 const SUPPORTED_VERSIONS = ['1.0.0']
 
@@ -171,6 +174,8 @@ export class ProfileService {
 
       for (const file of files) {
         if (!file.endsWith('.json')) continue
+        // Hide the autosave profile from user-visible list
+        if (file === `${AUTOSAVE_NAME}.json`) continue
 
         try {
           const filePath = path.join(this.profilesDir, file)
@@ -328,6 +333,68 @@ export class ProfileService {
     }
 
     return { filePath: result.filePaths[0], cancelled: false }
+  }
+
+  /**
+   * Auto-save current session (all connections + tags).
+   * Called on app quit. Uses a reserved profile name that is
+   * excluded from the user-visible profile list.
+   */
+  async saveSession(): Promise<void> {
+    try {
+      const connectionManager = getConnectionManager()
+      const allConnections = connectionManager.getAllConnections()
+
+      if (allConnections.length === 0) {
+        // Nothing to save; remove stale autosave if it exists
+        const filePath = this.getProfilePath(AUTOSAVE_NAME)
+        try { await fs.unlink(filePath) } catch { /* ignore */ }
+        return
+      }
+
+      const connectionIds = allConnections.map((c) => c.id)
+      await this.save({ name: AUTOSAVE_NAME, connectionIds })
+      log.info(`[ProfileService] Session auto-saved (${allConnections.length} connections)`)
+    } catch (error) {
+      log.error(`[ProfileService] Session auto-save failed: ${error}`)
+    }
+  }
+
+  /**
+   * Restore the last auto-saved session.
+   * Called on app startup. Silently does nothing if no autosave exists.
+   */
+  async restoreSession(): Promise<void> {
+    try {
+      const result = await this.load(AUTOSAVE_NAME)
+      const connectionManager = getConnectionManager()
+
+      for (const conn of result.connections) {
+        const created = connectionManager.createConnection(
+          conn.name,
+          conn.protocol,
+          conn.config
+        )
+
+        // Restore tags for this connection
+        const connTags = result.tags.filter((t) => t.connectionId === conn.id)
+        for (const tag of connTags) {
+          connectionManager.addTag({ ...tag, connectionId: created.id })
+        }
+      }
+
+      log.info(`[ProfileService] Session restored (${result.connections.length} connections, ${result.tags.length} tags)`)
+    } catch (error) {
+      // No autosave or corrupt — start fresh, this is expected on first launch
+      log.debug(`[ProfileService] No session to restore: ${error}`)
+    }
+  }
+
+  /**
+   * Check if a profile name is the reserved autosave name.
+   */
+  static isAutosave(name: string): boolean {
+    return name === AUTOSAVE_NAME
   }
 
   /**

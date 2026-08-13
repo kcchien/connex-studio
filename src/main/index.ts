@@ -4,7 +4,7 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import log from 'electron-log/main.js'
 import { registerAllHandlers, handleWindowClose, stopAllPollingGracefully, setForceQuit } from './ipc'
 import { initializeProtocols } from './protocols'
-import { getDataBuffer, closeDataBuffer, getConnectionManager, getPollingEngine, disposePollingEngine } from './services'
+import { getDataBuffer, closeDataBuffer, getConnectionManager, getPollingEngine, disposePollingEngine, getProfileService } from './services'
 import { initializeUpdater } from './updater'
 
 // Ignore EPIPE errors from broken stdout/stderr pipes (e.g. when parent process exits)
@@ -124,6 +124,11 @@ app.whenReady().then(() => {
   registerAllHandlers()
   log.info('IPC handlers registered')
 
+  // Restore last session (connections + tags from previous run)
+  getProfileService().restoreSession().catch((err) => {
+    log.warn('Session restore failed:', err)
+  })
+
   // Deny unnecessary permission requests (camera, microphone, geolocation, etc.)
   session.defaultSession.setPermissionRequestHandler((_webContents, permission, callback) => {
     const allowedPermissions: string[] = ['clipboard-read']
@@ -182,10 +187,16 @@ app.on('window-all-closed', () => {
   }
 })
 
-app.on('before-quit', () => {
+app.on('before-quit', async () => {
   log.info('App quitting')
   // Allow windows to close without confirmation dialog
   setForceQuit(true)
+  // Auto-save session before shutdown
+  try {
+    await getProfileService().saveSession()
+  } catch (err) {
+    log.warn('Session auto-save failed:', err)
+  }
   // Stop polling gracefully and close data buffer connection
   stopAllPollingGracefully()
   disposePollingEngine()

@@ -6,11 +6,26 @@
  */
 
 import { EventEmitter } from 'events'
+import { app } from 'electron'
+import { promises as fs } from 'fs'
+import path from 'path'
+import log from 'electron-log/main.js'
 import type {
   Environment,
   CreateEnvironmentRequest,
   UpdateEnvironmentRequest
 } from '@shared/types'
+
+/** Debounce delay for persisting changes to disk */
+const PERSIST_DEBOUNCE_MS = 500
+
+/**
+ * Persisted file shape for environments storage.
+ */
+interface EnvironmentStorageFile {
+  defaultEnvironmentId: string | null
+  environments: Environment[]
+}
 
 /**
  * Events emitted by EnvironmentManager.
@@ -43,16 +58,94 @@ export class EnvironmentManager extends EventEmitter {
   private switchHandlers: EnvironmentSwitchHandler[] = []
   /** Whether a switch is in progress (T167) */
   private isSwitching = false
+  private readonly storagePath: string | null
+  private persistTimer: NodeJS.Timeout | null = null
 
   constructor() {
     super()
+    this.storagePath = this.resolveStoragePath()
   }
 
   /**
    * Initialize the manager, loading environments from storage.
    */
   async initialize(): Promise<void> {
-    // TODO: Load environments from YAML file
+    if (!this.storagePath) {
+      return
+    }
+
+    try {
+      const content = await fs.readFile(this.storagePath, 'utf-8')
+      const parsed = JSON.parse(content) as EnvironmentStorageFile
+      this.environments = new Map(parsed.environments.map((item) => [item.id, item]))
+      // Only restore default id if it still points to an existing environment
+      this.defaultEnvironmentId =
+        parsed.defaultEnvironmentId && this.environments.has(parsed.defaultEnvironmentId)
+          ? parsed.defaultEnvironmentId
+          : null
+      log.info(`[EnvironmentManager] Loaded ${parsed.environments.length} environments`)
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+        log.warn('[EnvironmentManager] Failed to load environments', error)
+      }
+    }
+  }
+
+  /**
+   * Resolve environment storage path.
+   */
+  private resolveStoragePath(): string | null {
+    // Keep unit tests deterministic and filesystem independent.
+    if (process.env.NODE_ENV === 'test') {
+      return null
+    }
+
+    try {
+      const userDataPath = app.getPath('userData')
+      return path.join(userDataPath, 'environments.json')
+    } catch {
+      // Fallback for non-Electron contexts.
+      return path.join(process.cwd(), '.connex', 'environments.json')
+    }
+  }
+
+  /**
+   * Schedule a debounced persist to avoid high-frequency writes.
+   */
+  private schedulePersist(): void {
+    if (!this.storagePath) {
+      return
+    }
+
+    if (this.persistTimer) {
+      clearTimeout(this.persistTimer)
+    }
+
+    this.persistTimer = setTimeout(() => {
+      this.persistTimer = null
+      void this.persistEnvironments()
+    }, PERSIST_DEBOUNCE_MS)
+  }
+
+  /**
+   * Persist environments to local storage.
+   */
+  private async persistEnvironments(): Promise<void> {
+    if (!this.storagePath) {
+      return
+    }
+
+    try {
+      await fs.mkdir(path.dirname(this.storagePath), { recursive: true })
+      const file: EnvironmentStorageFile = {
+        defaultEnvironmentId: this.defaultEnvironmentId,
+        environments: Array.from(this.environments.values())
+      }
+      const payload = JSON.stringify(file, null, 2)
+      await fs.writeFile(this.storagePath, payload, 'utf-8')
+    } catch (error) {
+      log.warn('[EnvironmentManager] Failed to persist environments', error)
+    }
   }
 
   /**
@@ -92,7 +185,7 @@ export class EnvironmentManager extends EventEmitter {
     this.environments.set(environment.id, environment)
     this.emit('environment-changed', environment)
 
-    // TODO: Persist to YAML file
+    this.schedulePersist()
     return environment
   }
 
@@ -115,7 +208,7 @@ export class EnvironmentManager extends EventEmitter {
     this.environments.set(updated.id, updated)
     this.emit('environment-changed', updated)
 
-    // TODO: Persist to YAML file
+    this.schedulePersist()
     return updated
   }
 
@@ -135,7 +228,7 @@ export class EnvironmentManager extends EventEmitter {
     }
 
     this.environments.delete(id)
-    // TODO: Persist to YAML file
+    this.schedulePersist()
     return true
   }
 
@@ -186,7 +279,7 @@ export class EnvironmentManager extends EventEmitter {
       // Emit event after switch is complete
       this.emit('environment-switched', previousEnv, updated)
 
-      // TODO: Persist to YAML file
+      this.schedulePersist()
       return updated
     } finally {
       this.isSwitching = false
@@ -291,6 +384,13 @@ export class EnvironmentManager extends EventEmitter {
    * Dispose and cleanup.
    */
   async dispose(): Promise<void> {
+    // Flush any pending persist before clearing state
+    if (this.persistTimer) {
+      clearTimeout(this.persistTimer)
+      this.persistTimer = null
+      await this.persistEnvironments()
+    }
+
     this.environments.clear()
     this.switchHandlers = []
     this.isSwitching = false

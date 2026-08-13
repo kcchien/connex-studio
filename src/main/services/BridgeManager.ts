@@ -7,6 +7,9 @@
  */
 
 import { EventEmitter } from 'events'
+import { app } from 'electron'
+import { promises as fs } from 'fs'
+import path from 'path'
 import log from 'electron-log/main.js'
 import type {
   Bridge,
@@ -20,6 +23,9 @@ import type {
 import { DEFAULT_BRIDGE_OPTIONS } from '@shared/types'
 import { resolveTopic, resolvePayload, type TemplateContext } from './PayloadTemplateEngine'
 import { getConnectionManager, type ConnectionManager } from './ConnectionManager'
+
+/** Debounce delay for persisting changes to disk */
+const PERSIST_DEBOUNCE_MS = 500
 
 /**
  * Events emitted by BridgeManager.
@@ -63,9 +69,12 @@ export class BridgeManager extends EventEmitter {
   private runtimes: Map<string, BridgeRuntime> = new Map()
   private connectionManager: ConnectionManager | null = null
   private connectionStatusHandler: ((payload: { connectionId: string; status: ConnectionStatus }) => void) | null = null
+  private readonly storagePath: string | null
+  private persistTimer: NodeJS.Timeout | null = null
 
   constructor() {
     super()
+    this.storagePath = this.resolveStoragePath()
   }
 
   /**
@@ -84,7 +93,74 @@ export class BridgeManager extends EventEmitter {
    * Initialize the manager, loading bridges from storage.
    */
   async initialize(): Promise<void> {
-    // TODO: Load bridges from profile storage
+    if (!this.storagePath) {
+      return
+    }
+
+    try {
+      const content = await fs.readFile(this.storagePath, 'utf-8')
+      const parsed = JSON.parse(content) as Bridge[]
+      // Bridges are never running at startup - reset runtime status to idle
+      this.bridges = new Map(parsed.map((item) => [item.id, { ...item, status: 'idle' as BridgeStatus }]))
+      log.info(`[Bridge] Loaded ${parsed.length} bridges`)
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+        log.warn('[Bridge] Failed to load bridges', error)
+      }
+    }
+  }
+
+  /**
+   * Resolve bridge storage path.
+   */
+  private resolveStoragePath(): string | null {
+    // Keep unit tests deterministic and filesystem independent.
+    if (process.env.NODE_ENV === 'test') {
+      return null
+    }
+
+    try {
+      const userDataPath = app.getPath('userData')
+      return path.join(userDataPath, 'bridges.json')
+    } catch {
+      // Fallback for non-Electron contexts.
+      return path.join(process.cwd(), '.connex', 'bridges.json')
+    }
+  }
+
+  /**
+   * Schedule a debounced persist to avoid high-frequency writes.
+   */
+  private schedulePersist(): void {
+    if (!this.storagePath) {
+      return
+    }
+
+    if (this.persistTimer) {
+      clearTimeout(this.persistTimer)
+    }
+
+    this.persistTimer = setTimeout(() => {
+      this.persistTimer = null
+      void this.persistBridges()
+    }, PERSIST_DEBOUNCE_MS)
+  }
+
+  /**
+   * Persist bridges to local storage.
+   */
+  private async persistBridges(): Promise<void> {
+    if (!this.storagePath) {
+      return
+    }
+
+    try {
+      await fs.mkdir(path.dirname(this.storagePath), { recursive: true })
+      const payload = JSON.stringify(Array.from(this.bridges.values()), null, 2)
+      await fs.writeFile(this.storagePath, payload, 'utf-8')
+    } catch (error) {
+      log.warn('[Bridge] Failed to persist bridges', error)
+    }
   }
 
   /**
@@ -121,7 +197,7 @@ export class BridgeManager extends EventEmitter {
     }
 
     this.bridges.set(bridge.id, bridge)
-    // TODO: Persist to profile storage
+    this.schedulePersist()
     return bridge
   }
 
@@ -152,7 +228,7 @@ export class BridgeManager extends EventEmitter {
     }
 
     this.bridges.set(updated.id, updated)
-    // TODO: Persist to profile storage
+    this.schedulePersist()
     return updated
   }
 
@@ -171,7 +247,7 @@ export class BridgeManager extends EventEmitter {
     }
 
     this.bridges.delete(id)
-    // TODO: Persist to profile storage
+    this.schedulePersist()
     return true
   }
 
@@ -660,6 +736,13 @@ export class BridgeManager extends EventEmitter {
     // Stop all active bridges
     for (const id of this.runtimes.keys()) {
       await this.stop(id)
+    }
+
+    // Flush any pending persist before clearing state
+    if (this.persistTimer) {
+      clearTimeout(this.persistTimer)
+      this.persistTimer = null
+      await this.persistBridges()
     }
 
     this.bridges.clear()

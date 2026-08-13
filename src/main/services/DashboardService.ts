@@ -5,6 +5,10 @@
  */
 
 import { EventEmitter } from 'events'
+import { app } from 'electron'
+import { promises as fs } from 'fs'
+import path from 'path'
+import log from 'electron-log/main.js'
 import type {
   Dashboard,
   DashboardWidget,
@@ -16,6 +20,9 @@ import type {
   UpdateLayoutRequest
 } from '@shared/types'
 import { DEFAULT_WIDGET_LAYOUT } from '@shared/types'
+
+/** Debounce delay for persisting changes to disk */
+const PERSIST_DEBOUNCE_MS = 500
 
 /**
  * Events emitted by DashboardService.
@@ -35,16 +42,85 @@ export interface DashboardServiceEvents {
  */
 export class DashboardService extends EventEmitter {
   private dashboards: Map<string, Dashboard> = new Map()
+  private readonly storagePath: string | null
+  private persistTimer: NodeJS.Timeout | null = null
 
   constructor() {
     super()
+    this.storagePath = this.resolveStoragePath()
   }
 
   /**
    * Initialize the service, loading dashboards from storage.
    */
   async initialize(): Promise<void> {
-    // TODO: Load dashboards from profile storage
+    if (!this.storagePath) {
+      return
+    }
+
+    try {
+      const content = await fs.readFile(this.storagePath, 'utf-8')
+      const parsed = JSON.parse(content) as Dashboard[]
+      this.dashboards = new Map(parsed.map((item) => [item.id, item]))
+      log.info(`[DashboardService] Loaded ${parsed.length} dashboards`)
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+        log.warn('[DashboardService] Failed to load dashboards', error)
+      }
+    }
+  }
+
+  /**
+   * Resolve dashboard storage path.
+   */
+  private resolveStoragePath(): string | null {
+    // Keep unit tests deterministic and filesystem independent.
+    if (process.env.NODE_ENV === 'test') {
+      return null
+    }
+
+    try {
+      const userDataPath = app.getPath('userData')
+      return path.join(userDataPath, 'dashboards.json')
+    } catch {
+      // Fallback for non-Electron contexts.
+      return path.join(process.cwd(), '.connex', 'dashboards.json')
+    }
+  }
+
+  /**
+   * Schedule a debounced persist to avoid high-frequency writes.
+   */
+  private schedulePersist(): void {
+    if (!this.storagePath) {
+      return
+    }
+
+    if (this.persistTimer) {
+      clearTimeout(this.persistTimer)
+    }
+
+    this.persistTimer = setTimeout(() => {
+      this.persistTimer = null
+      void this.persistDashboards()
+    }, PERSIST_DEBOUNCE_MS)
+  }
+
+  /**
+   * Persist dashboards to local storage.
+   */
+  private async persistDashboards(): Promise<void> {
+    if (!this.storagePath) {
+      return
+    }
+
+    try {
+      await fs.mkdir(path.dirname(this.storagePath), { recursive: true })
+      const payload = JSON.stringify(Array.from(this.dashboards.values()), null, 2)
+      await fs.writeFile(this.storagePath, payload, 'utf-8')
+    } catch (error) {
+      log.warn('[DashboardService] Failed to persist dashboards', error)
+    }
   }
 
   /**
@@ -84,7 +160,7 @@ export class DashboardService extends EventEmitter {
     this.dashboards.set(dashboard.id, dashboard)
     this.emit('dashboard-changed', dashboard)
 
-    // TODO: Persist to profile storage
+    this.schedulePersist()
     return dashboard
   }
 
@@ -112,7 +188,7 @@ export class DashboardService extends EventEmitter {
     this.dashboards.set(updated.id, updated)
     this.emit('dashboard-changed', updated)
 
-    // TODO: Persist to profile storage
+    this.schedulePersist()
     return updated
   }
 
@@ -125,7 +201,7 @@ export class DashboardService extends EventEmitter {
     }
 
     this.dashboards.delete(id)
-    // TODO: Persist to profile storage
+    this.schedulePersist()
     return true
   }
 
@@ -149,7 +225,7 @@ export class DashboardService extends EventEmitter {
     this.dashboards.set(updated.id, updated)
     this.emit('dashboard-changed', updated)
 
-    // TODO: Persist to profile storage
+    this.schedulePersist()
     return updated
   }
 
@@ -188,7 +264,7 @@ export class DashboardService extends EventEmitter {
 
     this.emit('widget-added', request.dashboardId, widget)
 
-    // TODO: Persist to profile storage
+    this.schedulePersist()
     return widget
   }
 
@@ -218,7 +294,7 @@ export class DashboardService extends EventEmitter {
 
     this.emit('widget-updated', request.dashboardId, updated)
 
-    // TODO: Persist to profile storage
+    this.schedulePersist()
     return updated
   }
 
@@ -242,7 +318,7 @@ export class DashboardService extends EventEmitter {
 
     this.emit('widget-removed', dashboardId, widgetId)
 
-    // TODO: Persist to profile storage
+    this.schedulePersist()
     return true
   }
 
@@ -260,7 +336,7 @@ export class DashboardService extends EventEmitter {
 
     this.emit('layout-updated', request.dashboardId, request.layout)
 
-    // TODO: Persist to profile storage
+    this.schedulePersist()
     return true
   }
 
@@ -376,6 +452,10 @@ export class DashboardService extends EventEmitter {
       }
     }
 
+    if (dashboardsAffected > 0) {
+      this.schedulePersist()
+    }
+
     return {
       dashboardsAffected,
       widgetsRemoved,
@@ -451,6 +531,13 @@ export class DashboardService extends EventEmitter {
    * Dispose and cleanup.
    */
   async dispose(): Promise<void> {
+    // Flush any pending persist before clearing state
+    if (this.persistTimer) {
+      clearTimeout(this.persistTimer)
+      this.persistTimer = null
+      await this.persistDashboards()
+    }
+
     this.dashboards.clear()
     this.removeAllListeners()
   }

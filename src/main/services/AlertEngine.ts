@@ -5,7 +5,10 @@
  */
 
 import { EventEmitter } from 'events'
-import { Notification } from 'electron'
+import { app, Notification } from 'electron'
+import { promises as fs } from 'fs'
+import path from 'path'
+import log from 'electron-log/main.js'
 import type {
   AlertRule,
   AlertEvent,
@@ -37,6 +40,8 @@ export interface AlertEngineEvents {
 const ROC_HISTORY_MAX_LENGTH = 100
 /** Default rate-of-change window in seconds */
 const DEFAULT_ROC_WINDOW = 60
+/** Debounce delay for persisting rule changes to disk */
+const PERSIST_DEBOUNCE_MS = 500
 
 /**
  * Runtime state for alert condition tracking.
@@ -59,13 +64,18 @@ export class AlertEngine extends EventEmitter {
   private conditionStates: Map<string, ConditionState> = new Map()
   private mutedRules: Set<string> = new Set()
   private initialized = false
+  private readonly storagePath: string | null
+  private persistTimer: NodeJS.Timeout | null = null
 
   constructor() {
     super()
+    this.storagePath = this.resolveStoragePath()
   }
 
   /**
    * Initialize the engine, loading rules from storage.
+   * Note: only rules are persisted here - event history is managed
+   * by AlertHistoryStore.
    */
   async initialize(): Promise<void> {
     if (this.initialized) return
@@ -74,7 +84,94 @@ export class AlertEngine extends EventEmitter {
     const historyStore = getAlertHistoryStore()
     await historyStore.initialize()
 
+    await this.loadRules()
+
     this.initialized = true
+  }
+
+  /**
+   * Load alert rules from local storage.
+   */
+  private async loadRules(): Promise<void> {
+    if (!this.storagePath) {
+      return
+    }
+
+    try {
+      const content = await fs.readFile(this.storagePath, 'utf-8')
+      const parsed = JSON.parse(content) as AlertRule[]
+      this.rules = new Map(parsed.map((item) => [item.id, item]))
+
+      // Rebuild runtime condition states for loaded rules
+      this.conditionStates.clear()
+      for (const rule of parsed) {
+        this.conditionStates.set(rule.id, {
+          conditionMetAt: null,
+          lastTriggeredAt: null,
+          currentValue: null,
+          valueHistory: []
+        })
+      }
+
+      log.info(`[AlertEngine] Loaded ${parsed.length} alert rules`)
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+        log.warn('[AlertEngine] Failed to load alert rules', error)
+      }
+    }
+  }
+
+  /**
+   * Resolve alert rule storage path.
+   */
+  private resolveStoragePath(): string | null {
+    // Keep unit tests deterministic and filesystem independent.
+    if (process.env.NODE_ENV === 'test') {
+      return null
+    }
+
+    try {
+      const userDataPath = app.getPath('userData')
+      return path.join(userDataPath, 'alert-rules.json')
+    } catch {
+      // Fallback for non-Electron contexts.
+      return path.join(process.cwd(), '.connex', 'alert-rules.json')
+    }
+  }
+
+  /**
+   * Schedule a debounced persist to avoid high-frequency writes.
+   */
+  private schedulePersist(): void {
+    if (!this.storagePath) {
+      return
+    }
+
+    if (this.persistTimer) {
+      clearTimeout(this.persistTimer)
+    }
+
+    this.persistTimer = setTimeout(() => {
+      this.persistTimer = null
+      void this.persistRules()
+    }, PERSIST_DEBOUNCE_MS)
+  }
+
+  /**
+   * Persist alert rules to local storage.
+   */
+  private async persistRules(): Promise<void> {
+    if (!this.storagePath) {
+      return
+    }
+
+    try {
+      await fs.mkdir(path.dirname(this.storagePath), { recursive: true })
+      const payload = JSON.stringify(Array.from(this.rules.values()), null, 2)
+      await fs.writeFile(this.storagePath, payload, 'utf-8')
+    } catch (error) {
+      log.warn('[AlertEngine] Failed to persist alert rules', error)
+    }
   }
 
   /**
@@ -124,7 +221,7 @@ export class AlertEngine extends EventEmitter {
 
     this.emit('rule-changed', rule)
 
-    // TODO: Persist to profile storage
+    this.schedulePersist()
     return rule
   }
 
@@ -158,7 +255,7 @@ export class AlertEngine extends EventEmitter {
       valueHistory: []
     })
 
-    // TODO: Persist to profile storage
+    this.schedulePersist()
     return updated
   }
 
@@ -176,7 +273,7 @@ export class AlertEngine extends EventEmitter {
 
     this.emit('rule-deleted', id)
 
-    // TODO: Persist to profile storage
+    this.schedulePersist()
     return true
   }
 
@@ -224,7 +321,7 @@ export class AlertEngine extends EventEmitter {
     rule.enabled = true
     this.emit('rule-changed', rule)
 
-    // TODO: Persist to profile storage
+    this.schedulePersist()
     return rule
   }
 
@@ -247,7 +344,7 @@ export class AlertEngine extends EventEmitter {
 
     this.emit('rule-changed', rule)
 
-    // TODO: Persist to profile storage
+    this.schedulePersist()
     return rule
   }
 
@@ -607,6 +704,13 @@ export class AlertEngine extends EventEmitter {
    * Dispose and cleanup.
    */
   async dispose(): Promise<void> {
+    // Flush any pending persist before clearing state
+    if (this.persistTimer) {
+      clearTimeout(this.persistTimer)
+      this.persistTimer = null
+      await this.persistRules()
+    }
+
     this.rules.clear()
     this.conditionStates.clear()
     this.mutedRules.clear()

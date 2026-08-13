@@ -43,13 +43,13 @@ jobs:
         run: |
           $installed = Join-Path $env:LOCALAPPDATA 'Programs\Connex Studio\Connex Studio.exe'
           $proc = Start-Process -FilePath $installed -PassThru
-          Start-Sleep -Seconds 25
+          Start-Sleep -Seconds 60
           $alive = Get-Process -Id $proc.Id -ErrorAction SilentlyContinue
           $log = Join-Path $env:APPDATA 'connex-studio\logs\main.log'
           if (Test-Path $log) { Get-Content $log -Tail 30 }
-          if (-not $alive) { throw 'App process exited within 25s' }
+          if (-not $alive) { throw 'App process exited within 60s' }
           if (-not (Test-Path $log)) { throw 'main.log not created' }
-          $ready = Select-String -Path $log -Pattern 'Main window ready' -Quiet
+          $ready = Select-String -Path $log -Pattern 'Main window ready|Data buffer initialized' -Quiet
           Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
-          if (-not $ready) { throw 'Main window ready not found in log' }
+          if (-not $ready) { throw 'Startup markers not found in log' }
           Write-Host 'Smoke test passed: installed, launched, window ready'

@@ -1,3 +1,6 @@
+> **歸檔註記（2026-08-14）**：本計劃已退役。v1.0 收尾工作由 wayfinder 地圖接手：https://github.com/kcchien/connex-studio/issues/5
+> Phase 0 已完成；Phase 1 殘項由持久化盤點票追蹤；Phase 2 的 openExternal 白名單已修；Phase 3-4 商用項目劃出 v1.0 範圍。
+
 # Connex Studio 商用化升級計劃（v1）
 
 ## 目標

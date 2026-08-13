@@ -34,14 +34,14 @@ jobs:
           $exe = Get-ChildItem installer -Filter '*.exe' | Select-Object -First 1
           Start-Process -FilePath $exe.FullName -ArgumentList '/S' -Wait
           Start-Sleep -Seconds 10
-          $installed = Join-Path $env:LOCALAPPDATA 'Programs\connex-studio\Connex Studio.exe'
+          $installed = Join-Path $env:LOCALAPPDATA 'Programs\Connex Studio\Connex Studio.exe'
           if (-not (Test-Path $installed)) { throw "Installed binary not found at $installed" }
           Write-Host "Installed OK: $installed"
 
       - name: Launch and verify process stays alive
         shell: pwsh
         run: |
-          $installed = Join-Path $env:LOCALAPPDATA 'Programs\connex-studio\Connex Studio.exe'
+          $installed = Join-Path $env:LOCALAPPDATA 'Programs\Connex Studio\Connex Studio.exe'
           $proc = Start-Process -FilePath $installed -PassThru
           Start-Sleep -Seconds 25
           $alive = Get-Process -Id $proc.Id -ErrorAction SilentlyContinue

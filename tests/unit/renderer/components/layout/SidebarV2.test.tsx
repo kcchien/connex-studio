@@ -42,19 +42,18 @@ describe('SidebarV2', () => {
     expect(onSelect).toHaveBeenCalledWith('1')
   })
 
-  it('collapses tools section by default', () => {
+  it('shows tools section expanded by default', () => {
     render(<SidebarV2 connections={mockConnections} onNewConnection={vi.fn()} onSelectConnection={vi.fn()} />)
     expect(screen.getByText('Tools')).toBeInTheDocument()
-    // Bridge should not be visible (hidden in collapsed section)
-    const bridgeItem = screen.queryByText('Bridge')
-    expect(bridgeItem).toBeNull()
+    // Tools are expanded by default — Bridge should be visible
+    expect(screen.getByText('Bridge')).toBeInTheDocument()
   })
 
-  it('expands tools section when clicked', () => {
+  it('collapses tools section when clicked', () => {
     render(<SidebarV2 connections={mockConnections} onNewConnection={vi.fn()} onSelectConnection={vi.fn()} />)
     const toolsButton = screen.getByText('Tools')
     fireEvent.click(toolsButton)
-    expect(screen.getByText('Bridge')).toBeInTheDocument()
+    expect(screen.queryByText('Bridge')).toBeNull()
   })
 
   it('calls onNewConnection when new connection button clicked', () => {

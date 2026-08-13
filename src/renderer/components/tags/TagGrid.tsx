@@ -24,7 +24,10 @@ import {
   Square,
   CheckSquare,
   MinusSquare,
-  Circle
+  Circle,
+  Search,
+  X,
+  Pin
 } from 'lucide-react'
 import { cn } from '@renderer/lib/utils'
 import { Sparkline } from './Sparkline'
@@ -303,7 +306,7 @@ const TagRow = memo(function TagRow({ tag, displayState, historicalValue, isHist
       {/* Current value */}
       <div className="flex-shrink-0 w-28 flex items-center justify-end gap-1">
         {!isHistorical && displayState?.isRetained && (
-          <span className="text-xs text-amber-500" title="Retained" aria-hidden="true">📌</span>
+          <span title="Retained"><Pin className="h-3 w-3 text-amber-500 flex-shrink-0" aria-hidden="true" /></span>
         )}
         <span
           className="text-sm font-mono font-medium text-foreground"
@@ -406,7 +409,18 @@ export function TagGrid({
   const isLive = useDvrStore((state) => state.isLive)
   const historicalValues = useDvrStore((state) => state.historicalValues)
 
-  const tags = getTags(connectionId)
+  const allTags = getTags(connectionId)
+
+  // Search/filter state
+  const [searchQuery, setSearchQuery] = useState('')
+  const tags = useMemo(() => {
+    if (!searchQuery.trim()) return allTags
+    const q = searchQuery.toLowerCase()
+    return allTags.filter((tag) =>
+      tag.name.toLowerCase().includes(q) ||
+      formatAddress(tag.address).toLowerCase().includes(q)
+    )
+  }, [allTags, searchQuery])
 
   // Modbus write dialog state
   const {
@@ -516,7 +530,7 @@ export function TagGrid({
   const allSelected = tags.length > 0 && tags.every((t) => selectedTagIds.has(t.id))
   const someSelected = tags.some((t) => selectedTagIds.has(t.id)) && !allSelected
 
-  if (tags.length === 0) {
+  if (allTags.length === 0) {
     return (
       <div className={cn('flex items-center justify-center h-48 text-muted-foreground', className)}>
         <div className="text-center">
@@ -529,7 +543,29 @@ export function TagGrid({
 
   return (
     <div className={cn('border rounded-lg overflow-hidden bg-card flex flex-col h-full', className)}>
-      {/* Header */}
+      {/* Search bar — visible when 5+ tags */}
+      {allTags.length >= 5 && (
+        <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-muted/30">
+          <Search className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={t('tag.searchPlaceholder')}
+            className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
+          />
+          {searchQuery && (
+            <button onClick={() => setSearchQuery('')} className="p-0.5 rounded text-muted-foreground hover:text-foreground">
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+          <span className="text-xs text-muted-foreground tabular-nums">
+            {tags.length}/{allTags.length}
+          </span>
+        </div>
+      )}
+
+      {/* Column Header */}
       <div className="flex items-center gap-3 px-3 py-2.5 bg-muted/50 border-b border-border text-xs font-medium text-muted-foreground">
         {/* Row number header */}
         <div className="w-8 text-right">#</div>

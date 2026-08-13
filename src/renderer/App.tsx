@@ -1,6 +1,6 @@
 import React, { useEffect, useCallback, useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { SidebarV2 } from '@renderer/components/layout/SidebarV2'
+import { SidebarV2, type ToolId } from '@renderer/components/layout/SidebarV2'
 import {
   NewConnectionDialog,
   ConnectionFormData,
@@ -10,7 +10,12 @@ import {
 import { DataExplorer, TagDisplayState } from '@renderer/components/explorer'
 import { BatchTagDialog } from '@renderer/components/tags'
 import { LogViewer, Logo, ToastContainer, UpdateBanner } from '@renderer/components/common'
+import { ProfileDialog } from '@renderer/components/profile/ProfileDialog'
+import { ProfileList } from '@renderer/components/profile/ProfileList'
+import { SettingsDialog } from '@renderer/components/settings/SettingsDialog'
+import { CrcCalculator, ByteOrderConverter, FloatDecoder, PacketAnalyzer } from '@renderer/components/calculator'
 import { HelpPanel } from '@renderer/components/help/HelpPanel'
+import { LayoutDashboard, Bell, Shuffle, HardDrive } from 'lucide-react'
 import { useConnectionStore } from '@renderer/stores/connectionStore'
 import { useTagStore } from '@renderer/stores/tagStore'
 import { useUIStore } from '@renderer/stores/uiStore'
@@ -23,6 +28,29 @@ import type {
   ConnectionUpdates
 } from '@shared/types/connection'
 import type { Tag } from '@shared/types/tag'
+
+const toolMeta: Record<Exclude<ToolId, 'calculator'>, { icon: typeof LayoutDashboard; titleKey: string; descKey: string }> = {
+  dashboard: { icon: LayoutDashboard, titleKey: 'tools.dashboardTitle', descKey: 'tools.dashboardDesc' },
+  alerts: { icon: Bell, titleKey: 'tools.alertsTitle', descKey: 'tools.alertsDesc' },
+  bridge: { icon: Shuffle, titleKey: 'tools.bridgeTitle', descKey: 'tools.bridgeDesc' },
+  dvr: { icon: HardDrive, titleKey: 'tools.dvrTitle', descKey: 'tools.dvrDesc' },
+}
+
+function ToolPlaceholder({ tool }: { tool: ToolId }): React.ReactElement {
+  const { t } = useTranslation('layout')
+  if (tool === 'calculator') return <div /> // handled separately
+  const meta = toolMeta[tool]
+  const Icon = meta.icon
+  return (
+    <div className="flex-1 flex items-center justify-center bg-gray-50 dark:bg-transparent">
+      <div className="text-center max-w-sm">
+        <Icon className="w-12 h-12 mx-auto mb-4 text-gray-300 dark:text-gray-600" strokeWidth={1.5} />
+        <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">{t(meta.titleKey)}</h2>
+        <p className="text-gray-500 dark:text-gray-500 text-sm leading-relaxed">{t(meta.descKey)}</p>
+      </div>
+    </div>
+  )
+}
 
 /**
  * App - Main application with connection-centric navigation
@@ -61,6 +89,16 @@ function App(): React.ReactElement {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [connectionToEdit, setConnectionToEdit] = useState<Connection | null>(null)
   const [connectionToDelete, setConnectionToDelete] = useState<Connection | null>(null)
+
+  // Profile dialog state
+  const [profileSaveOpen, setProfileSaveOpen] = useState(false)
+  const [profileListOpen, setProfileListOpen] = useState(false)
+
+  // Settings dialog state
+  const [settingsOpen, setSettingsOpen] = useState(false)
+
+  // Tool navigation state
+  const [selectedTool, setSelectedTool] = useState<ToolId | null>(null)
 
   // Get selected connection
   const selectedConnection = connections.find((c) => c.id === selectedConnectionId)
@@ -217,6 +255,37 @@ function App(): React.ReactElement {
     }
   }, [selectedConnectionId, setTags])
 
+  // Handle profile save
+  const handleProfileSave = useCallback(async (name: string, connectionIds: string[]) => {
+    await window.electronAPI.profile.save({ name, connectionIds })
+    setProfileSaveOpen(false)
+  }, [])
+
+  // Handle profile load
+  const handleProfileLoad = useCallback(async (name: string) => {
+    try {
+      const result = await window.electronAPI.profile.load(name)
+      if (result.success) {
+        // Refresh connection list to show restored connections
+        const listResult = await window.electronAPI.connection.list()
+        setConnections(listResult.connections)
+        setProfileListOpen(false)
+      }
+    } catch (error) {
+      console.error('Failed to load profile:', error)
+    }
+  }, [setConnections])
+
+  // Handle profile export
+  const handleProfileExport = useCallback(async (name: string) => {
+    await window.electronAPI.profile.export(name)
+  }, [])
+
+  // Handle profile delete
+  const handleProfileDelete = useCallback(async (name: string) => {
+    await window.electronAPI.profile.delete(name)
+  }, [])
+
   // Initialize connections on mount
   useEffect(() => {
     const initializeConnections = async () => {
@@ -311,22 +380,73 @@ function App(): React.ReactElement {
         />
       )}
 
+      {/* Profile Save Dialog */}
+      <ProfileDialog
+        isOpen={profileSaveOpen}
+        connections={connections}
+        onClose={() => setProfileSaveOpen(false)}
+        onSave={handleProfileSave}
+      />
+
+      {/* Profile List Dialog (load/manage) */}
+      {profileListOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-xl w-[500px] max-h-[600px] overflow-y-auto p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                {t('sidebar.loadProfile')}
+              </h2>
+              <button
+                onClick={() => setProfileListOpen(false)}
+                className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors"
+              >
+                &times;
+              </button>
+            </div>
+            <ProfileList
+              onLoad={handleProfileLoad}
+              onExport={handleProfileExport}
+              onDelete={handleProfileDelete}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Sidebar */}
       <SidebarV2
         connections={sidebarConnections}
         fullConnections={connections}
         selectedConnectionId={selectedConnectionId}
         onNewConnection={() => setNewConnectionDialogOpen(true)}
-        onSelectConnection={setSelectedConnectionId}
+        onSelectConnection={(id) => { setSelectedConnectionId(id); setSelectedTool(null) }}
         onEditConnection={handleEditConnection}
         onDeleteConnection={handleDeleteConnection}
-        userName="Operator"
+        onSaveProfile={() => setProfileSaveOpen(true)}
+        onLoadProfile={() => setProfileListOpen(true)}
+        onOpenSettings={() => setSettingsOpen(true)}
+        selectedTool={selectedTool}
+        onSelectTool={(tool) => {
+          setSelectedTool(tool)
+          if (tool) setSelectedConnectionId(null)
+        }}
       />
 
       {/* Main Content */}
       <main className="flex-1 overflow-hidden flex flex-col">
         <UpdateBanner />
-        {selectedConnectionId && selectedConnection ? (
+        {selectedTool === 'calculator' ? (
+          <div className="flex-1 overflow-y-auto p-6 bg-gray-50 dark:bg-[#0d1117]">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">{t('tools.calculatorTitle')}</h2>
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+              <CrcCalculator />
+              <FloatDecoder />
+              <ByteOrderConverter />
+              <PacketAnalyzer />
+            </div>
+          </div>
+        ) : selectedTool ? (
+          <ToolPlaceholder tool={selectedTool} />
+        ) : selectedConnectionId && selectedConnection ? (
           <DataExplorer
             connectionId={selectedConnectionId}
             connectionName={selectedConnection.name}
@@ -341,7 +461,7 @@ function App(): React.ReactElement {
             onEditConnection={() => handleEditConnection(selectedConnection)}
           />
         ) : (
-          <div className="flex-1 flex items-center justify-center bg-white dark:bg-transparent">
+          <div className="flex-1 flex items-center justify-center bg-gray-50 dark:bg-transparent">
             <div className="text-center">
               <Logo size={64} className="mx-auto mb-6 opacity-50" />
               <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
@@ -369,6 +489,7 @@ function App(): React.ReactElement {
       </main>
       <ToastContainer />
       <HelpPanel />
+      <SettingsDialog isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   )
 }

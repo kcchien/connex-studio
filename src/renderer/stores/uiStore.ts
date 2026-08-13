@@ -19,6 +19,7 @@ interface UIState {
 
   // Sidebar
   sidebarCollapsed: boolean
+  sidebarWidth: number
 
   // Log viewer
   logViewerOpen: boolean
@@ -41,6 +42,7 @@ interface UIState {
   toggleTheme: () => void
   setSidebarCollapsed: (collapsed: boolean) => void
   toggleSidebar: () => void
+  setSidebarWidth: (width: number) => void
   setLogViewerOpen: (open: boolean) => void
   toggleLogViewer: () => void
 
@@ -85,6 +87,7 @@ export const useUIStore = create<UIState>()(
       theme: 'system',
       resolvedTheme: resolveTheme('system'),
       sidebarCollapsed: false,
+      sidebarWidth: 280,
       logViewerOpen: false,
       helpPanelOpen: false,
       language: (navigator.language.startsWith('zh') ? 'zh-TW' : 'en') as 'en' | 'zh-TW',
@@ -122,6 +125,7 @@ export const useUIStore = create<UIState>()(
       // Sidebar actions
       setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
       toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
+      setSidebarWidth: (width) => set({ sidebarWidth: Math.max(200, Math.min(480, width)) }),
 
       // Log viewer actions
       setLogViewerOpen: (open) => set({ logViewerOpen: open }),
@@ -144,8 +148,8 @@ export const useUIStore = create<UIState>()(
       partialize: (state) => ({
         theme: state.theme,
         sidebarCollapsed: state.sidebarCollapsed,
+        sidebarWidth: state.sidebarWidth,
         language: state.language,
-        // Don't persist logViewerOpen - always start closed
       }),
       onRehydrateStorage: () => {
         return (state) => {

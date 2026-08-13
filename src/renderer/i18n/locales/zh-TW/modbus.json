@@ -96,6 +96,7 @@
   "tag.gridValue": "數值",
   "tag.gridQuality": "品質",
   "tag.gridActions": "操作",
+  "tag.searchPlaceholder": "依名稱或位址搜尋標籤...",
   "tag.retained": "已保留",
   "tag.historicalData": "歷史資料",
   "tag.enabled.label": "已啟用",

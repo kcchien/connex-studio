@@ -96,6 +96,7 @@
   "tag.gridValue": "Value",
   "tag.gridQuality": "Quality",
   "tag.gridActions": "Actions",
+  "tag.searchPlaceholder": "Search tags by name or address...",
   "tag.retained": "Retained",
   "tag.historicalData": "Historical data",
   "tag.enabled.label": "Enabled",

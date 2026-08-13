@@ -391,7 +391,7 @@ export function TagDetailPanel({
                   )}
                   {errorDetails?.suggestion && (
                     <div className="mt-1.5 text-xs text-muted-foreground italic">
-                      💡 {errorDetails.suggestion}
+                      Tip: {errorDetails.suggestion}
                     </div>
                   )}
                   {displayState?.consecutiveFailures > 0 && (

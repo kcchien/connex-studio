@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-08-14
+
+首個正式版。定位為「穩定可用版」：現有功能全數走真實路徑、資料重啟不遺失、三協定經模擬器實測、三平台安裝驗證。
+
+### Added
+
+- **Session 自動保存與還原**：關閉應用時自動保存連線與標籤，下次啟動自動復原
+- **側邊欄工具導覽**：協定計算機（CRC、浮點解碼、位元組排序、封包分析）完整功能頁；儀表板、警報、橋接、DVR 為預告佔位頁（功能入口在連線檢視內）
+- **設定對話框**：連線、輪詢、顯示、應用四分頁
+- **Profile 儲存／載入對話框**整合至主畫面
+- **TagGrid 搜尋列**：標籤達 5 個時顯示，依名稱與位址過濾
+- **設定持久化**：儀表板、橋接、警報規則、環境變數組變更後自動寫入，重啟不遺失
+- **驗證基礎設施**：Modbus／OPC UA 模擬器腳本（scripts/sim/）、IPC 驅動深度驗證套件（scripts/verify/）、Windows 冒煙 CI
+
+### Fixed
+
+- **MQTT 訂閱值永不更新**：訊息處理器以不完整的標籤物件解析 payload 導致靜默失敗，已修正
+- **OPC UA 連線卡死**：用戶端憑證 PKI 改存 userData（原預設位置在打包後不可寫）
+- **連線逾時**：OPC UA 首連放寬至 30 秒（憑證生成＋session 建立），其餘協定 10 秒
+- **外部連結白名單**：僅放行 http(s) 網址至系統瀏覽器
+
+### Changed
+
+- 打包原生可選依賴 stub 改用 resolve.alias；pnpm v11 設定遷移至 pnpm-workspace.yaml
+- task_plan.md 商用化計劃退役歸檔（docs/plans/），收尾工作改由 wayfinder 地圖（issue #5）追蹤
+
 ## [0.3.0] - 2026-03-22
 
 ### Added

@@ -1,8 +1,10 @@
-allowBuild: '@serialport/bindings-cpp better-sqlite3 electron esbuild lzma-native'
+overrides:
+  env-paths: 2.2.1
 
-ignoredBuiltDependencies:
-  - '@serialport/bindings-cpp'
-  - better-sqlite3
-  - electron
-  - esbuild
-  - lzma-native
+allowBuilds:
+  '@serialport/bindings-cpp': true
+  better-sqlite3: true
+  electron: true
+  electron-winstaller: true
+  esbuild: true
+  lzma-native: true

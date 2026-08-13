@@ -1,5 +1,5 @@
-import { resolve } from 'path'
-import { builtinModules } from 'module'
+import { resolve, dirname, join } from 'path'
+import { builtinModules, createRequire } from 'module'
 import { cpSync } from 'fs'
 import { defineConfig } from 'electron-vite'
 import type { Plugin } from 'vite'
@@ -29,32 +29,6 @@ function patchInteropNamespace(): Plugin {
 }
 
 /**
- * Stub out packages with native bindings that we don't actually use.
- * modbus-serial requires serialport for RS-485/RTU connections, but
- * we only use Modbus TCP (which uses Node.js net module, no native code).
- * Without this stub, Rollup hoists require("serialport") to top-level
- * and it fails at load time in the packaged app.
- */
-function stubNativePackages(): Plugin {
-  const stubs: Record<string, string> = {
-    serialport: 'module.exports = {};',
-    '@serialport/bindings-cpp': 'module.exports = {};',
-    '@serialport/bindings-interface': 'module.exports = {};',
-  }
-  return {
-    name: 'stub-native-packages',
-    resolveId(id) {
-      if (id in stubs) return `\0stub:${id}`
-      return null
-    },
-    load(id) {
-      if (id.startsWith('\0stub:')) return stubs[id.slice(6)]
-      return null
-    }
-  }
-}
-
-/**
  * Copy node-opcua-nodesets XML files to out/nodesets/ after build.
  * The bundled code resolves them via __dirname + "/../nodesets/".
  */
@@ -62,7 +36,9 @@ function copyOpcUaNodesets(): Plugin {
   return {
     name: 'copy-opcua-nodesets',
     closeBundle() {
-      const src = resolve('node_modules/node-opcua-nodesets/nodesets')
+      // Resolve via package entry — pnpm may not hoist the package to root node_modules
+      const pkgDir = dirname(createRequire(import.meta.url).resolve('node-opcua-nodesets/package.json'))
+      const src = join(pkgDir, 'nodesets')
       const dest = resolve('out/nodesets')
       cpSync(src, dest, { recursive: true })
     }
@@ -75,7 +51,14 @@ export default defineConfig({
     resolve: {
       alias: {
         '@main': resolve('src/main'),
-        '@shared': resolve('src/shared')
+        '@shared': resolve('src/shared'),
+        // Stub optional native deps — resolved BEFORE Vite's built-in
+        // optional-peer-dep handler which inserts throw-on-load code
+        'bufferutil': resolve('src/main/stubs/empty.cjs'),
+        'utf-8-validate': resolve('src/main/stubs/empty.cjs'),
+        'serialport': resolve('src/main/stubs/empty.cjs'),
+        '@serialport/bindings-cpp': resolve('src/main/stubs/empty.cjs'),
+        '@serialport/bindings-interface': resolve('src/main/stubs/empty.cjs'),
       }
     },
     build: {
@@ -92,7 +75,7 @@ export default defineConfig({
           ...builtins,
           // Native binary (.node) — must stay external
           'better-sqlite3',
-          // serialport/bindings-cpp are stubbed by stubNativePackages plugin
+          // Native optional deps are stubbed via resolve.alias → empty.cjs
         ],
         output: {
           // CJS avoids broken ESM shim injection in multiline strings.
@@ -101,7 +84,7 @@ export default defineConfig({
           entryFileNames: '[name].cjs',
           inlineDynamicImports: true
         },
-        plugins: [stubNativePackages(), patchInteropNamespace()]
+        plugins: [patchInteropNamespace()]
       }
     }
   },

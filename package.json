@@ -4,18 +4,6 @@
   "description": "IIoT Protocol Studio - Cross-platform GUI for industrial protocol testing",
   "main": "out/main/index.cjs",
   "type": "module",
-  "pnpm": {
-    "overrides": {
-      "env-paths": "2.2.1"
-    },
-    "onlyBuiltDependencies": [
-      "@serialport/bindings-cpp",
-      "better-sqlite3",
-      "electron",
-      "esbuild",
-      "lzma-native"
-    ]
-  },
   "scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build",
